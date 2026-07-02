@@ -800,4 +800,3 @@ func (pi *PlayerInventory) ConsumeAoL() bool {
 	}
 	return false
 }
-

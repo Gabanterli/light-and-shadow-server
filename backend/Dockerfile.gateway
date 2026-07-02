@@ -20,6 +20,7 @@ FROM alpine:3.18
 WORKDIR /app
 
 COPY --from=builder /app/gateway .
+COPY --from=builder /app/config ./config
 
 # Expondo as portas TCP e HTTP do Gateway
 EXPOSE 8080

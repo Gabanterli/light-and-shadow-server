@@ -69,10 +69,50 @@ type EconomyManager struct {
 // NewEconomyManager inicializa o gerenciador da economia
 func NewEconomyManager(db *sql.DB, ms *movement.MovementSystem, rawItemsJSON []byte) *EconomyManager {
 	defs := make(map[string]ItemDefinition)
-	if err := json.Unmarshal(rawItemsJSON, &defs); err != nil {
-		slog.Error("Failed to unmarshal item definitions for economy manager", "error", err)
+
+	if len(rawItemsJSON) == 0 {
+		slog.Warn("No items.json data provided to economy manager, running with empty item definitions")
 	} else {
-		slog.Info("Loaded item definitions for authoritative economy shop validations", "count", len(defs))
+		if err := json.Unmarshal(rawItemsJSON, &defs); err == nil {
+			slog.Info("Loaded item definitions for authoritative economy shop validations from map format", "count", len(defs))
+		} else {
+			var inventoryItems []struct {
+				ID              string `json:"ID"`
+				Name            string `json:"Name"`
+				Type            string `json:"Type"`
+				MaxStack        int    `json:"MaxStack"`
+				ValueGold       int64  `json:"ValueGold"`
+				RepairCost      int64  `json:"RepairCost"`
+				ValueGoldSnake  int64  `json:"value_gold"`
+				RepairCostSnake int64  `json:"repair_cost"`
+			}
+
+			if listErr := json.Unmarshal(rawItemsJSON, &inventoryItems); listErr != nil {
+				slog.Error("Failed to unmarshal item definitions for economy manager", "map_error", err, "list_error", listErr)
+			} else {
+				for _, item := range inventoryItems {
+					valueGold := item.ValueGold
+					if valueGold == 0 {
+						valueGold = item.ValueGoldSnake
+					}
+
+					repairCost := item.RepairCost
+					if repairCost == 0 {
+						repairCost = item.RepairCostSnake
+					}
+
+					defs[item.ID] = ItemDefinition{
+						ItemID:     item.ID,
+						Name:       item.Name,
+						Type:       item.Type,
+						ValueGold:  valueGold,
+						RepairCost: repairCost,
+						MaxStack:   item.MaxStack,
+					}
+				}
+				slog.Info("Loaded item definitions for authoritative economy shop validations from inventory list format", "count", len(defs))
+			}
+		}
 	}
 
 	return &EconomyManager{
