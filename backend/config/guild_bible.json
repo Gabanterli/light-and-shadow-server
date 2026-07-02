@@ -1,0 +1,77 @@
+{
+  "SystemName": "Guild & Social Bible (Final Canon Version)",
+  "Philosophy": "Guilds in Light and Shadow are designed as lightweight social coordination structures, prioritizing group cohesion and individual ownership while strictly avoiding geopolitical territorial dominance or collective economic engines.",
+  "CanonicalRules": [
+    {
+      "Id": "guild-core-principle",
+      "Text": "Guilds function as small-scale social coordination groups and are not territorial, political, or economic control entities."
+    },
+    {
+      "Id": "guild-size-limit",
+      "Text": "Guilds are limited to a maximum of 30 members."
+    },
+    {
+      "Id": "guild-rank-rule",
+      "Text": "Guilds use a fixed three-rank hierarchy: Leader, Officer, Member."
+    },
+    {
+      "Id": "guild-alliance-rule",
+      "Text": "There are no formal alliance systems between guilds."
+    },
+    {
+      "Id": "guild-storage-rule",
+      "Text": "Guilds do not have shared banks or collective storage systems."
+    },
+    {
+      "Id": "guild-pvp-rule",
+      "Text": "Guild membership does not prevent PvP interactions outside safe zones."
+    },
+    {
+      "Id": "guild-creation-rule",
+      "Text": "Guild creation has no currency cost and is freely available to eligible players."
+    },
+    {
+      "Id": "guild-house-acquisition-rule",
+      "Text": "Guild houses are acquired exclusively through gold payments."
+    },
+    {
+      "Id": "guild-house-rule",
+      "Text": "Guild Houses function as social and utility hubs providing services such as crafting stations, NPC interactions, and quest/contract boards."
+    },
+    {
+      "Id": "guild-design-boundary",
+      "Text": "Guild systems are designed as lightweight social structures and must not extend into territorial control or global economic dominance."
+    }
+  ],
+  "SystemDetails": {
+    "MaxMembership": 30,
+    "Hierarchy": ["Leader", "Officer", "Member"],
+    "SharedStorage": {
+      "Exists": false,
+      "DesignIntent": "Prevent collective economic monopolies and guild tax systems. Items remain individually owned. Trust is strictly social."
+    },
+    "AllianceSystem": {
+      "Exists": false,
+      "DesignIntent": "Avoid massive zerg alliances and mega-coalitions. Small-scale group identity is preserved."
+    },
+    "PvPBehavior": {
+      "PreventFriendlyFireInOpenWorld": false,
+      "DesignIntent": "Open world is inherently dangerous. Trust is a resource that must be actively managed by players. Betrayal is a mechanical possibility."
+    },
+    "CreationFee": {
+      "CoinsRequired": 0,
+      "Description": "Absolutely free to create. Encourages organic social grouping without artificial economic gates."
+    }
+  },
+  "GuildHouses": {
+    "AcquisitionMethod": "Gold-only purchase",
+    "BaseCost": "100 Gold Coins",
+    "ProvidedUtility": [
+      "Meeting space",
+      "Private crafting stations",
+      "NPC vendor interaction",
+      "Localized quest/contract boards",
+      "Trophy rooms and visual guild identity banners"
+    ]
+  }
+}

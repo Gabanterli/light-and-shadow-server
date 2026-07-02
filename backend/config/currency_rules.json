@@ -1,0 +1,44 @@
+{
+  "CurrencyHierarchy": {
+    "BronzeCoin": {
+      "Value": 1,
+      "Description": "Moeda de Bronze - Circulação em massa, economia inicial"
+    },
+    "SilverCoin": {
+      "Value": 100,
+      "Description": "Moeda de Prata - Economia intermediária, serviços e reparos"
+    },
+    "GoldCoin": {
+      "Value": 10000,
+      "Description": "Moeda de Ouro - Comércio de endgame, criação de equipamentos de elite"
+    },
+    "DiamondCoin": {
+      "Value": 1000000,
+      "Description": "Moeda de Diamante - Economia de altíssimo valor, transações de guildas"
+    }
+  },
+  "ConversionRates": {
+    "1_Silver_In_Bronze": 100,
+    "1_Gold_In_Silver": 100,
+    "1_Diamond_In_Gold": 100,
+    "1_Gold_In_Bronze": 10000,
+    "1_Diamond_In_Bronze": 1000000
+  },
+  "CarrierRules": {
+    "FrequentCarriers": [
+      "humanoids",
+      "bandits",
+      "pirates",
+      "mercenaries",
+      "cultists"
+    ],
+    "RareCarriers": [
+      "beasts",
+      "dragons",
+      "flora",
+      "insects",
+      "elementals"
+    ],
+    "CanonicalRule": "Biological creatures rarely carry currency directly, while civilized intelligent creatures do so more frequently."
+  }
+}

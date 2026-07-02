@@ -1,0 +1,39 @@
+{
+  "affix_pool": {
+    "offensive": [
+      { "key": "atk", "name": "ATK", "type": "flat", "description": "Increases flat physical or magic attack power." },
+      { "key": "crit_chance", "name": "Crit Chance", "type": "percent", "description": "Increases chance to land a critical strike." },
+      { "key": "crit_damage", "name": "Crit Damage", "type": "percent", "description": "Increases damage multiplier of critical strikes." },
+      { "key": "armor_penetration", "name": "Armor Penetration", "type": "percent", "description": "Bypasses a portion of the target's physical defense." },
+      { "key": "attack_speed", "name": "Attack Speed", "type": "percent", "description": "Increases basic attack or casting frequency." },
+      { "key": "skill_power", "name": "Skill Power", "type": "percent", "description": "Amplifies active skill base multipliers." }
+    ],
+    "defensive": [
+      { "key": "armor", "name": "Armor", "type": "flat", "description": "Reduces physical damage taken." },
+      { "key": "magic_resist", "name": "Magic Resist", "type": "flat", "description": "Reduces incoming magical and elemental damage." },
+      { "key": "dodge", "name": "Dodge", "type": "percent", "description": "Chance to completely evade standard physical strikes." },
+      { "key": "block_chance", "name": "Block Chance", "type": "percent", "description": "Chance to absorb incoming attacks with active shields." },
+      { "key": "max_hp", "name": "Max HP", "type": "flat", "description": "Increases total health reserve." }
+    ],
+    "resource": [
+      { "key": "max_mana", "name": "Max Mana", "type": "flat", "description": "Increases total mana reserve." },
+      { "key": "mana_regeneration", "name": "Mana Regeneration", "type": "flat_per_sec", "description": "Sustains casting by regenerating mana over time." },
+      { "key": "hp_regeneration", "name": "HP Regeneration", "type": "flat_per_sec", "description": "Restores health over time outside of active healing." },
+      { "key": "cooldown_reduction", "name": "Cooldown Reduction", "type": "percent", "description": "Reduces reactivation time on all spell and physical skills." }
+    ],
+    "elemental_offense": [
+      { "key": "fire_attack", "name": "Fire Attack", "type": "flat", "element": "Fire" },
+      { "key": "ice_attack", "name": "Ice Attack", "type": "flat", "element": "Ice" },
+      { "key": "holy_attack", "name": "Holy Attack", "type": "flat", "element": "Holy" },
+      { "key": "shadow_attack", "name": "Shadow Attack", "type": "flat", "element": "Shadow" },
+      { "key": "nature_attack", "name": "Nature Attack", "type": "flat", "element": "Nature" }
+    ],
+    "elemental_defense": [
+      { "key": "fire_resist", "name": "Fire Resist", "type": "percent", "element": "Fire" },
+      { "key": "ice_resist", "name": "Ice Resist", "type": "percent", "element": "Ice" },
+      { "key": "holy_resist", "name": "Holy Resist", "type": "percent", "element": "Holy" },
+      { "key": "shadow_resist", "name": "Shadow Resist", "type": "percent", "element": "Shadow" },
+      { "key": "nature_resist", "name": "Nature Resist", "type": "percent", "element": "Nature" }
+    ]
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "SystemName": "Controlled Loot Economy Table",
+  "RarityRates": {
+    "Normal": 0.60,
+    "Magic": 0.25,
+    "Rare": 0.10,
+    "Epic": 0.04,
+    "Legendary": 0.01
+  },
+  "Drops": [
+    {
+      "LootId": "rusted_sword",
+      "LootName": "Rusted Knight Sword",
+      "Rarity": "Normal",
+      "Category": "Weapons",
+      "Biomes": ["Sewers / Ruins", "Crypts / Dark Forests"],
+      "DropRate%": 45.0,
+      "BaseValue": 15
+    },
+    {
+      "LootId": "golem_core_fragment",
+      "LootName": "Stonewarded Golem Core",
+      "Rarity": "Rare",
+      "Category": "Crafting Materials",
+      "Biomes": ["Mountain Peaks"],
+      "DropRate%": 12.5,
+      "BaseValue": 150
+    },
+    {
+      "LootId": "shadow_stalker_dagger",
+      "LootName": "Vesper Shadow Dagger",
+      "Rarity": "Epic",
+      "Category": "Weapons",
+      "Biomes": ["Ancient Spires"],
+      "DropRate%": 2.5,
+      "BaseValue": 850
+    },
+    {
+      "LootId": "ignisaur_scale_mail",
+      "LootName": "Ash Devourer Scale Plate",
+      "Rarity": "Legendary",
+      "Category": "Armor",
+      "Biomes": ["Volcanic Caldera (Open World)"],
+      "DropRate%": 0.5,
+      "BaseValue": 5000
+    },
+    {
+      "LootId": "soul_binder_staff",
+      "LootName": "Staff of Eternal Winter",
+      "Rarity": "Legendary",
+      "Category": "Weapons",
+      "Biomes": ["Glacial Palace (Instanced)"],
+      "DropRate%": 1.0,
+      "BaseValue": 4500
+    },
+    {
+      "LootId": "elemental_mana_crystal",
+      "LootName": "Pure Elemental Core",
+      "Rarity": "Magic",
+      "Category": "Shards",
+      "Biomes": ["Mountain Peaks", "Ancient Spires", "Volcanic Caldera (Open World)", "Glacial Palace (Instanced)"],
+      "DropRate%": 20.0,
+      "BaseValue": 120
+    }
+  ]
+}

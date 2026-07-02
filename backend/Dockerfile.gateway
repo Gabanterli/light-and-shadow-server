@@ -1,0 +1,28 @@
+# Estágio de Compilação
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /app
+
+# Copia arquivos de dependência
+COPY go.mod ./
+# Se houver go.sum copiaria aqui. Como não há dependências extras compiladas de imediato, apenas iniciamos.
+RUN go mod download
+
+# Copia todo o código-fonte do backend
+COPY . .
+
+# Compila o binário estático do Gateway Server
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o gateway cmd/gateway/main.go
+
+# Estágio de Execução Mínimo
+FROM alpine:3.18
+
+WORKDIR /app
+
+COPY --from=builder /app/gateway .
+
+# Expondo as portas TCP e HTTP do Gateway
+EXPOSE 8080
+EXPOSE 9080
+
+CMD ["./gateway"]

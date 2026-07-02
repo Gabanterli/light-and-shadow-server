@@ -1,0 +1,142 @@
+[
+  {
+    "id": "forest",
+    "name": "Whispering Woodlands (Forest)",
+    "description": "Lush, dense temperate forests inhabited by beasts, wild plants, and druidic forces. Safe starting areas flank high-density deep woods.",
+    "elemental_affinity": "Nature",
+    "hazard_level": 0.1,
+    "difficulty_multiplier": 1.0,
+    "encounter_density": "Medium",
+    "native_monster_families": ["Beast", "Plant", "Insect", "Goblinoid"],
+    "environmental_hazards": [],
+    "loot_modifiers": {
+      "rarity_bonus": 1.0,
+      "materials_available": ["Treated Lumber", "Herbs", "Leather Pelts"],
+      "affix_weights": {
+        "vitality": 1.5,
+        "dexterity": 1.2,
+        "poison_resistance": 1.3
+      }
+    }
+  },
+  {
+    "id": "desert",
+    "name": "Shifting Sands (Desert)",
+    "description": "Scorching sun-baked wastes with immense dune fields and hidden subterranean ruins.",
+    "elemental_affinity": "Earth",
+    "hazard_level": 0.4,
+    "difficulty_multiplier": 1.15,
+    "encounter_density": "Low",
+    "native_monster_families": ["Reptilian", "Elemental", "Insect", "Undead"],
+    "environmental_hazards": ["Heat Exhaustion (Slows health regen)", "Sandstorms (Reduces line of sight)"],
+    "loot_modifiers": {
+      "rarity_bonus": 1.1,
+      "materials_available": ["Fine Sand", "Ancient Relics", "Sunstone Ore"],
+      "affix_weights": {
+        "fire_resistance": 1.4,
+        "accuracy": 1.3,
+        "stamina": 1.2
+      }
+    }
+  },
+  {
+    "id": "frozen_tundra",
+    "name": "Frostbite Wastes (Frozen Tundra)",
+    "description": "Glacial valleys and ice-locked peaks where only the hardiest survive.",
+    "elemental_affinity": "Ice",
+    "hazard_level": 0.5,
+    "difficulty_multiplier": 1.2,
+    "encounter_density": "Medium",
+    "native_monster_families": ["Beast", "Giant", "Elemental", "Undead"],
+    "environmental_hazards": ["Hypothermia (Drains stamina and slows movement speed)"],
+    "loot_modifiers": {
+      "rarity_bonus": 1.15,
+      "materials_available": ["Glacial Ice Crystal", "Frost Leather", "Silver Ore"],
+      "affix_weights": {
+        "cold_damage": 1.5,
+        "physical_defense": 1.2,
+        "ice_resistance": 1.6
+      }
+    }
+  },
+  {
+    "id": "swamp",
+    "name": "Mire of Murk (Swamp)",
+    "description": "Decaying marshes and toxic bayous filled with gas vents and treacherous sinkholes.",
+    "elemental_affinity": "Poison",
+    "hazard_level": 0.6,
+    "difficulty_multiplier": 1.25,
+    "encounter_density": "High",
+    "native_monster_families": ["Reptilian", "Plant", "Insect", "Aberration"],
+    "environmental_hazards": ["Toxic Gas Miasma (Applies poison damage over time)"],
+    "loot_modifiers": {
+      "rarity_bonus": 1.2,
+      "materials_available": ["Poison Sacks", "Bog Iron", "Rare Moss"],
+      "affix_weights": {
+        "poison_damage": 1.6,
+        "lifesteal": 1.4,
+        "acid_touch": 1.3
+      }
+    }
+  },
+  {
+    "id": "volcanic",
+    "name": "Cinder Wastes (Volcanic Region)",
+    "description": "Basalt plains and magma rivers. Extreme danger, rich in prime metal veins.",
+    "elemental_affinity": "Fire",
+    "hazard_level": 0.8,
+    "difficulty_multiplier": 1.4,
+    "encounter_density": "High",
+    "native_monster_families": ["Demon", "Elemental", "Dragonkin"],
+    "environmental_hazards": ["Magma Flows (Instant high fire damage)", "Ash Choke (Silences spellcasting periodically)"],
+    "loot_modifiers": {
+      "rarity_bonus": 1.3,
+      "materials_available": ["Obsidian", "Sulfur Ore", "Magma Core"],
+      "affix_weights": {
+        "fire_damage": 1.7,
+        "strength": 1.4,
+        "critical_multiplier": 1.3
+      }
+    }
+  },
+  {
+    "id": "sacred_lands",
+    "name": "Sanctuary of Light (Sacred Lands)",
+    "description": "Radiant fields of golden light, protected by celestial structures and divine guardians.",
+    "elemental_affinity": "Holy",
+    "hazard_level": 0.2,
+    "difficulty_multiplier": 1.3,
+    "encounter_density": "Low",
+    "native_monster_families": ["Celestial", "Construct", "Humanoid"],
+    "environmental_hazards": ["Radiant Burn (Burns non-believers/unholy classes)"],
+    "loot_modifiers": {
+      "rarity_bonus": 1.4,
+      "materials_available": ["Sacred Dust", "Light Crystal", "Pure Gold Wire"],
+      "affix_weights": {
+        "holy_damage": 1.8,
+        "healing_bonus": 1.5,
+        "intelligence": 1.3
+      }
+    }
+  },
+  {
+    "id": "corrupted_zones",
+    "name": "The Abyss Scar (Corrupted Zones)",
+    "description": "Torn lands leaking dark void energy, twisting all native life into nightmares.",
+    "elemental_affinity": "Shadow",
+    "hazard_level": 0.9,
+    "difficulty_multiplier": 1.5,
+    "encounter_density": "Extreme",
+    "native_monster_families": ["Undead", "Demon", "Aberration", "Voidspawn"],
+    "environmental_hazards": ["Sanity Drain (Decreases maximum health over time)", "Void Fissures (Erupts with shadow damage)"],
+    "loot_modifiers": {
+      "rarity_bonus": 1.5,
+      "materials_available": ["Void Essence", "Corrupted Bone", "Dark Iron"],
+      "affix_weights": {
+        "shadow_damage": 1.8,
+        "corruption_infusion": 1.6,
+        "critical_chance": 1.4
+      }
+    }
+  }
+]

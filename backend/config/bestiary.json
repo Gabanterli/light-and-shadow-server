@@ -1,0 +1,31 @@
+{
+  "SystemName": "Canonical Bestiary Profiles",
+  "Description": "Defines behavioral roles, traits, and modifiers for core creature families without altering the canonical Bestiary system structures.",
+  "Families": {
+    "Demon": {
+      "BaseTraits": ["Fire Immunity", "High Aggression", "Spells: Hellfire Wave"],
+      "BehaviorProfile": "Furious Striker - primarily targets characters with low HP and utilizes rapid elemental spells.",
+      "EncounterRoles": ["Frontline Charger", "Ranged Spellcaster"]
+    },
+    "Dragon": {
+      "BaseTraits": ["Flight Mobility", "Breath Weapon", "High Armor"],
+      "BehaviorProfile": "Sovereign Decimator - sweeping area-of-effect elemental breathing, highly reactive to party coordination.",
+      "EncounterRoles": ["Apex Predator", "Zone Controller"]
+    },
+    "Beast": {
+      "BaseTraits": ["High Movement Speed", "Pack Instincts", "Physical Prowess"],
+      "BehaviorProfile": "Pack Stalker - gains physical speed and damage when spawning in groups or close to allies.",
+      "EncounterRoles": ["Swarm Skirmisher", "Flank Attacker"]
+    },
+    "Undead": {
+      "BaseTraits": ["Lifesteal Hits", "Resurrection Chance", "Slow Speed"],
+      "BehaviorProfile": "Relentless Vanguard - slow moving but highly durable, draining vitality from nearby targets on hit.",
+      "EncounterRoles": ["Stalwart Guard", "Disrupter"]
+    }
+  },
+  "ScalingModifiers": {
+    "Elite": { "HpScale": 1.8, "DamageScale": 1.4, "XpBonus": 2.0 },
+    "Champion": { "HpScale": 3.0, "DamageScale": 1.8, "XpBonus": 4.0 },
+    "Legendary": { "HpScale": 6.0, "DamageScale": 2.5, "XpBonus": 10.0 }
+  }
+}

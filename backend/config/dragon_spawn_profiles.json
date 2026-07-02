@@ -1,0 +1,51 @@
+{
+  "SystemName": "Hybrid Dragon Spawn Engine",
+  "CanonicalLoreRule": "Dragons inhabit the world according to territorial instinct, age, elemental affinity, and individual will.",
+  "SpawnCategories": [
+    {
+      "Category": "Nest Spawn",
+      "TargetAge": ["young_dragons", "lesser_dragons", "juvenile_dragons"],
+      "TypicalLairs": ["lava_caves", "frozen_caverns", "shadow_ruins"],
+      "Examples": ["wyverns", "fire_drakes", "juvenile_shadow_dragons"]
+    },
+    {
+      "Category": "Lair Spawn",
+      "TargetAge": ["mature_dragons", "adult_dragons", "elder_dragons"],
+      "CanonicalRule": "One lair equals one apex dragon territory.",
+      "TypicalLairs": ["volcanoes", "mountain_peaks", "glaciers", "ancient_ruins"],
+      "Examples": ["volcanic_dragon", "ancient_glacier_dragon"]
+    },
+    {
+      "Category": "Roaming Apex Spawn",
+      "TargetAge": ["ancient_dragons", "elder_shadow_dragons"],
+      "Characteristics": [
+        "global_movement",
+        "unpredictable_location",
+        "rare_sightings"
+      ],
+      "Examples": ["roaming_ancient_firestorms"]
+    },
+    {
+      "Category": "Sovereign Spawn",
+      "TargetAge": ["Dragon Lords", "Void Dragon Lord"],
+      "Rules": [
+        "no_traditional_respawn",
+        "regional_influence",
+        "server_scale_encounters"
+      ],
+      "Examples": ["void_dragon_lord"]
+    }
+  ],
+  "TerritorialLaw": {
+    "RuleText": "Two apex dragons rarely tolerate the same territory.",
+    "Consequences": [
+      "Dragon Lords avoid coexistence in overlapping subregions",
+      "Ancient Dragons will initiate combat over territory dominance when forced into proximity",
+      "Lesser Dragons (wyverns, drakes) may inhabit territory dominated by an Apex Dragon as subordinates"
+    ]
+  },
+  "DragonHoardingLaw": {
+    "RuleText": "Dragons accumulate valuable objects within their lairs.",
+    "LairTreatment": "Treasure-rich apex encounter zones with high loot scaling factor."
+  }
+}

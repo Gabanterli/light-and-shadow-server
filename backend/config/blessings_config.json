@@ -1,0 +1,118 @@
+{
+  "blessings": [
+    {
+      "id": "blessing_fire",
+      "name": "Primordial Blessing of Fire",
+      "description": "Protects against death penalties. Granted by the Hearth Altar."
+    },
+    {
+      "id": "blessing_ice",
+      "name": "Primordial Blessing of Ice",
+      "description": "Protects against death penalties. Granted by the Frost Altar."
+    },
+    {
+      "id": "blessing_holy",
+      "name": "Primordial Blessing of Holy",
+      "description": "Protects against death penalties. Granted by the Sanctum Altar."
+    },
+    {
+      "id": "blessing_shadow",
+      "name": "Primordial Blessing of Shadow",
+      "description": "Protects against death penalties. Granted by the Eclipse Altar."
+    },
+    {
+      "id": "blessing_nature",
+      "name": "Primordial Blessing of Nature",
+      "description": "Protects against death penalties. Granted by the Wild Altar."
+    },
+    {
+      "id": "blessing_abyss",
+      "name": "Primordial Blessing of the Abyss",
+      "description": "Protects against death penalties. Granted by the Void Altar."
+    },
+    {
+      "id": "blessing_light",
+      "name": "Primordial Blessing of Light",
+      "description": "Protects against death penalties. Granted by the Aurora Altar."
+    }
+  ],
+  "altars": [
+    {
+      "id": "altar_fire",
+      "name": "Hearth Altar",
+      "continent_name": "Fire Continent",
+      "blessing_id": "blessing_fire",
+      "x": 2100.0,
+      "y": 2100.0,
+      "z": 0,
+      "min_level": 50,
+      "altar_cost_bronze": 50000
+    },
+    {
+      "id": "altar_ice",
+      "name": "Frost Altar",
+      "continent_name": "Ice Continent",
+      "blessing_id": "blessing_ice",
+      "x": 2300.0,
+      "y": 2300.0,
+      "z": 0,
+      "min_level": 50,
+      "altar_cost_bronze": 100000
+    },
+    {
+      "id": "altar_holy",
+      "name": "Sanctum Altar",
+      "continent_name": "Holy Continent",
+      "blessing_id": "blessing_holy",
+      "x": 2500.0,
+      "y": 2500.0,
+      "z": 0,
+      "min_level": 50,
+      "altar_cost_bronze": 150000
+    },
+    {
+      "id": "altar_shadow",
+      "name": "Eclipse Altar",
+      "continent_name": "Shadow Continent",
+      "blessing_id": "blessing_shadow",
+      "x": 2700.0,
+      "y": 2700.0,
+      "z": 0,
+      "min_level": 50,
+      "altar_cost_bronze": 200000
+    },
+    {
+      "id": "altar_nature",
+      "name": "Wild Altar",
+      "continent_name": "Nature Continent",
+      "blessing_id": "blessing_nature",
+      "x": 2900.0,
+      "y": 2900.0,
+      "z": 0,
+      "min_level": 50,
+      "altar_cost_bronze": 250000
+    },
+    {
+      "id": "altar_abyss",
+      "name": "Void Altar",
+      "continent_name": "Abyssia",
+      "blessing_id": "blessing_abyss",
+      "x": 3405.0,
+      "y": 3105.0,
+      "z": 0,
+      "min_level": 150,
+      "altar_cost_bronze": 1000000
+    },
+    {
+      "id": "altar_light",
+      "name": "Aurora Altar",
+      "continent_name": "Main Continent",
+      "blessing_id": "blessing_light",
+      "x": 100.0,
+      "y": 100.0,
+      "z": 0,
+      "min_level": 1,
+      "altar_cost_bronze": 10000
+    }
+  ]
+}

@@ -1,0 +1,173 @@
+[
+  {
+    "ID": "goblin_loot",
+    "Items": [
+      {
+        "ItemID": "potion_heal",
+        "Chance": 0.50,
+        "MinQty": 1,
+        "MaxQty": 3
+      },
+      {
+        "ItemID": "iron_ore",
+        "Chance": 0.30,
+        "MinQty": 1,
+        "MaxQty": 2
+      },
+      {
+        "ItemID": "sword_basic",
+        "Chance": 0.05,
+        "MinQty": 1,
+        "MaxQty": 1
+      }
+    ]
+  },
+  {
+    "ID": "skeleton_loot",
+    "Items": [
+      {
+        "ItemID": "potion_heal",
+        "Chance": 0.40,
+        "MinQty": 1,
+        "MaxQty": 2
+      },
+      {
+        "ItemID": "iron_ore",
+        "Chance": 0.35,
+        "MinQty": 1,
+        "MaxQty": 3
+      },
+      {
+        "ItemID": "armor_leather",
+        "Chance": 0.10,
+        "MinQty": 1,
+        "MaxQty": 1
+      },
+      {
+        "ItemID": "sword_basic",
+        "Chance": 0.10,
+        "MinQty": 1,
+        "MaxQty": 1
+      }
+    ]
+  },
+  {
+    "ID": "boss_loot",
+    "Items": [
+      {
+        "ItemID": "sword_excalibur",
+        "Chance": 0.10,
+        "MinQty": 1,
+        "MaxQty": 1
+      },
+      {
+        "ItemID": "ring_crit",
+        "Chance": 0.25,
+        "MinQty": 1,
+        "MaxQty": 1
+      },
+      {
+        "ItemID": "armor_plate",
+        "Chance": 0.35,
+        "MinQty": 1,
+        "MaxQty": 1
+      }
+    ]
+  },
+  {
+    "ID": "common_demon_loot",
+    "Description": "Demonic Loot Law: Common Demons drop crafting/ritual materials scaling by hierarchy.",
+    "Items": [
+      {
+        "ItemID": "demonic_ash",
+        "Chance": 0.60,
+        "MinQty": 1,
+        "MaxQty": 4
+      },
+      {
+        "ItemID": "corrupted_blood",
+        "Chance": 0.50,
+        "MinQty": 1,
+        "MaxQty": 2
+      },
+      {
+        "ItemID": "low_demonic_essence",
+        "Chance": 0.30,
+        "MinQty": 1,
+        "MaxQty": 1
+      }
+    ]
+  },
+  {
+    "ID": "minor_demon_loot",
+    "Description": "Demonic Loot Law: Minor Demons (Elite Hunt Mobs, NOT Bosses).",
+    "Items": [
+      {
+        "ItemID": "demon_core_low",
+        "Chance": 0.80,
+        "MinQty": 1,
+        "MaxQty": 2
+      },
+      {
+        "ItemID": "infernal_fragment",
+        "Chance": 0.70,
+        "MinQty": 2,
+        "MaxQty": 5
+      },
+      {
+        "ItemID": "corrupted_crystal",
+        "Chance": 0.50,
+        "MinQty": 1,
+        "MaxQty": 3
+      }
+    ]
+  },
+  {
+    "ID": "commander_demon_loot",
+    "Description": "Demonic Loot Law: Commander level demon drops.",
+    "Items": [
+      {
+        "ItemID": "high_demon_core",
+        "Chance": 1.00,
+        "MinQty": 1,
+        "MaxQty": 2
+      },
+      {
+        "ItemID": "command_sigil",
+        "Chance": 0.90,
+        "MinQty": 1,
+        "MaxQty": 1
+      },
+      {
+        "ItemID": "primordial_shard",
+        "Chance": 0.60,
+        "MinQty": 1,
+        "MaxQty": 3
+      }
+    ]
+  },
+  {
+    "ID": "archegeneral_demon_loot",
+    "Description": "Demonic Loot Law: Archegeneral catastrophic manifestations.",
+    "Items": [
+      {
+        "ItemID": "primordial_relic",
+        "Chance": 1.00,
+        "MinQty": 1,
+        "MaxQty": 1
+      },
+      {
+        "ItemID": "abyssal_artifact",
+        "Chance": 0.50,
+        "MinQty": 1,
+        "MaxQty": 1
+      },
+      {
+        "ItemID": "apex_catalyst",
+        "Chance": 1.00,
+        "MinQty": 1,
+        "MaxQty": 2
+      }
+    ]
+  }
+]

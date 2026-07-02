@@ -1,0 +1,130 @@
+[
+  {
+    "quest_id": "quest_kill_goblins",
+    "title": "Ameaça Verde",
+    "description": "Derrote alguns Goblins que estão perturbando a vila.",
+    "objectives": [
+      {
+        "type": "KillMonster",
+        "target_id": "goblin",
+        "required_qty": 3,
+        "current_qty": 0
+      }
+    ],
+    "prerequisites": {
+      "level": 1,
+      "completed_quest_ids": []
+    },
+    "rewards": {
+      "experience": 200,
+      "gold": 50,
+      "items": [
+        {
+          "item_id": "potion_heal",
+          "quantity": 2
+        }
+      ],
+      "reputation": 10
+    },
+    "repeatable": false
+  },
+  {
+    "quest_id": "quest_collect_iron",
+    "title": "Suprimentos de Ferro",
+    "description": "Consiga Minério de Ferro para as defesas.",
+    "objectives": [
+      {
+        "type": "CollectItem",
+        "target_id": "iron_ore",
+        "required_qty": 5,
+        "current_qty": 0
+      }
+    ],
+    "prerequisites": {
+      "level": 2,
+      "completed_quest_ids": ["quest_kill_goblins"]
+    },
+    "rewards": {
+      "experience": 300,
+      "gold": 100,
+      "items": [
+        {
+          "item_id": "sword_basic",
+          "quantity": 1
+        }
+      ],
+      "reputation": 15
+    },
+    "repeatable": true
+  },
+  {
+    "quest_id": "holy_continent_access_trial",
+    "title": "Julgamento de Acesso ao Continente Sagrado",
+    "description": "Prove que você possui os três pilares espirituais essenciais para entrar no solo sagrado: Coragem, Sabedoria e Pureza.",
+    "objectives": [
+      {
+        "type": "SpiritualTrial",
+        "target_id": "pillar_courage",
+        "required_qty": 1,
+        "current_qty": 0
+      },
+      {
+        "type": "SpiritualTrial",
+        "target_id": "pillar_wisdom",
+        "required_qty": 1,
+        "current_qty": 0
+      },
+      {
+        "type": "SpiritualTrial",
+        "target_id": "pillar_purity",
+        "required_qty": 1,
+        "current_qty": 0
+      }
+    ],
+    "prerequisites": {
+      "level": 50,
+      "completed_quest_ids": []
+    },
+    "rewards": {
+      "experience": 5000,
+      "gold": 1000,
+      "items": [
+        {
+          "item_id": "holy_medallion",
+          "quantity": 1
+        }
+      ],
+      "reputation": 100
+    },
+    "repeatable": false
+  },
+  {
+    "quest_id": "quest_tutorial_sewer_rats",
+    "title": "A Infestação nos Esgotos de Ironhold",
+    "description": "Limpe os esgotos da cidade derrotando 10 Ratos de Esgoto sob as ordens do Capitão Kenneth.",
+    "objectives": [
+      {
+        "type": "KillMonster",
+        "target_id": "sewer_rat",
+        "required_qty": 10,
+        "current_qty": 0
+      }
+    ],
+    "prerequisites": {
+      "level": 1,
+      "completed_quest_ids": []
+    },
+    "rewards": {
+      "experience": 110,
+      "gold": 15,
+      "items": [
+        {
+          "item_id": "potion_heal",
+          "quantity": 3
+        }
+      ],
+      "reputation": 10
+    },
+    "repeatable": false
+  }
+]

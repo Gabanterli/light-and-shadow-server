@@ -1,0 +1,98 @@
+{
+  "SystemName": "Hybrid Threat & Dynamic Leash Engine",
+  "ThreatGeneration": {
+    "DamageDealtRatio": 1.0,
+    "HealingConcededRatio": 0.5,
+    "ThreatTauntMultiplier": 3.0,
+    "Examples": {
+      "100_Damage": "100 Threat",
+      "100_Healing": "50 Threat"
+    }
+  },
+  "ArchetypeInstinctModifiers": {
+    "BRUISER_TANK": {
+      "ThreatPercent": 80,
+      "InstinctPercent": 20,
+      "TargetPreference": "Frontline Melee, protect fragile allies"
+    },
+    "PREDATOR_ASSASSIN": {
+      "ThreatPercent": 40,
+      "InstinctPercent": 60,
+      "VulnerabilityTargetPreference": [
+        "low_hp",
+        "low_armor",
+        "ranged_caster"
+      ]
+    },
+    "RANGED_HUNTER": {
+      "ThreatPercent": 50,
+      "InstinctPercent": 50,
+      "TargetPreference": "Range efficiency optimization (6-12 tiles)"
+    },
+    "CASTER": {
+      "ThreatPercent": 50,
+      "InstinctPercent": 50,
+      "TargetPreference": "Clustered groups, low magic resistance targets"
+    },
+    "SUPPORT": {
+      "ThreatPercent": 30,
+      "InstinctPercent": 70,
+      "TargetPreference": "Sustain ally targets (Commander > Frontline > Nearest)"
+    },
+    "ELITE_COMMANDER": {
+      "ThreatPercent": 50,
+      "InstinctPercent": 50,
+      "TargetPreference": "Hybrid decision logic with commander aura control"
+    }
+  },
+  "DynamicLeash": {
+    "Tiers": {
+      "Tier1_PassiveTerritorial": {
+        "RangeTilesMin": 6,
+        "RangeTilesMax": 12,
+        "Examples": ["goblins", "weak_beasts"]
+      },
+      "Tier2_StandardAggressive": {
+        "RangeTilesMin": 15,
+        "RangeTilesMax": 30,
+        "Examples": ["wolves", "orcs", "skeletons"]
+      },
+      "Tier3_HunterPursuit": {
+        "RangeTilesMin": 40,
+        "RangeTilesMax": 80,
+        "Examples": ["predators", "assassins", "elite_beasts"]
+      },
+      "Tier4_CommanderTerritory": {
+        "RangeTilesMin": 100,
+        "RangeTilesMax": 1000,
+        "Examples": ["commanders", "minor_demons"]
+      },
+      "Tier5_ApexLegendary": {
+        "RangeTilesMin": -1,
+        "RangeTilesMax": -1,
+        "NoConventionalLeash": true,
+        "Examples": ["dragons", "archegenerals", "legendary_bosses"]
+      }
+    },
+    "ResetConditions": [
+      "no_valid_target_in_range",
+      "hard_leash_break",
+      "exploit_or_stuck_detection"
+    ]
+  },
+  "PackAggroRules": {
+    "Philosophy": "Solo Aggro",
+    "RuleText": "Aggro is primarily individual. Attacking one monster does NOT automatically aggro nearby monsters. Nearby hostile entities remain neutral unless independently triggered.",
+    "Exceptions": [
+      "summoned_adds",
+      "reinforcement_skills",
+      "scripted_boss_events"
+    ],
+    "PassiveSocialAggro": false,
+    "Benefits": [
+      "controlled_pulls",
+      "fewer_simultaneous_enemies",
+      "tactical_combat_readability"
+    ]
+  }
+}

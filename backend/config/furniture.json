@@ -1,0 +1,57 @@
+{
+  "furniture": [
+    {
+      "id": "furn_chair_wooden",
+      "name": "Rustic Wooden Chair",
+      "category": "seating",
+      "cost_bronze": 1000,
+      "decoration_cost": 5
+    },
+    {
+      "id": "furn_table_wooden",
+      "name": "Oak Dining Table",
+      "category": "tables",
+      "cost_bronze": 3000,
+      "decoration_cost": 10
+    },
+    {
+      "id": "furn_bed_comfy",
+      "name": "Royal Comfort Bed",
+      "category": "beds",
+      "cost_bronze": 8000,
+      "decoration_cost": 20
+    },
+    {
+      "id": "furn_secure_chest",
+      "name": "Secure Iron-Bound Chest",
+      "category": "storage",
+      "cost_bronze": 15000,
+      "functional": true,
+      "storage_bonus": 10,
+      "decoration_cost": 15
+    },
+    {
+      "id": "furn_guild_vault_gold",
+      "name": "Golden Guild Vault",
+      "category": "guild_storage",
+      "cost_bronze": 100000,
+      "functional": true,
+      "storage_bonus": 50,
+      "decoration_cost": 40
+    },
+    {
+      "id": "furn_trophy_dragon",
+      "name": "Crimson Dragon Skull Trophy",
+      "category": "trophy",
+      "cost_bronze": 50000,
+      "decoration_cost": 25
+    },
+    {
+      "id": "furn_trophy_kraken",
+      "name": "Kraken Tentacle Trophy",
+      "category": "trophy",
+      "cost_bronze": 75000,
+      "decoration_cost": 30
+    }
+  ]
+}

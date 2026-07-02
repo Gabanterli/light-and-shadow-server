@@ -1,0 +1,74 @@
+[
+  {
+    "NodeID": "iron_ore_vein_01",
+    "NodeType": "mining",
+    "ItemID": "iron_ore",
+    "MinLevel": 1,
+    "Duration": 2.0,
+    "XP": 10,
+    "RespawnTime": 10,
+    "X": 10.0,
+    "Y": 0.0,
+    "Z": 12.0
+  },
+  {
+    "NodeID": "copper_ore_vein_01",
+    "NodeType": "mining",
+    "ItemID": "copper_ore",
+    "MinLevel": 2,
+    "Duration": 3.0,
+    "XP": 20,
+    "RespawnTime": 15,
+    "X": 15.0,
+    "Y": 0.0,
+    "Z": 8.0
+  },
+  {
+    "NodeID": "oak_tree_01",
+    "NodeType": "woodcutting",
+    "ItemID": "oak_wood",
+    "MinLevel": 1,
+    "Duration": 2.5,
+    "XP": 12,
+    "RespawnTime": 12,
+    "X": 105.0,
+    "Y": 0.0,
+    "Z": 115.0
+  },
+  {
+    "NodeID": "health_shrub_01",
+    "NodeType": "herbalism",
+    "ItemID": "health_herb",
+    "MinLevel": 1,
+    "Duration": 1.5,
+    "XP": 8,
+    "RespawnTime": 8,
+    "X": 102.0,
+    "Y": 0.0,
+    "Z": 106.0
+  },
+  {
+    "NodeID": "mana_shrub_01",
+    "NodeType": "herbalism",
+    "ItemID": "mana_herb",
+    "MinLevel": 1,
+    "Duration": 1.5,
+    "XP": 8,
+    "RespawnTime": 8,
+    "X": 103.0,
+    "Y": 0.0,
+    "Z": 112.0
+  },
+  {
+    "NodeID": "fish_pond_01",
+    "NodeType": "fishing",
+    "ItemID": "raw_fish",
+    "MinLevel": 1,
+    "Duration": 4.0,
+    "XP": 15,
+    "RespawnTime": 20,
+    "X": 25.0,
+    "Y": -1.0,
+    "Z": 25.0
+  }
+]

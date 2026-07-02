@@ -1,0 +1,57 @@
+[
+  {
+    "id": "spawn_starter_goblins",
+    "region_id": "main_continent",
+    "monster_id": "goblin",
+    "x": 150.0,
+    "y": 150.0,
+    "z": 0.0,
+    "spawn_radius": 20.0,
+    "max_count": 5,
+    "respawn_time_seconds": 10
+  },
+  {
+    "id": "spawn_starter_iron_ore",
+    "region_id": "main_continent",
+    "resource_node_id": "iron_ore_vein_01",
+    "x": 120.0,
+    "y": 120.0,
+    "z": 0.0,
+    "spawn_radius": 10.0,
+    "max_count": 3,
+    "respawn_time_seconds": 15
+  },
+  {
+    "id": "spawn_midgame_skeletons",
+    "region_id": "main_continent",
+    "monster_id": "skeleton",
+    "x": 550.0,
+    "y": 550.0,
+    "z": 0.0,
+    "spawn_radius": 30.0,
+    "max_count": 8,
+    "respawn_time_seconds": 15
+  },
+  {
+    "id": "spawn_wilderness_resources",
+    "region_id": "main_continent",
+    "resource_node_id": "copper_ore_vein_01",
+    "x": 1450.0,
+    "y": 850.0,
+    "z": 0.0,
+    "spawn_radius": 20.0,
+    "max_count": 4,
+    "respawn_time_seconds": 20
+  },
+  {
+    "id": "spawn_wild_dragon_boss",
+    "region_id": "main_continent",
+    "monster_id": "dragon_boss",
+    "x": 1800.0,
+    "y": 200.0,
+    "z": 0.0,
+    "spawn_radius": 15.0,
+    "max_count": 1,
+    "respawn_time_seconds": 120
+  }
+]

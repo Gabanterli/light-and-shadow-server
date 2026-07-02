@@ -1,0 +1,65 @@
+{
+  "SystemName": "Monster & Creature Bible (Final Canon Version)",
+  "Philosophy": "Monsters are dynamically distributed across the world without fixed tier classification. Difficulty emerges from biome, encounter type, and modifier systems. Normal monsters use simple aggro loops, while elite and boss entities use tactical decision-making systems.",
+  "CanonicalRules": [
+    {
+      "Id": "monster-ecosystem-rule",
+      "Text": "Monsters are dynamically distributed across the world without fixed tier classification. Difficulty emerges from biome, encounter type, and modifier systems."
+    },
+    {
+      "Id": "monster-ai-rule",
+      "Text": "Monster AI follows a hybrid model where normal creatures use simple aggro logic while elite and boss entities use tactical decision-making systems."
+    },
+    {
+      "Id": "elemental-interaction-rule",
+      "Text": "Elemental interactions provide moderate damage modifiers and tactical advantages but do not determine combat outcomes alone."
+    },
+    {
+      "Id": "xp-performance-rule",
+      "Text": "Experience points are awarded based on player performance contribution during combat encounters rather than fixed monster values."
+    },
+    {
+      "Id": "loot-economy-rule",
+      "Text": "Loot distribution is structured to support high-TTK gameplay, ensuring sustainable progression without economic inflation."
+    },
+    {
+      "Id": "respawn-rule",
+      "Text": "Monster respawn is hybrid, combining static timers with dynamic player-driven adjustments to prevent exploitation."
+    },
+    {
+      "Id": "boss-system-rule",
+      "Text": "Boss encounters exist in two forms: open-world contested bosses and instanced progression bosses."
+    }
+  ],
+  "SystemDetails": {
+    "AILevels": {
+      "Normal": "Chase target with highest threat, basic attack in range, leash back and heal fully on excess distance.",
+      "Tactical": "Used by Elites & Bosses. Features repositioning, target prioritization (e.g. squishy targets), and custom skill/interrupt cycling."
+    },
+    "ElementalModifiers": {
+      "Vulnerable": "+15% damage taken",
+      "Resistant": "-10% damage taken",
+      "Description": "Soft advantages that reward tactical diversity without breaking general combat viability."
+    },
+    "XPWeightFormula": {
+      "Weights": {
+        "DamageContribution": 0.40,
+        "HealingContribution": 0.30,
+        "ParticipationTime": 0.20,
+        "SurvivalModifier": 0.10
+      },
+      "Formula": "XP_Earned = BaseEncounterXP * (0.40 * DamageContrib% + 0.30 * HealingContrib% + 0.20 * ParticipationTime% + 0.10 * SurvivalMod)"
+    },
+    "LootRarityRanks": [
+      "Normal",
+      "Magic",
+      "Rare",
+      "Epic",
+      "Legendary"
+    ],
+    "BossArchetypes": {
+      "WorldBoss": "Open world, contested PvPvE, mass raid mechanics.",
+      "InstancedBoss": "Closed party, linear progression, mechanical mastery phases."
+    }
+  }
+}

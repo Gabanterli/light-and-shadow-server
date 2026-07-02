@@ -1,0 +1,101 @@
+{
+  "SystemName": "Canonical Monster Database",
+  "Monsters": [
+    {
+      "MonsterId": "plague_rat",
+      "MonsterName": "Plague Rat",
+      "Biome": "Sewers / Ruins",
+      "BaseHP": 450,
+      "BaseDamage": 25,
+      "AggroType": "Normal",
+      "PrimaryElement": "Nature",
+      "Vulnerabilities": ["Fire"],
+      "Resistances": ["Nature"],
+      "BaseXP": 120,
+      "Description": "A disease-ridden vermin that attacks with swift bites."
+    },
+    {
+      "MonsterId": "skeleton_warrior",
+      "MonsterName": "Skeleton Warrior",
+      "Biome": "Crypts / Dark Forests",
+      "BaseHP": 1200,
+      "BaseDamage": 55,
+      "AggroType": "Normal",
+      "PrimaryElement": "Physical",
+      "Vulnerabilities": ["Holy"],
+      "Resistances": ["Shadow"],
+      "BaseXP": 350,
+      "Description": "An undead soldier carrying a rusty shield and scimitar."
+    },
+    {
+      "MonsterId": "stone_golem_elite",
+      "MonsterName": "Stonewarded Guardian Golem",
+      "Biome": "Mountain Peaks",
+      "BaseHP": 4500,
+      "BaseDamage": 110,
+      "AggroType": "Tactical (Elite)",
+      "PrimaryElement": "Physical",
+      "Vulnerabilities": ["Physical"],
+      "Resistances": ["Ice", "Fire"],
+      "BaseXP": 1200,
+      "Description": "A massive elite construct carved from rock that defends mountain corridors."
+    },
+    {
+      "MonsterId": "shadow_assassin_elite",
+      "MonsterName": "Mana-Gorged Shadow Stalker",
+      "Biome": "Ancient Spires",
+      "BaseHP": 3200,
+      "BaseDamage": 140,
+      "AggroType": "Tactical (Elite)",
+      "PrimaryElement": "Shadow",
+      "Vulnerabilities": ["Holy"],
+      "Resistances": ["Shadow", "Nature"],
+      "BaseXP": 1500,
+      "Description": "An agile elite assassin that prioritizes ranged targets and disrupts spells."
+    },
+    {
+      "MonsterId": "ash_dragon_worldboss",
+      "MonsterName": "Ignisaur the Ash Devourer",
+      "Biome": "Volcanic Caldera (Open World)",
+      "BaseHP": 150000,
+      "BaseDamage": 450,
+      "AggroType": "Tactical (World Boss)",
+      "PrimaryElement": "Fire",
+      "Vulnerabilities": ["Ice"],
+      "Resistances": ["Fire", "Physical"],
+      "BaseXP": 25000,
+      "Description": "A colossal open-world boss. Spawns in volcanic territories, contested by guilds."
+    },
+    {
+      "MonsterId": "lich_king_instancedboss",
+      "MonsterName": "Malakar the Soul Binder",
+      "Biome": "Glacial Palace (Instanced)",
+      "BaseHP": 85000,
+      "BaseDamage": 350,
+      "AggroType": "Tactical (Instanced Boss)",
+      "PrimaryElement": "Ice",
+      "Vulnerabilities": ["Fire", "Holy"],
+      "Resistances": ["Ice", "Shadow"],
+      "BaseXP": 18000,
+      "Description": "A dangerous instanced boss that tests party coordination, interrupts, and phase control."
+    },
+    {
+      "MonsterId": "sewer_rat",
+      "MonsterName": "Sewer Rat",
+      "Biome": "Ironhold Sewers (Tutorial Zone)",
+      "BaseHP": 320,
+      "BaseDamage": 5,
+      "AggroType": "Normal",
+      "PrimaryElement": "Physical",
+      "Vulnerabilities": ["Fire"],
+      "Resistances": [],
+      "BaseXP": 10,
+      "Drops": [
+        { "ItemId": "bronze_coin", "Quantity": "1-3", "Chance": 1.0 },
+        { "ItemId": "cheese", "Quantity": "1", "Chance": 0.4 },
+        { "ItemId": "rat_tail", "Quantity": "1", "Chance": 0.6 }
+      ],
+      "Description": "Um roedor de esgoto enorme e lento. Ideal para recrutas aprenderem o tempo de combate, mitigação de dano e fluxo de mana."
+    }
+  ]
+}

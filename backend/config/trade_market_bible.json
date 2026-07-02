@@ -1,0 +1,104 @@
+{
+  "SystemName": "Trade & Market Bible (Final Canon Version)",
+  "Philosophy": "The economy of Light and Shadow is fully player-driven, designed to support item circulation, capital safety through banking layers, and clean gold-sink mechanisms to control inflation.",
+  "CanonicalRules": [
+    {
+      "Id": "trade-core-principle",
+      "Text": "The economy operates through hybrid trade channels combining direct trade, manual exchange, and a global asynchronous market."
+    },
+    {
+      "Id": "secure-trade-rule",
+      "Text": "Secure trade uses a protected confirmation window requiring approval from both participants."
+    },
+    {
+      "Id": "manual-trade-rule",
+      "Text": "The game supports unprotected manual item exchange that carries theft and betrayal risk."
+    },
+    {
+      "Id": "global-market-rule",
+      "Text": "All city markets are globally connected and share the same listing pool."
+    },
+    {
+      "Id": "market-deposit-rule",
+      "Text": "Listed items are removed from player inventory and held by the market until sold or cancelled."
+    },
+    {
+      "Id": "market-pricing-rule",
+      "Text": "Market listings use fixed-price instant purchases and do not support bidding or auction systems."
+    },
+    {
+      "Id": "market-listing-fee-rule",
+      "Text": "An upfront non-refundable listing fee of 2% of the listing price is charged when an item is listed on the market."
+    },
+    {
+      "Id": "market-duration-rule",
+      "Text": "Market listings remain active indefinitely until sold or manually cancelled."
+    },
+    {
+      "Id": "market-cancellation-rule",
+      "Text": "Cancelled listings return the item to the player's depot while market fees remain permanently consumed."
+    },
+    {
+      "Id": "market-tradability-rule",
+      "Text": "All items in the game are fully tradable across all trade channels."
+    },
+    {
+      "Id": "market-payment-delivery-rule",
+      "Text": "Gold from successful market sales is transferred directly into the character bank."
+    },
+    {
+      "Id": "carried-currency-risk-rule",
+      "Text": "Only currency physically carried by the character is subject to death loss."
+    },
+    {
+      "Id": "bank-security-rule",
+      "Text": "Currency stored in the character bank is fully protected from all death penalties."
+    },
+    {
+      "Id": "trade-design-boundary",
+      "Text": "Trade systems must preserve player-driven economy while maintaining meaningful social interaction and economic risk."
+    }
+  ],
+  "TradeChannels": {
+    "DirectSecureTrade": {
+      "Type": "Windowed UI Exchange",
+      "Mechanics": "Two-phase confirmation. Any alteration of offered items or currency resets all confirmation checks back to unapproved status."
+    },
+    "ManualTrade": {
+      "Type": "Physical World Handoff",
+      "Mechanics": "Items are dropped directly onto the ground. Highly emergent, carries high theft risk and friendly/unfriendly betrayal."
+    },
+    "GlobalMarket": {
+      "Type": "City-Wide Asynchronous Listing",
+      "Mechanics": "Connected via Deposit/Depot (DP) lockers in all major cities. All hubs display the exact same active listings."
+    }
+  },
+  "MarketRules": {
+    "ListingLimit": 15,
+    "PricingModel": "Fixed gold price only. No bidding or dynamic countdown auctions.",
+    "PhysicalHolding": "Listed items leave player backpacks immediately and are transferred to market vault storage. They are no longer on the character.",
+    "ListingFee": {
+      "Percentage": 2.0,
+      "Minimum": "1 Bronze Coin",
+      "Refundable": false,
+      "DesignIntent": "Deflationary gold sink. Discourages spam listings."
+    },
+    "CancellationPenalty": "Listing fee is lost permanently, and the item must be manually retrieved from the local city market depot.",
+    "ItemRestrictions": {
+      "Soulbound": false,
+      "BindOnPickup": false,
+      "TradeRestrictionRule": "All items, including boss drops, materials, and end-game gear are fully tradable. No items are systemically locked to a single character."
+    },
+    "PayoutMechanic": "Transferred directly into the character bank database. No physical gold drop risk upon purchase completion."
+  },
+  "BankingSystem": {
+    "CarriedCurrency": {
+      "Definition": "Gold, silver, bronze, copper carried in the player's immediate pouch.",
+      "LossOnDeath": "Subject to the standard linear loss formula based on active blessings."
+    },
+    "BankedCurrency": {
+      "Definition": "Stored in secure bank accounts in cities.",
+      "LossOnDeath": "0% loss under all death scenarios. 100% protection guarantee."
+    }
+  }
+}

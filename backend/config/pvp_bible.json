@@ -1,0 +1,76 @@
+{
+  "SystemName": "PvP Combat & World Conflict Bible (Final Canon Version)",
+  "Philosophy": "PvP exists as a fully integrated extension of the PvE combat, death, loot, and penalty systems with no mechanical divergence or parallel progression tracks.",
+  "CanonicalRules": [
+    {
+      "Id": "pvp-pve-parity-rule",
+      "Text": "PvP and PvE share identical combat, death, loot, and penalty systems with no mechanical divergence."
+    },
+    {
+      "Id": "safe-zone-rule",
+      "Text": "Cities and designated safe hubs completely disable all forms of PvP interaction."
+    },
+    {
+      "Id": "open-world-pvp-rule",
+      "Text": "All non-safe zones are PvP-enabled and function under full open-world combat conditions."
+    },
+    {
+      "Id": "pvp-death-unification",
+      "Text": "PvP and PvE deaths are mechanically identical in terms of item loss, corpse generation, and economic consequences."
+    },
+    {
+      "Id": "blessing-unified-rule",
+      "Text": "Blessings mitigate both PvP and PvE death penalties using a unified linear system and are fully consumed upon death."
+    },
+    {
+      "Id": "corpse-loot-unified-rule",
+      "Text": "All player corpses are globally lootable regardless of PvP or PvE origin."
+    },
+    {
+      "Id": "pvp-economic-role",
+      "Text": "PvP is an economic redistribution system integrated into the global loot and death economy."
+    },
+    {
+      "Id": "pvp-design-boundary",
+      "Text": "PvP exists as an extension of PvE systems, not as a parallel system."
+    }
+  ],
+  "SafeZoneRules": {
+    "PvPDamageAllowed": false,
+    "CorpseLootingAllowed": false,
+    "CombatInitiationAllowed": false,
+    "FailsafeEnabled": true,
+    "Description": "Safe zones include cities and protected hubs. Entering these zones immediately clears aggressive combat flags and disables damage vectors."
+  },
+  "OpenWorldPvPRules": {
+    "PvPEnabled": true,
+    "PlayerKillingAllowed": true,
+    "EmergentEngagement": true,
+    "InitiationMethods": [
+      "direct_attack",
+      "retaliation",
+      "zone_based_engagement"
+    ]
+  },
+  "BlessingMitigation": {
+    "MinBlessings": 0,
+    "MaxBlessings": 7,
+    "LinearMitigationScale": {
+      "0": 0.0,
+      "1": 0.142857,
+      "2": 0.285714,
+      "3": 0.428571,
+      "4": 0.571428,
+      "5": 0.714285,
+      "6": 0.857142,
+      "7": 1.0
+    },
+    "ConsumptionLaw": "Any death (PvP or PvE) fully consumes all active blessings."
+  },
+  "EconomicDrivers": {
+    "WealthRedistribution": "Redistributes equipped templates and carried inventory directly to victorious combatants or scavengers.",
+    "RiskAmplifier": "Amplifies item circulation risk and serves as a major driver for the high-end template replacement economy.",
+    "BlessingSink": "Guarantees blessing consumption and continuous coin demand through temple altars.",
+    "ScarcityReinforcement": "Reinforces overall equipment scarcity, specifically balancing high-end template persistence."
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "SystemName": "Combat Formula & Defense Bible (Final Canon Version)",
+  "Philosophy": "A gear-driven, highly tactical combat system with high time-to-kill (TTK), diminishing physical armor scaling, and clean elemental/critical layers. Characters gain no damage or scaling from traditional stats like Strength, Dexterity, Intelligence, or Vitality.",
+  "Constants": {
+    "K_ARMOR": 250,
+    "BASE_CRIT_CHANCE": 0.05,
+    "NORMAL_CRIT_MULTIPLIER": 1.5,
+    "ASSASSIN_CRIT_MULTIPLIER": 2.2,
+    "DUAL_WIELD_OFFHAND_SCALING": 0.75,
+    "MAX_AFFINITY_DEFENSE_BONUS": 0.04
+  },
+  "CanonicalRules": [
+    {
+      "Id": "combat-core-principle",
+      "Text": "Combat output in Light and Shadow is fully determined by equipped gear, skill proficiency, skill power, elemental scaling, and combat modifiers rather than traditional attribute systems. Characters do NOT gain damage from Strength, Dexterity, Intelligence, Wisdom, Agility, or any hidden attribute scaling."
+    },
+    {
+      "Id": "high-ttk-combat-rule",
+      "Text": "Combat pacing is intentionally slow and tactical, with survivability heavily influenced by gear and mitigation systems while preventing infinite defensive scaling."
+    },
+    {
+      "Id": "final-damage-formula",
+      "Text": "Final Damage = (Weapon Damage + Skill Damage) × Elemental Modifier × Critical Modifier (if critical hit). Weapon Damage is the fixed numeric value from equipped weapon item, Skill Damage is the fixed power value from the skill/spell database, Elemental Modifier is derived from elemental affinity scaling, and Critical Modifier is applied only on critical hits."
+    },
+    {
+      "Id": "armor-diminishing-returns-rule",
+      "Text": "Physical armor mitigation follows a diminishing returns curve to preserve survivability while preventing invulnerability. Damage Reduction = Armor / (Armor + K), where Armor is total physical armor from gear and K is the global balancing constant (K = 250)."
+    },
+    {
+      "Id": "horizontal-armor-budget-rule",
+      "Text": "Armor values are not determined by rigid tier ranges. Each item possesses unique stat distribution based on power budget allocation. Armor contribution depends on item design, and items may trade armor for critical chance, elemental resistances, affinity bonuses, utility affixes, or niche PvP/PvE specialization."
+    },
+    {
+      "Id": "tier5-bis-armor-anchor-rule",
+      "Text": "A full Best-in-Slot Tier 5 tank-oriented armor set is balanced around approximately 500 total armor from the entire equipped defensive set (e.g., Helmet ≈ 70, Chest ≈ 160, Legs ≈ 120, Boots ≈ 50, Shield ≈ 100)."
+    },
+    {
+      "Id": "mitigation-benchmark-rule",
+      "Text": "A fully optimized tank build should usually remain around 60–70% physical mitigation, preserving high survivability without reaching invulnerability."
+    },
+    {
+      "Id": "elemental-resistance-rule",
+      "Text": "Elemental resistances (Fire, Ice, Holy, Shadow, Nature) from gear reduce incoming elemental damage after physical mitigation calculations, stacking from equipped gear and supporting simulator calculations."
+    },
+    {
+      "Id": "affinity-defense-rule",
+      "Text": "When a character reaches maximum awakened elemental affinity (Level 100) for an element, they gain an additional +4% passive elemental resistance against that matching element, which stacks with item elemental resistance."
+    },
+    {
+      "Id": "critical-hit-rule",
+      "Text": "Base critical hit chance is 5%. Normal classes have a 1.5x damage critical multiplier, while the Assassin has a 2.2x damage critical multiplier. Critical damage applies after elemental scaling."
+    },
+    {
+      "Id": "dual-wield-offhand-rule",
+      "Text": "Offhand weapon contributes exactly 75% of its total damage value. Main hand contributes 100% of its damage value. Allowed classes are Knight (dual swords) and Assassin (dual daggers)."
+    }
+  ],
+  "Formulas": {
+    "FinalDamage": {
+      "Expression": "Final Damage = (WeaponDamage + SkillDamage) * ElementalModifier * CriticalModifier",
+      "Variables": {
+        "WeaponDamage": "Fixed numeric value from weapon item in items.json",
+        "SkillDamage": "Fixed base power from skill/spell in spells.json",
+        "ElementalModifier": "Derived from elemental affinity offset and elemental resistances (1.0 + (AttackerAffinity - DefenderResistance) * 0.01)",
+        "CriticalModifier": "1.5 for normal classes, 2.2 for Assassin when critical hit rolls successfully"
+      }
+    },
+    "ArmorMitigation": {
+      "Expression": "Damage Reduction = Armor / (Armor + K)",
+      "Variables": {
+        "Armor": "Sum of physical armor from all equipped items",
+        "K": "Global constant = 250. Ensures rapid initial scaling, slower high armor scaling, and prevention of 100% mitigation."
+      }
+    },
+    "ElementalDamageReduction": {
+      "Expression": "Final Taken Damage = MitigatedPhysicalDamage * (1 - TotalElementalResistance)",
+      "Variables": {
+        "TotalElementalResistance": "Sum of item resistances + affinity defense bonus (+4% if level 100 awakened)"
+      }
+    }
+  },
+  "ClassSurvivabilityTargets": {
+    "Knight": "60-70% mitigation (approx. 375-580 Armor)",
+    "Cleric": "25-45% mitigation (approx. 83-204 Armor)",
+    "Archer": "20-35% mitigation (approx. 62-134 Armor)",
+    "Assassin": "15-30% mitigation (approx. 44-107 Armor)",
+    "Mage": "10-25% mitigation (approx. 27-83 Armor)"
+  },
+  "MitigationBenchmarks": {
+    "100_Armor": "28.57%",
+    "250_Armor": "50.00%",
+    "500_Armor": "66.67%",
+    "700_Armor": "73.68%"
+  }
+}

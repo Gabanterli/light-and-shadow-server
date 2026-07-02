@@ -1,0 +1,37 @@
+{
+  "armor_archetypes": [
+    {
+      "archetype": "Heavy Armor",
+      "description": "Provides the highest physical defense, low dodge, moderate to low magic resistance, and prioritizes survivability in frontline combat.",
+      "primary_classes": ["Knight"],
+      "attributes": {
+        "physical_defense_modifier": 1.5,
+        "magic_defense_modifier": 0.6,
+        "dodge_modifier": 0.5,
+        "mana_bonus_modifier": 0.2
+      }
+    },
+    {
+      "archetype": "Light Armor",
+      "description": "Provides medium physical defense, high dodge, mobility-oriented bonuses, and offensive utility.",
+      "primary_classes": ["Archer", "Assassin"],
+      "attributes": {
+        "physical_defense_modifier": 1.0,
+        "magic_defense_modifier": 1.0,
+        "dodge_modifier": 1.5,
+        "mana_bonus_modifier": 0.6
+      }
+    },
+    {
+      "archetype": "Cloth Armor",
+      "description": "Provides low physical defense, high magic resistance, high mana synergy, and strong spell-oriented scaling.",
+      "primary_classes": ["Mage", "Cleric"],
+      "attributes": {
+        "physical_defense_modifier": 0.5,
+        "magic_defense_modifier": 1.8,
+        "dodge_modifier": 0.8,
+        "mana_bonus_modifier": 2.0
+      }
+    }
+  ]
+}

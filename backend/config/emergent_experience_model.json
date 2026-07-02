@@ -1,0 +1,47 @@
+{
+  "document_name": "Emergent Player Experience Model (Final Canon)",
+  "version": "1.0.0",
+  "philosophy": "The game does not guide the player. The player interprets the system. There is no predefined progression path, no mandatory story arc, no fixed endgame, and no forced gameplay loop. The game is a systemic sandbox where player behavior emerges purely from the friction, hazards, and economic pressures of a living world.",
+  "core_principles": {
+    "zero_guidance": "The system provides no quest markers, no main story tracks, and no forced tutorial pathways. Players enter the world as tabula rasa and must gather information through physical traversal, NPC dialogue, and peer-to-peer communication.",
+    "consequence_driven": "Every player decision carries severe structural consequences. Choosing to enter a high-hazard biome without preparation leads to physical loss (blessing depletion, item shatter, resource drop).",
+    "risk_driven_decisions": "The world scales in danger organically. Progression is a function of mechanical execution and willingness to expose assets to danger, rather than passing a gear check."
+  },
+  "player_behavior_emergence": {
+    "goal_definition": "Without artificial quest-directed motivation, players define individual milestones: securing specific regional crafting materials, accumulating capital to fund a guild or housing, mastering a high-TTK combat archetype, or establishing secure merchant trade routes.",
+    "role_acquisition": "Vocation roles are emergent and dynamic, shaped by equipment selections and off-hand items rather than rigid class locked selections. Players adapt roles in real-time based on current encounter complexity and environmental hazards."
+  },
+  "no_loop_architecture": {
+    "concept": "Conventional MMORPGs rely on a core loop (Kill -> Loot -> Upgrade -> Repeat). Light and Shadow replaces this with an open ecosystem of intersecting forces. Engagement is sustained by systemic unpredictability and resource-driven tension rather than repetitive linear tasks.",
+    "intersecting_forces": [
+      {
+        "force": "Dynamic Biome Hazards",
+        "effect": "Prevents static farming. Environmental conditions change dynamically, altering elemental alignments and forcing gear adjustments."
+      },
+      {
+        "force": "Ecosystem Spawning Pressure",
+        "effect": "Server-authoritative spawn scaling increases mob density and escalates threat based on real-time regional player activity."
+      },
+      {
+        "force": "Steep Death Friction",
+        "effect": "Every death strips blessings and exposes assets. This creates a psychological boundary where players must constantly re-evaluate their survival threshold."
+      },
+      {
+        "force": "100% Tradable Secondary Market",
+        "effect": "With no bound items, every drop remains liquid. Players can pivot archetypes or cash out assets at any time, keeping the player-driven market highly volatile and engaging."
+      }
+    ]
+  },
+  "emergent_motivation_types": {
+    "survival_pressure": "Negotiating hostile biomes, managing regional hazards, and maintaining blessing protection in high-stakes PvPvE zones.",
+    "wealth_accumulation": "Exploiting market discrepancies across different city markets, securing rare high-tier drop-only items, and commanding supply lines.",
+    "exploration_curiosity": "Uncovering physical secret passages (such as Ymirr's Hidden Cavern) that are completely hidden from standard maps and menus.",
+    "pvp_dominance": "Defending or contested high-tier regional spots, intercepting caravans, or securing open world boss loot rights.",
+    "social_influence": "Building guilds, financing fortified territory, and manipulating the decentralized economy."
+  },
+  "living_world_systems": {
+    "biome_hazard_shifts": "Environmental hazards (hypothermia, heat exhaustion, sanity drain) scale organically based on regional depth and elemental affinities.",
+    "activity_escalation": "The world monitors player concentration. Low activity yields standard patrols; extreme concentration triggers 'Cataclysmic' invasion alerts where the region defends itself.",
+    "economic_fluctuations": "Sinks (blessings, market listing fees) and faucets (monster drops, faction contract payouts) adjust to preserve currency stability without manual developer intervention."
+  }
+}

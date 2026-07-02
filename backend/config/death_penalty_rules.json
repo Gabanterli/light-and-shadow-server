@@ -1,0 +1,53 @@
+{
+  "DeathPhilosophy": "Hardcore PvP and PvE Death. All deaths carry identical, meaningful, and unified hardcore consequences with zero mechanical divergence.",
+  "LossCategories": {
+    "Equipped": [
+      "weapon",
+      "armor",
+      "accessories",
+      "shield"
+    ],
+    "Inventory": [
+      "loot",
+      "materials",
+      "consumables",
+      "carried_currency"
+    ],
+    "CurrencyRules": {
+      "CarriedCurrencyRiskRule": {
+        "Id": "carried-currency-risk-rule",
+        "Text": "Only currency physically carried by the character is subject to death loss."
+      },
+      "BankSecurityRule": {
+        "Id": "bank-security-rule",
+        "Text": "Currency stored in the character bank is fully protected from all death penalties."
+      }
+    }
+  },
+  "LossFormula": {
+    "Formula": "FinalDeathLoss = BaseDeathPenalty * (1 - ActiveBlessings / 7)",
+    "Description": "Blessing protection is linear. 7 active blessings grant full 100% protection against item loss (for both PvP and PvE deaths). Any PvP or PvE death removes ALL active blessings simultaneously (regardless of count).",
+    "ProtectionTable": {
+      "0_Blessings": "0% (Full loss)",
+      "1_Blessing": "14.285% protection",
+      "2_Blessings": "28.571% protection",
+      "3_Blessings": "42.857% protection",
+      "4_Blessings": "57.142% protection",
+      "5_Blessings": "71.428% protection",
+      "6_Blessings": "85.714% protection",
+      "7_Blessings": "100% protection (Zero loss of equipped, backpack, loot, or currency)"
+    },
+    "BlessingConsumptionLaw": "Any PvP or PvE death removes ALL active blessings simultaneously."
+  },
+  "PlayerCorpseLootLaw": {
+    "LootAccess": "OpenLoot",
+    "EligibleLooters": [
+      "killer",
+      "owner",
+      "allies",
+      "strangers",
+      "opportunistic_looters"
+    ],
+    "CanonicalRule": "Items dropped upon player death (regardless of PvP or PvE origin) become accessible to any player capable of reaching the corpse."
+  }
+}

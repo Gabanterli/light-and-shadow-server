@@ -1,0 +1,40 @@
+{
+  "WeaponCategories": [
+    {
+      "Category": "Sword",
+      "CompatibleClasses": ["Knight", "Assassin", "Archer"],
+      "CombatFocus": "Balanced physical damage, moderate speed, parry capability",
+      "SkillsAssociation": "Sword Mastery, Cleave, Precise Thrust"
+    },
+    {
+      "Category": "Axe",
+      "CompatibleClasses": ["Knight"],
+      "CombatFocus": "High physical damage, slow speed, high armor penetration",
+      "SkillsAssociation": "Axe Mastery, Sunder Armor, Decapitate"
+    },
+    {
+      "Category": "Bow",
+      "CompatibleClasses": ["Archer"],
+      "CombatFocus": "High-speed ranged physical damage, critical strike scaling",
+      "SkillsAssociation": "Bow Mastery, Double Shot, Piercing Arrow"
+    },
+    {
+      "Category": "Dagger",
+      "CompatibleClasses": ["Assassin"],
+      "CombatFocus": "Extremely fast attack speed, massive critical multipliers, poison application",
+      "SkillsAssociation": "Dagger Mastery, Backstab, Shadow Strike"
+    },
+    {
+      "Category": "Staff",
+      "CompatibleClasses": ["Mage"],
+      "CombatFocus": "High spell power, elemental affinity amplification, mana regeneration",
+      "SkillsAssociation": "Staff Mastery, Fireball, Ice Lance, Void Nova"
+    },
+    {
+      "Category": "Shield",
+      "CompatibleClasses": ["Knight"],
+      "CombatFocus": "High defense, block chance, spell reflection, crowd control resistance",
+      "SkillsAssociation": "Shield Mastery, Shield Bash, Iron Wall"
+    }
+  ]
+}

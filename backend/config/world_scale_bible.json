@@ -1,0 +1,45 @@
+{
+  "SystemName": "World Scale Bible",
+  "Philosophy": "Establishes physical, spatial, and travel-based constraints of the sandbox world, ensuring consistent scale, transport limits, and coordinate representation.",
+  "CanonicalRules": [
+    {
+      "Id": "mount-mobility-rule",
+      "Text": "Ground mounts provide moderate movement speed bonuses exclusively for travel. Mounts never grant combat or progression advantages."
+    },
+    {
+      "Id": "continent-traversal-rule",
+      "Text": "Traversing a continent from edge to edge via standard ground movement should require approximately 45–60 minutes of continuous travel."
+    },
+    {
+      "Id": "logical-coordinate-rule",
+      "Text": "Region coordinates define logical placement anchors for streaming, spawning, and teleportation systems and must not be interpreted as literal physical continent boundaries."
+    },
+    {
+      "Id": "world-layout-rule",
+      "Text": "Continents are distributed freely across world space without radial or symmetrical constraints. Ice Continent is predominantly northern and Fire Continent predominantly southern."
+    }
+  ],
+  "Mounts": {
+    "BaseSpeedMultiplier": {
+      "Min": 1.25,
+      "Max": 1.40
+    },
+    "CombatStatsGranted": false,
+    "SkillsGranted": false,
+    "ProgressionBonusesGranted": false
+  },
+  "Scale": {
+    "ContinentEdgeToEdgeTravelMinutes": {
+      "Min": 45,
+      "Max": 60
+    },
+    "UnitDefinition": "1 tile = 1 meter"
+  },
+  "Layout": {
+    "ContinentDistribution": "Free spatial distribution",
+    "ClimaticVibe": {
+      "North": "Ice Continent",
+      "South": "Fire Continent"
+    }
+  }
+}

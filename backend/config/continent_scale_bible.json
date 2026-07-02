@@ -1,0 +1,132 @@
+{
+  "SystemName": "Continent & Settlement Scale Bible",
+  "Philosophy": "Establishes physical, spatial, and settlement scale parameters of the sandbox world, ensuring consistent dimensions, travel times, and traversal constraints.",
+  "WorldUnitScale": "1 tile = 1 meter",
+  "CanonicalRules": [
+    {
+      "Id": "continent-base-scale-rule",
+      "Text": "All standard major continents measure 12 kilometers by 12 kilometers, equivalent to 12,000 by 12,000 traversable tiles."
+    },
+    {
+      "Id": "abyssia-scale-rule",
+      "Text": "Abyssia is the only continent with expanded physical dimensions, measuring 16 kilometers by 16 kilometers, equivalent to 16,000 by 16,000 traversable tiles."
+    },
+    {
+      "Id": "continent-accessibility-rule",
+      "Text": "Approximately 90% of each continent's physical surface is traversable and explorable by players. Only 10% may be inaccessible due to natural barriers, environmental hazards, protected regions, or world-boundary restrictions."
+    },
+    {
+      "Id": "continent-traversal-rule",
+      "Text": "Traversing a standard continent from edge to edge via ground movement should require approximately 45–60 minutes of continuous travel."
+    },
+    {
+      "Id": "mount-mobility-rule",
+      "Text": "Ground mounts provide movement speed bonuses exclusively for travel and never grant combat or progression advantages."
+    },
+    {
+      "Id": "small-settlement-scale-rule",
+      "Text": "Small settlements measure approximately 400 to 700 tiles in width and height."
+    },
+    {
+      "Id": "medium-settlement-scale-rule",
+      "Text": "Medium cities measure approximately 800 to 1500 tiles in width and height."
+    },
+    {
+      "Id": "large-settlement-scale-rule",
+      "Text": "Large cities measure approximately 1600 to 2500 tiles in width and height."
+    },
+    {
+      "Id": "capital-settlement-scale-rule",
+      "Text": "Capital cities measure approximately 2500 to 4000 tiles in width and height."
+    }
+  ],
+  "Continents": {
+    "Standard": {
+      "Dimensions": "12,000 x 12,000 tiles",
+      "Area": "144 km²",
+      "ExplorableArea": "129.6 km² (90%)",
+      "InaccessibleArea": "14.4 km² (10%)",
+      "TraversalTimeMinutesOnFoot": "45-60 minutes",
+      "AppliesTo": [
+        "Main Continent",
+        "Fire Continent",
+        "Ice Continent",
+        "Holy Continent",
+        "Shadow Continent",
+        "Nature Continent"
+      ]
+    },
+    "Abyssia": {
+      "Dimensions": "16,000 x 16,000 tiles",
+      "Area": "256 km²",
+      "ExplorableArea": "230.4 km² (90%)",
+      "InaccessibleArea": "25.6 km² (10%)",
+      "TraversalTimeMinutesOnFoot": "70-90 minutes",
+      "AppliesTo": [
+        "Abyssia"
+      ]
+    }
+  },
+  "Mounts": {
+    "Basic": {
+      "SpeedMultiplier": 1.25
+    },
+    "Epic": {
+      "SpeedMultiplier": 1.40
+    }
+  },
+  "Settlements": {
+    "SmallCity": {
+      "WidthRangeTiles": "400-700",
+      "HeightRangeTiles": "400-700",
+      "TraversalTimeMinutes": "2-5",
+      "AppliesTo": [
+        "Ironhold Bastion",
+        "Last Bastion"
+      ]
+    },
+    "MediumCity": {
+      "WidthRangeTiles": "800-1500",
+      "HeightRangeTiles": "800-1500",
+      "TraversalTimeMinutes": "5-10",
+      "AppliesTo": [
+        "Thornwall",
+        "Blackwater Bay",
+        "Crimson Hollow",
+        "Molten Anvil",
+        "Frosthaven",
+        "Lunareth",
+        "Sunwall",
+        "Grimharbor",
+        "Kar’goth",
+        "Vel’Sharum",
+        "Sylvaris",
+        "Oakenspire",
+        "Grunhold"
+      ]
+    },
+    "LargeCity": {
+      "WidthRangeTiles": "1600-2500",
+      "HeightRangeTiles": "1600-2500",
+      "TraversalTimeMinutes": "10-18",
+      "AppliesTo": [
+        "Stone Tirith",
+        "Ymirr’s Hidden Cavern"
+      ]
+    },
+    "CapitalCity": {
+      "WidthRangeTiles": "2500-4000",
+      "HeightRangeTiles": "2500-4000",
+      "TraversalTimeMinutes": "15-30",
+      "AppliesTo": [
+        "Ravenshire",
+        "Pyra Magnus",
+        "Elarisheim",
+        "Luminaar",
+        "Noctharyn",
+        "Necrathis",
+        "Elarin"
+      ]
+    }
+  }
+}

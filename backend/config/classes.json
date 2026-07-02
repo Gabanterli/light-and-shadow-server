@@ -1,0 +1,163 @@
+{
+  "SystemName": "Vocation / Class Bible (Final Canon Version)",
+  "CanonicalRules": [
+    {
+      "Id": "voc-lock-001",
+      "RuleName": "five-vocation-rule",
+      "Text": "The game contains exactly five canonical vocations: Knight, Assassin, Archer, Mage, Cleric."
+    },
+    {
+      "Id": "attr-lock-001",
+      "RuleName": "attribute-less-rule",
+      "Text": "The game does not use traditional RPG attributes. Progression is skill-based and item-driven only."
+    },
+    {
+      "Id": "mana-lock-001",
+      "RuleName": "mana-only-rule",
+      "Text": "All playable vocations use Mana as their sole combat resource."
+    },
+    {
+      "Id": "role-lock-001",
+      "RuleName": "emergent-role-rule",
+      "Text": "Combat roles are emergent and derived from equipment and skill configuration, not predefined class roles."
+    },
+    {
+      "Id": "vector-lock-001",
+      "RuleName": "role-vector-rule",
+      "Text": "Combat role output must be displayed as numeric performance vectors instead of categorical labels."
+    },
+    {
+      "Id": "offhand-lock-001",
+      "RuleName": "offhand-rule",
+      "Text": "Each vocation has strict allowed off-hand equipment defining build identity."
+    },
+    {
+      "Id": "base-stat-core-lock",
+      "RuleName": "base-stats-rule",
+      "Text": "Classes define only base survivability and mana parameters; no scaling attributes exist."
+    },
+    {
+      "Id": "equip-modifier-rule",
+      "RuleName": "equipment-modifier-rule",
+      "Text": "Equipment may modify extended combat parameters including offensive, defensive, elemental, and utility attributes, independently from class base stats."
+    },
+    {
+      "Id": "cdr-lock-rule",
+      "RuleName": "cooldown-reduction-rule",
+      "Text": "Cooldown Reduction is an ultra-rare utility modifier restricted mainly to Tier 4 and Tier 5 items, with a global maximum cap of 15%."
+    },
+    {
+      "Id": "level-scaling-rule",
+      "RuleName": "level-scaling-rule",
+      "Text": "Base HP and Base Mana represent class starting values and scale upward with level progression using vocation-specific scaling curves."
+    },
+    {
+      "Id": "final-resource-formula",
+      "RuleName": "resource-scaling-formula",
+      "Text": "Final HP and Mana are calculated from base class values, level scaling, and equipment bonuses."
+    },
+    {
+      "Id": "infinite-level-softcap-rule",
+      "RuleName": "infinite-level-softcap-rule",
+      "Text": "Character level progression is infinite but follows soft-cap scaling to prevent uncontrolled power creep."
+    },
+    {
+      "Id": "elemental-cap-rule",
+      "RuleName": "elemental-cap-rule",
+      "Text": "Elemental affinity progression has a hard maximum level of 100."
+    },
+    {
+      "Id": "power-hierarchy-rule",
+      "RuleName": "power-hierarchy-rule",
+      "Text": "Character power is structured through four layers: Level (baseline growth), Skill (mastery growth), Gear (main power source), and Elemental specialization (capped at level 100)."
+    }
+  ],
+  "Classes": [
+    {
+      "ClassId": "knight",
+      "ClassName": "Knight",
+      "Description": "Stoic frontline warriors built for survivability, heavy defense, and high health pools.",
+      "BaseStats": {
+        "BaseHP": 150,
+        "BaseMana": 40,
+        "ManaRegen": 2.0,
+        "BaseArmor": 25,
+        "BaseMagicResistance": 10,
+        "BaseMoveSpeed": 95
+      },
+      "AllowedOffhands": [
+        "shield",
+        "sword",
+        "empty"
+      ]
+    },
+    {
+      "ClassId": "assassin",
+      "ClassName": "Assassin",
+      "Description": "Vanish in shadows to strike vitals with high-speed burst physical and critical damage.",
+      "BaseStats": {
+        "BaseHP": 100,
+        "BaseMana": 60,
+        "ManaRegen": 3.0,
+        "BaseArmor": 10,
+        "BaseMagicResistance": 10,
+        "BaseMoveSpeed": 120
+      },
+      "AllowedOffhands": [
+        "dagger",
+        "shield",
+        "empty"
+      ]
+    },
+    {
+      "ClassId": "archer",
+      "ClassName": "Archer",
+      "Description": "Precise marksmanship experts specializing in ranged efficiency and strategic mobility.",
+      "BaseStats": {
+        "BaseHP": 110,
+        "BaseMana": 70,
+        "ManaRegen": 3.5,
+        "BaseArmor": 12,
+        "BaseMagicResistance": 12,
+        "BaseMoveSpeed": 110
+      },
+      "AllowedOffhands": [
+        "quiver"
+      ]
+    },
+    {
+      "ClassId": "mage",
+      "ClassName": "Mage",
+      "Description": "Commanders of raw elementals, trading physical resilience for catastrophic magical damage.",
+      "BaseStats": {
+        "BaseHP": 80,
+        "BaseMana": 180,
+        "ManaRegen": 8.0,
+        "BaseArmor": 5,
+        "BaseMagicResistance": 25,
+        "BaseMoveSpeed": 100
+      },
+      "AllowedOffhands": [
+        "shield",
+        "spellbook"
+      ]
+    },
+    {
+      "ClassId": "cleric",
+      "ClassName": "Cleric",
+      "Description": "Devout support channels specializing in powerful restorative magic, divine protection, and high mana sustain.",
+      "BaseStats": {
+        "BaseHP": 120,
+        "BaseMana": 130,
+        "ManaRegen": 6.0,
+        "BaseArmor": 15,
+        "BaseMagicResistance": 20,
+        "BaseMoveSpeed": 98
+      },
+      "AllowedOffhands": [
+        "shield",
+        "sacred_scepter"
+      ]
+    }
+  ]
+}

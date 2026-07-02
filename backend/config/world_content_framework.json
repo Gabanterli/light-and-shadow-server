@@ -1,0 +1,78 @@
+{
+  "SystemName": "Content Generation & World Expansion Framework",
+  "Philosophy": "World content is fully systemic and activity-driven, prioritizing organic sandbox exploration and dynamic risk tiers over linear level gating.",
+  "CanonicalRules": [
+    {
+      "Id": "content-core-principle",
+      "Text": "World content is defined by systemic risk, encounter design, and activity context rather than player level or linear progression gating."
+    },
+    {
+      "Id": "encounter-generation-rule",
+      "Text": "Encounters are generated based on biome logic and activity type rather than fixed regional or level-based constraints."
+    },
+    {
+      "Id": "bestiary-content-rule",
+      "Text": "Creatures are assigned behavior profiles and encounter contexts but do not alter or redefine canonical bestiary family structures."
+    },
+    {
+      "Id": "spawn-system-rule",
+      "Text": "Creature spawns are dynamic and driven by activity context, biome conditions, and world state rather than fixed location rules."
+    },
+    {
+      "Id": "boss-event-rule",
+      "Text": "Bosses and world events are global systemic encounters that can manifest in any biome based on world state conditions."
+    },
+    {
+      "Id": "biome-rule",
+      "Text": "Biomes influence encounter behavior and rewards but do not restrict creature or boss types."
+    },
+    {
+      "Id": "content-scaling-rule",
+      "Text": "Content difficulty is determined by systemic risk tiers and encounter complexity rather than player level or static region classification."
+    },
+    {
+      "Id": "dungeon-framework-rule",
+      "Text": "Dungeons are optional structured encounters layered on top of the open world system and do not restrict sandbox freedom."
+    }
+  ],
+  "Biomes": [
+    {
+      "Id": "barren_desert",
+      "Name": "Deserto Estéril",
+      "DensityWeight": 1.2,
+      "LootBias": "FireProtectionGear",
+      "ElementalAffinityModifier": "Fire",
+      "Description": "High density wasteland. Fire attacks are amplified by +20% and drop rates of fire-protection items are favored."
+    },
+    {
+      "Id": "frozen_peaks",
+      "Name": "Picos Congelados",
+      "DensityWeight": 0.8,
+      "LootBias": "IceProtectionGear",
+      "ElementalAffinityModifier": "Ice",
+      "Description": "Low density alpine zone. Ice spells are amplified and ice-affinity defense gear drops are biased."
+    },
+    {
+      "Id": "whispering_swamp",
+      "Name": "Pântano Sussurrante",
+      "DensityWeight": 1.5,
+      "LootBias": "PoisonResistGear",
+      "ElementalAffinityModifier": "Nature",
+      "Description": "Swarms of aggressive pests and swamp monsters. Nature affinity thrives."
+    },
+    {
+      "Id": "ruined_keep",
+      "Name": "Fortaleza Arruinada",
+      "DensityWeight": 1.0,
+      "LootBias": "WeaponMaterials",
+      "ElementalAffinityModifier": "Shadow",
+      "Description": "Haunted sanctuary where shadow creatures gather in ruins."
+    }
+  ],
+  "RiskTiers": {
+    "Minimal": { "ModifierHP": 0.8, "ModifierDamage": 0.8, "DropChanceMultiplier": 0.8 },
+    "Moderate": { "ModifierHP": 1.0, "ModifierDamage": 1.0, "DropChanceMultiplier": 1.0 },
+    "Severe": { "ModifierHP": 1.5, "ModifierDamage": 1.4, "DropChanceMultiplier": 1.5 },
+    "Extreme": { "ModifierHP": 2.5, "ModifierDamage": 2.2, "DropChanceMultiplier": 3.0 }
+  }
+}

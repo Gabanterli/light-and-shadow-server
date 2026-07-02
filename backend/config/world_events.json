@@ -1,0 +1,43 @@
+{
+  "SystemName": "Canonical World Events & Dynamic Spawns",
+  "WorldBosses": [
+    {
+      "Id": "infernal_gorgoroth",
+      "Name": "Gorgoroth, o Incinerador",
+      "Family": "Demon",
+      "RecommendedRisk": "Extreme",
+      "SpecialMechanics": ["Enfurecer a 30% HP", "Terreno de Lava Ativo"],
+      "TriggerCondition": "Ruptura Infernal no Deserto Estéril"
+    },
+    {
+      "Id": "vermidrax_frost",
+      "Name": "Vermidrax, o Sopro Gélido",
+      "Family": "Dragon",
+      "RecommendedRisk": "Severe",
+      "SpecialMechanics": ["Nevasca Congelante", "Sopro de Neve"],
+      "TriggerCondition": "Tempestade Ártica nos Picos Congelados"
+    },
+    {
+      "Id": "malakor_undead",
+      "Name": "Lorde Malakor",
+      "Family": "Undead",
+      "RecommendedRisk": "Extreme",
+      "SpecialMechanics": ["Drenagem de Almas", "Invocar Servos Criptários"],
+      "TriggerCondition": "Eclipse Profano na Fortaleza Arruinada"
+    }
+  ],
+  "GlobalDynamicTriggers": [
+    {
+      "EventId": "rift_eruption",
+      "EventName": "Erupção de Fenda Abissal",
+      "Description": "Dobra a densidade de monstros por 15 minutos em uma zona aleatória. Todos os monstros ganham modificador Elite.",
+      "ChancePerHour": 0.05
+    },
+    {
+      "EventId": "merchant_convoy",
+      "EventName": "Caravana do Mercador de Ravenshire",
+      "Description": "Um comboio aparece em uma rota desértica protegida. Atrai monstros saqueadores e criminosos.",
+      "ChancePerHour": 0.10
+    }
+  ]
+}

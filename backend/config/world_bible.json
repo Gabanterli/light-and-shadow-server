@@ -1,0 +1,79 @@
+{
+  "bible_name": "Light and Shadow World Foundation Bible",
+  "version": "1.0.0",
+  "description": "Pre-World Generation Architecture defining systemic interactions, biome layouts, and adaptive mechanics.",
+  "canonical_rules": {
+    "world-foundation-rule": {
+      "id": "world-foundation-rule",
+      "text": "The world is a dynamic ecosystem where gameplay systems emerge from biome, encounter density, and systemic interactions rather than static map design."
+    },
+    "world-structure-rule": {
+      "id": "world-structure-rule",
+      "text": "World structure is hierarchical but non-linear, allowing free traversal while maintaining emergent difficulty scaling based on biome and region."
+    },
+    "biome-rule": {
+      "id": "biome-rule",
+      "text": "Biomes define environmental modifiers that influence monsters, loot, and combat conditions without rigidly locking content to specific zones."
+    },
+    "spawn-ecosystem-rule": {
+      "id": "spawn-ecosystem-rule",
+      "text": "Monster spawns are dynamically generated based on biome density, player activity, and regional encounter balancing systems."
+    },
+    "difficulty-rule": {
+      "id": "difficulty-rule",
+      "text": "World difficulty is emergent and based on encounter composition rather than static level zoning."
+    },
+    "loot-world-rule": {
+      "id": "loot-world-rule",
+      "text": "Loot distribution is biome and encounter-driven, with region-specific modifiers influencing item generation and rarity outcomes."
+    },
+    "progression-world-rule": {
+      "id": "progression-world-rule",
+      "text": "Player progression is not restricted by world zones and is instead shaped by performance-based XP and biome-driven encounters."
+    },
+    "travel-rule": {
+      "id": "travel-rule",
+      "text": "World traversal is free-form with optional fast travel systems and no level-gated geographic restrictions."
+    }
+  },
+  "core_design_philosophy": {
+    "open_world": true,
+    "non_linear_progression": true,
+    "biome_driven_difficulty": true,
+    "systemically_interconnected": true,
+    "emergent_gameplay": true
+  },
+  "world_hierarchy": [
+    "Continent",
+    "Region",
+    "Biome",
+    "Sub-zone",
+    "Encounter Zone"
+  ],
+  "system_integrations": {
+    "combat_bible": {
+      "impact": "Encounter difficulty dictates Time-To-Kill (TTK). Dangerous combinations of monster behaviors shape the battlefield dynamically.",
+      "mechanics": ["Biome environmental combat hazards", "Group synergy buffs for overlapping spawns", "Combat tempo adjustments based on zone danger"]
+    },
+    "spell_skill_bible": {
+      "impact": "Elemental affinities of zones amplify or dampen active spell effectiveness.",
+      "mechanics": ["Volcanic region boosts Fire spell damage by 15%", "Frozen Tundra increases Ice cooldowns but amplifies freeze durations", "Sacred Lands increase holy healing efficacy"]
+    },
+    "monster_bible": {
+      "impact": "Controls monster family distributions and adaptivity to regional danger ratings.",
+      "mechanics": ["Spawn composition shifting", "Elite scaling in high player activity areas", "Environmental hazard resistances for native creatures"]
+    },
+    "loot_bible": {
+      "impact": "Item drops are filtered through biome loot tables and regional rarity modifiers.",
+      "mechanics": ["Biome-exclusive materials", "Monster-family specific base item pools", "Affix weighting bias by continent"]
+    },
+    "progression_bible": {
+      "impact": "Defines how performance-based XP behaves across biomes without imposing hard caps.",
+      "mechanics": ["Underdog bonus: XP amplified when defeating higher difficulty encounter compositions", "Exploration milestone XP", "Dynamic chain-kill multiplier"]
+    },
+    "vocation_bible": {
+      "impact": "Classes have high/low performance matches with specific biomes based on utility skills.",
+      "mechanics": ["Ranger tracking speed increased in Forest biome", "Paladin divine protection scaled in Sacred Lands", "Necromancer minion cap increased in Corrupted Zones"]
+    }
+  }
+}

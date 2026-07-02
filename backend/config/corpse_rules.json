@@ -1,0 +1,25 @@
+{
+  "CorpsePersistenceMinutes": {
+    "Default": 12.0,
+    "Min": 10.0,
+    "Max": 15.0
+  },
+  "CorpseStates": {
+    "Empty": {
+      "DespawnSeconds": 10.0,
+      "Description": "Corpo sem saques pendentes. Despawn rápido para otimização de performance."
+    },
+    "Loot": {
+      "DespawnSeconds": 720.0,
+      "Description": "Corpo contendo itens não recolhidos. Persiste por até 12 minutos ou até ser esvaziado."
+    },
+    "Protected": {
+      "DespawnSeconds": 1800.0,
+      "Description": "Corpo de chefe de masmorra ou World Boss. Proteção de loot contra saques não autorizados."
+    }
+  },
+  "InventoryOverflowLaw": {
+    "Action": "CORPSE_STORAGE",
+    "Description": "Se o inventário do jogador estiver cheio, os itens remanescentes permanecem dentro do cadáver do monstro, habilitando a coleta manual."
+  }
+}

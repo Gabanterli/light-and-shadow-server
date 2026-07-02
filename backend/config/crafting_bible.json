@@ -1,0 +1,83 @@
+{
+  "SystemName": "Crafting & Item Tier Canonical System",
+  "Philosophy": "A universal, non-restrictive crafting system governed by recipe discovery and material collection from combat-based activities rather than profession gating or stats RNG. Progress is replacement-based and fully deterministic.",
+  "CanonicalRules": [
+    {
+      "Id": "crafting-core-principle",
+      "Text": "Crafting is a universal system available to all players without profession restrictions, governed by material acquisition and recipe knowledge."
+    },
+    {
+      "Id": "tier-definition-rule",
+      "Text": "Item tiers define acquisition method, not item quality or stat variance."
+    },
+    {
+      "Id": "crafting-tier-limit",
+      "Text": "Items of Tier 4 and Tier 5 cannot be crafted under any circumstances."
+    },
+    {
+      "Id": "item-template-rule",
+      "Text": "Items are defined as abstract deterministic templates without narrative naming unless explicitly registered in canonical item database."
+    },
+    {
+      "Id": "recipe-unlock-canon",
+      "Text": "Recipes are unlocked exclusively through quests and structured narrative progression events."
+    },
+    {
+      "Id": "material-source-rule",
+      "Text": "Materials are exclusively obtained from combat-based World Activities (Hunts, Bosses, Elite encounters)."
+    },
+    {
+      "Id": "universal-crafting-rule",
+      "Text": "Crafting capability is universal; complexity is determined only by recipe requirements and material availability."
+    },
+    {
+      "Id": "no-upgrade-crafting-rule",
+      "Text": "Crafting produces only base deterministic items with no enhancement or modification systems."
+    }
+  ],
+  "ItemTiers": {
+    "Tier_1": {
+      "Name": "Early game equipment",
+      "AcquisitionMethod": "Primarily crafted, but may drop from basic monsters",
+      "Craftable": true,
+      "Source": "Hunts, Quest Rewards, Crafting"
+    },
+    "Tier_2": {
+      "Name": "Low-mid game equipment",
+      "AcquisitionMethod": "Primarily crafted, but may drop from basic monsters",
+      "Craftable": true,
+      "Source": "Hunts, Quest Rewards, Crafting"
+    },
+    "Tier_3": {
+      "Name": "Mid game equipment",
+      "AcquisitionMethod": "Hybrid acquisition (craft + rare drops)",
+      "Craftable": true,
+      "Source": "Elite encounters, Hunts, Crafting"
+    },
+    "Tier_4": {
+      "Name": "Late game equipment",
+      "AcquisitionMethod": "Exclusive loot from high-tier content. Drop-only.",
+      "Craftable": false,
+      "Source": "Hunts, Bosses, Elite encounters, Demon / Dragon events"
+    },
+    "Tier_5": {
+      "Name": "Endgame apex equipment",
+      "AcquisitionMethod": "Exclusive loot from apex-tier content. Extreme rarity drop-only.",
+      "Craftable": false,
+      "Source": "Bosses, Sovereign Dragon manifestations"
+    }
+  },
+  "UniversalCrafting": {
+    "HasProfessions": false,
+    "HasCraftingClasses": false,
+    "HasSpecializationTrees": false,
+    "SuccessRate": 1.0,
+    "Deterministic": true,
+    "MaterialSources": "Materials are exclusively obtained from combat-based World Activities (Hunts, Bosses, Elite encounters) under Loot System Bible rules. No gathering systems, environmental extraction, or passive world resource nodes exist."
+  },
+  "EconomicAlignment": {
+    "Tiers_1_2": "Early game economy dominance via crafting",
+    "Tier_3": "Mid game hybrid economy",
+    "Tiers_4_5": "Endgame dependency shift toward loot systems, ensuring stable scarcity curve, controlled endgame inflation, and meaningful loot hierarchy"
+  }
+}

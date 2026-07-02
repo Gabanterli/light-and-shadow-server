@@ -1,0 +1,95 @@
+{
+  "houses": [
+    {
+      "id": "house_beginner_01",
+      "type": "player",
+      "name": "Beginner Cozy Cottage",
+      "continent": "Main Continent",
+      "x": 130.0,
+      "y": 140.0,
+      "z": 0,
+      "size": "small",
+      "purchase_cost_bronze": 50000,
+      "rent_cost_bronze": 1000,
+      "storage_capacity": 20
+    },
+    {
+      "id": "house_fire_01",
+      "type": "player",
+      "name": "Lava View Hearth Villa",
+      "continent": "Fire Continent",
+      "x": 2150.0,
+      "y": 2150.0,
+      "z": 0,
+      "size": "medium",
+      "purchase_cost_bronze": 250000,
+      "rent_cost_bronze": 5000,
+      "storage_capacity": 50
+    },
+    {
+      "id": "house_ice_01",
+      "type": "player",
+      "name": "Frost Peaks Igloo",
+      "continent": "Ice Continent",
+      "x": 2350.0,
+      "y": 2350.0,
+      "z": 0,
+      "size": "small",
+      "purchase_cost_bronze": 150000,
+      "rent_cost_bronze": 3000,
+      "storage_capacity": 30
+    },
+    {
+      "id": "guild_house_holy_01",
+      "type": "guild",
+      "name": "Sanctum Guild Citadel",
+      "continent": "Holy Continent",
+      "x": 2550.0,
+      "y": 2550.0,
+      "z": 0,
+      "size": "large",
+      "purchase_cost_bronze": 2000000,
+      "rent_cost_bronze": 50000,
+      "storage_capacity": 100
+    },
+    {
+      "id": "guild_house_shadow_01",
+      "type": "guild",
+      "name": "Eclipse Guild Stronghold",
+      "continent": "Shadow Continent",
+      "x": 2750.0,
+      "y": 2750.0,
+      "z": 0,
+      "size": "large",
+      "purchase_cost_bronze": 2500000,
+      "rent_cost_bronze": 60000,
+      "storage_capacity": 120
+    },
+    {
+      "id": "house_nature_01",
+      "type": "player",
+      "name": "Wildwood Treehouse Sanctuary",
+      "continent": "Nature Continent",
+      "x": 2950.0,
+      "y": 2950.0,
+      "z": 0,
+      "size": "medium",
+      "purchase_cost_bronze": 500000,
+      "rent_cost_bronze": 10000,
+      "storage_capacity": 60
+    },
+    {
+      "id": "house_abyss_01",
+      "type": "player",
+      "name": "Void Abyss Manor",
+      "continent": "Abyssia",
+      "x": 3550.0,
+      "y": 3550.0,
+      "z": 0,
+      "size": "large",
+      "purchase_cost_bronze": 10000000,
+      "rent_cost_bronze": 200000,
+      "storage_capacity": 100
+    }
+  ]
+}

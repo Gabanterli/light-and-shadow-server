@@ -1,0 +1,98 @@
+[
+  {
+    "BossID": "shadow_lord",
+    "Name": "Lorde das Sombras",
+    "PhaseRules": {
+      "Phase1": {
+        "ThresholdMin": 76.0,
+        "ThresholdMax": 100.0,
+        "Title": "Opening (Fase Inicial)",
+        "Description": "Base behavior and single target shadow bolt attacks.",
+        "Ablities": ["shadow_bolt"]
+      },
+      "Phase2": {
+        "ThresholdMin": 51.0,
+        "ThresholdMax": 75.0,
+        "Title": "Escalation (Invocação Sombria)",
+        "Type": "Summoner Phase",
+        "Description": "Unlocks new abilities. Summons 2 Shadow Servants to shield the boss.",
+        "Abilities": ["shadow_shield", "summon_shadow_adds"],
+        "AddsCount": 2,
+        "AddHP": 1000
+      },
+      "Phase3": {
+        "ThresholdMin": 26.0,
+        "ThresholdMax": 50.0,
+        "Title": "Dangerous (Controle e Terremoto Sombrio)",
+        "Type": "Control Phase",
+        "Description": "Severe mechanics activate. Begins casting telegraphed AoE Shadow Earthquake.",
+        "Abilities": ["shadow_earthquake_aoe", "mass_slow_debuff"],
+        "AddsCount": 1,
+        "AddHP": 1500,
+        "TelegraphSeconds": 3
+      },
+      "Phase4": {
+        "ThresholdMin": 0.0,
+        "ThresholdMax": 25.0,
+        "Title": "Final / Enrage (Fúria Absoluta)",
+        "Type": "Berserker Phase",
+        "Description": "Maximum aggression. Gains 5x damage, higher attack speed, and ignores crowd control.",
+        "Abilities": ["doom_nova", "berserker_frenzy"]
+      }
+    }
+  },
+  {
+    "BossID": "dragon_boss",
+    "Name": "Lorde Dragão / Void Dragon Lord",
+    "FleeSurvivalMode": "DeathBeforeRetreat",
+    "SpecialDragonLaw": {
+      "NeverFlee": true,
+      "NeverSurrender": true,
+      "NeverRetreat": true,
+      "RageThreshold": 25.0,
+      "DraconicRageBuffs": {
+        "AttackSpeedIncreasePercent": 50.0,
+        "BreathFrequencyIncreasePercent": 100.0,
+        "SpellIntensityIncreasePercent": 40.0
+      }
+    },
+    "PhaseRules": {
+      "Phase1": {
+        "ThresholdMin": 76.0,
+        "ThresholdMax": 100.0,
+        "Title": "Opening (Despertar do Fogo)",
+        "Description": "Standard fire swipes and basic flame breath attacks.",
+        "Abilities": ["fire_swipe", "flame_breath"]
+      },
+      "Phase2": {
+        "ThresholdMin": 51.0,
+        "ThresholdMax": 75.0,
+        "Title": "Escalation (Cólera dos Servos)",
+        "Type": "Summoner Phase",
+        "Description": "Unlocks volcanic pools and summons Fire Drakes as reinforcement.",
+        "Abilities": ["volcanic_pool", "summon_fire_drakes"],
+        "AddsCount": 2,
+        "AddHP": 1200
+      },
+      "Phase3": {
+        "ThresholdMin": 26.0,
+        "ThresholdMax": 50.0,
+        "Title": "Dangerous (Chuva de Meteoros)",
+        "Type": "Control Phase",
+        "Description": "Channeling fire telegraph arrays that cover the arena.",
+        "Abilities": ["meteor_shower_aoe", "silence_roar"],
+        "AddsCount": 1,
+        "AddHP": 2000,
+        "TelegraphSeconds": 4
+      },
+      "Phase4": {
+        "ThresholdMin": 0.0,
+        "ThresholdMax": 25.0,
+        "Title": "Final / Draconic Rage (Fúria do Dragão do Vazio)",
+        "Type": "Berserker Phase",
+        "Description": "A dragon never retreats once true combat has begun. Enters Draconic Rage, gaining massive spell intensity and attack speed. Resolved as player dies or dragon dies.",
+        "Abilities": ["cataclysm_breath", "draconic_fear_aura"]
+      }
+    }
+  }
+]

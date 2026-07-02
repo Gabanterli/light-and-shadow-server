@@ -1,0 +1,44 @@
+{
+  "ItemTiers": [
+    {
+      "Tier": 1,
+      "Name": "Tier 1",
+      "PowerBracket": "Starter / Basic",
+      "Craftable": true,
+      "WorldDrop": true,
+      "Description": "Basic gear used by newly awakened adventurers. Simple materials and low stat profiles. Fully craftable."
+    },
+    {
+      "Tier": 2,
+      "Name": "Tier 2",
+      "PowerBracket": "Adept / Intermediate",
+      "Craftable": true,
+      "WorldDrop": true,
+      "Description": "Standard adventuring equipment. Offers solid base stats and introductory horizontal diversity. Fully craftable."
+    },
+    {
+      "Tier": 3,
+      "Name": "Tier 3",
+      "PowerBracket": "Elite / Expert",
+      "Craftable": true,
+      "WorldDrop": true,
+      "Description": "High-quality gear representing the peak of standard mortal craftsmanship. Provides powerful attributes and elemental modifiers. Fully craftable."
+    },
+    {
+      "Tier": 4,
+      "Name": "Tier 4",
+      "PowerBracket": "Heroic / Master",
+      "Craftable": false,
+      "WorldDrop": true,
+      "Description": "Rare items recovered from high-tier monsters, world events, and dangerous areas. Uncraftable. Features powerful active/passive affixes."
+    },
+    {
+      "Tier": 5,
+      "Name": "Tier 5",
+      "PowerBracket": "Prestige / Artifact",
+      "Craftable": false,
+      "WorldDrop": true,
+      "Description": "Near-legendary artifact equipment of extreme scarcity and prestige. Uncraftable. Found only through supreme challenges, world bosses, and deep endgame encounters."
+    }
+  ]
+}

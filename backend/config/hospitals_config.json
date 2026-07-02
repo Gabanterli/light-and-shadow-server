@@ -1,0 +1,65 @@
+{
+  "hospitals": [
+    {
+      "id": "beginner_infirmary",
+      "name": "Beginner Camp Military Infirmary",
+      "continent_name": "Main Continent",
+      "x": 120.0,
+      "y": 120.0,
+      "z": 0
+    },
+    {
+      "id": "fire_temple",
+      "name": "Hearth Healing Temple",
+      "continent_name": "Fire Continent",
+      "x": 2110.0,
+      "y": 2110.0,
+      "z": 0
+    },
+    {
+      "id": "ice_hospital",
+      "name": "Frostbite Infirmary",
+      "continent_name": "Ice Continent",
+      "x": 2310.0,
+      "y": 2310.0,
+      "z": 0
+    },
+    {
+      "id": "holy_cathedral",
+      "name": "Sanctum Cathedral Hospital",
+      "continent_name": "Holy Continent",
+      "x": 2510.0,
+      "y": 2510.0,
+      "z": 0
+    },
+    {
+      "id": "shadow_infirmary",
+      "name": "Eclipse Military Infirmary",
+      "continent_name": "Shadow Continent",
+      "x": 2710.0,
+      "y": 2710.0,
+      "z": 0
+    },
+    {
+      "id": "nature_shrine",
+      "name": "Wildwood Healing Shrine",
+      "continent_name": "Nature Continent",
+      "x": 2910.0,
+      "y": 2910.0,
+      "z": 0
+    },
+    {
+      "id": "abyssia_temple",
+      "name": "Last Bastion Recovery Clinic",
+      "continent_name": "Abyssia",
+      "x": 3410.0,
+      "y": 3110.0,
+      "z": 0
+    }
+  ],
+  "safe_fallback": {
+    "x": 100.0,
+    "y": 100.0,
+    "z": 0
+  }
+}

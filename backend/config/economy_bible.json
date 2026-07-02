@@ -1,0 +1,87 @@
+{
+  "SystemName": "Economy Bible (Final Canon Version)",
+  "Philosophy": "The economy of Light and Shadow is a fully player-driven, closed-loop value flow ecosystem. Value is sustained through high-friction gameplay loops, steep death costs, non-inflationary pacing, and unrestricted trade liquidity. It aims to prevent hyper-inflation, preserve mid-tier usefulness, and balance high-risk activities with long-term capital safety.",
+  "CanonicalRules": [
+    {
+      "Id": "econ-core-equilibrium",
+      "Text": "The currency supply must remain in a balanced state where gold faucets (monster drops, quests, world events) are strictly counterbalanced by structural sinks (blessings, market taxes, guild registration)."
+    },
+    {
+      "Id": "combat-ttk-throttle",
+      "Text": "Combat Time-to-Kill (TTK) serves as a physical throttle on currency generation. High TTK and tactical depth prevent automated speed-farming and limit the absolute hourly rate of gold entering the system."
+    },
+    {
+      "Id": "death-sink-equilibrium",
+      "Text": "Every death (PvP or PvE) wipes out all active blessings, forcing players to spend up to 1.76M Bronze Coins (176 Gold Coins) to replenish full 100% item protection. This is the primary gold sink in the game."
+    },
+    {
+      "Id": "market-taxation-sink",
+      "Text": "All asynchronous market transactions carry a flat, non-refundable 2% listing fee, acting as a continuous, high-volume gold sink proportional to economic activity."
+    },
+    {
+      "Id": "unrestricted-liquidity-rule",
+      "Text": "All items in the world (including legendary boss drops and crafted gear) are 100% tradable. Soulbinding, character-binding, and bind-on-pickup mechanics are strictly forbidden to maximize trade velocity."
+    },
+    {
+      "Id": "item-sink-redistribution",
+      "Text": "Unprotected deaths (deaths occurred with fewer than 7 active blessings) cause linear item drops to the character's corpse. While dropped items are redistributed via Open Loot, a flat 15% 'Shatter Rate' applies to dropped items, permanently destroying them to act as a systemic gear sink."
+    },
+    {
+      "Id": "banking-capital-safety",
+      "Text": "Banked gold is 100% safe from all death penalties, encouraging capital security, whereas carried currency is subject to immediate loot loss upon death, reinforcing physical risk in high-danger zones."
+    }
+  ],
+  "EconomicFlowModel": {
+    "Faucets": {
+      "MonsterDrops": "Civilized humanoids (bandits, cultists, pirates) drop direct Bronze, Silver, and raw Gold. Beasts and elementals drop valuable raw crafting components.",
+      "QuestContracts": "Dynamic faction contract completions award progressive tier-based currency based on region difficulty scaling.",
+      "WorldEvents": "Large-scale rifts and continental boss events dispense high-value physical chests with concentrated currency and rare items.",
+      "SalvageTrade": "NPC vendors purchase junk items and surplus materials at baseline floor rates, establishing a minimum gold value for low-tier drops."
+    },
+    "Sinks": {
+      "BlessingReplenishment": "7 Primordial Altars distributed across continents sell blessings. Total replenishment cost for full protection is 1,760,000 Bronze (176 Gold). Consumed entirely on any death.",
+      "MarketListingFee": "A flat 2.0% listing fee is charged upfront upon posting any item to the global market. Non-refundable upon sale cancellation.",
+      "CraftingSurcharges": "Tier 1 to Tier 3 crafting recipes require direct currency payments to regional artisan NPCs alongside raw material ingredients.",
+      "GuildAndHouseSinks": "Guild registration, emblem customization, rank upgrades, and bids on player houses require heavy capital gold investments that are permanently burned from the active economy."
+    },
+    "LiquidityVelocity": "Because items never bind, trade velocity is infinite. A Tier 5 sword can circulate through dozens of owners over its lifespan, maintaining high secondary market volume and currency circulation."
+  },
+  "EconomyStabilityIndex": {
+    "Definition": "A system-wide economic health score used to diagnose deflationary contraction or inflationary pressure.",
+    "Formula": "ESI = (Total_Sinks_24h / Total_Faucets_24h) * (Active_Player_Coefficient) * (Trade_Velocity_Index)",
+    "TargetRange": {
+      "Optimal": "0.95 to 1.05",
+      "InflationAlert": "Below 0.80 (Currency is entering faster than it is burned. Triggers increase in Altar blessing costs and artisan fees.)",
+      "DeflationAlert": "Above 1.20 (Currency is too scarce, players are hoarding. Triggers decrease in listing fees and increased quest contract payouts.)"
+    }
+  },
+  "GearLifecycleModel": {
+    "Stages": [
+      {
+        "Phase": "Creation",
+        "Source": "Crafting (restricted to T1-T3) or World Drop (T1-T5 exclusively from high-risk dungeons and world bosses)."
+      },
+      {
+        "Phase": "Usage",
+        "Description": "Equipped on player character. No durability decay exists, ensuring consistent gameplay performance."
+      },
+      {
+        "Phase": "Circulation",
+        "Description": "Traded via Direct Secure Trade, physical Handoff Trade, or the Global City-Linked Market."
+      },
+      {
+        "Phase": "Exposure",
+        "Description": "Taken into high-hazard biomes or PvP conflict areas. Protected by blessings or exposed to death drop risks."
+      },
+      {
+        "Phase": "Sink_Or_Redistribution",
+        "Description": "On unprotected death: items are dropped. 85% of dropped items become 'Open Loot' on the corpse for any player to retrieve. 15% of dropped items undergo systemic 'Shattering' and are permanently deleted from the database."
+      }
+    ]
+  },
+  "SystemIntegrations": {
+    "CombatSystem": "High TTK limits maximum farming efficiency. Action-based combat prevents automated macros from running infinite farming loops.",
+    "WorldFoundation": "Dangerous biomes scale encounter density and hazards. Higher-risk zones yield exponentially higher-tier loot drops and raw currency carriers, creating a physical high-risk high-reward frontier.",
+    "ProgressionSystem": "XP and skill progression are infinite but soft-capped, preventing power explosion. This keeps T3/T4 gear viable even for high-level characters, preventing rapid devaluation of mid-tier items."
+  }
+}

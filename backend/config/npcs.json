@@ -1,0 +1,386 @@
+[
+  {
+    "id": "npc_mayor",
+    "name": "Prefeito George",
+    "position": {
+      "x": 105.0,
+      "y": 105.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_mayor",
+    "interaction_radius": 4.0,
+    "quest_ids": ["quest_kill_goblins"]
+  },
+  {
+    "id": "npc_guard",
+    "name": "Guarda Will",
+    "position": {
+      "x": 120.0,
+      "y": 120.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_guard",
+    "interaction_radius": 3.0,
+    "quest_ids": ["quest_collect_iron"]
+  },
+  {
+    "id": "npc_king_thalindir",
+    "name": "King Thalindir Elarion",
+    "position": {
+      "x": 2900.0,
+      "y": 2950.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_king",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_enth",
+    "name": "Enth",
+    "position": {
+      "x": 2902.0,
+      "y": 2950.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_advisor",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_druid_elder",
+    "name": "Elder Faelar",
+    "position": {
+      "x": 2900.0,
+      "y": 2850.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_druid",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_orc_refugee",
+    "name": "Gorgok the Green",
+    "position": {
+      "x": 2850.0,
+      "y": 2900.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_orc",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_elven_commander",
+    "name": "Commander Sylas",
+    "position": {
+      "x": 2950.0,
+      "y": 2900.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_commander",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_valdrak",
+    "name": "Count Valdrak Nocthar",
+    "position": {
+      "x": 3900.0,
+      "y": 3950.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_vampire_lord",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_seraphine",
+    "name": "Lady Seraphine",
+    "position": {
+      "x": 3902.0,
+      "y": 3950.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_vampire_noble",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_dregan",
+    "name": "Harbormaster Dregan",
+    "position": {
+      "x": 3850.0,
+      "y": 3925.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_harbormaster",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_gormak",
+    "name": "Warchief Gor'mak",
+    "position": {
+      "x": 3825.0,
+      "y": 3900.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_black_orc",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_morthak",
+    "name": "Morthak the Eternal",
+    "position": {
+      "x": 3900.0,
+      "y": 3850.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_lich_king",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_xerath",
+    "name": "High Cultist Xerath",
+    "position": {
+      "x": 3950.0,
+      "y": 3875.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_cultist_leader",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_aurelius",
+    "name": "Aurelius Dawnbringer",
+    "position": {
+      "x": 4900.0,
+      "y": 4950.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_paladin_lord",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_aelthir",
+    "name": "Aelthir Luminar",
+    "position": {
+      "x": 4950.0,
+      "y": 4900.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_elf_mage",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_seraphiel",
+    "name": "Seraphiel",
+    "position": {
+      "x": 4902.0,
+      "y": 4950.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_seraphim",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_sunwall_commander",
+    "name": "Sunwall Commander",
+    "position": {
+      "x": 4850.0,
+      "y": 4900.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_paladin_commander",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_lunareth_elder",
+    "name": "Lunareth Elder",
+    "position": {
+      "x": 4952.0,
+      "y": 4900.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_elf_elder",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_kaelthar_elaris",
+    "name": "King Kaelthar Elaris",
+    "position": {
+      "x": 5900.0,
+      "y": 5952.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_king_frozen",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_frosthaven_harbor_master",
+    "name": "Frosthaven Harbor Master",
+    "position": {
+      "x": 5900.0,
+      "y": 5852.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_harbor_master_frozen",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_khaz_tirith_forge_master",
+    "name": "Khaz Tirith Forge Master",
+    "position": {
+      "x": 5950.0,
+      "y": 5902.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_forge_master_frozen",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_ymirr_stonefrost",
+    "name": "Ymirr Stonefrost",
+    "position": {
+      "x": 5980.0,
+      "y": 5965.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_jotunn_advisor",
+    "interaction_radius": 5.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_ignis_rex",
+    "name": "Ignis Rex",
+    "position": {
+      "x": 2100.0,
+      "y": 2102.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_fire_mage_king",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_crimson_warlord",
+    "name": "Warlord Gar'thok",
+    "position": {
+      "x": 2050.0,
+      "y": 2152.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_red_orc_warlord",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_molten_forge_master",
+    "name": "Forge Master Brokk",
+    "position": {
+      "x": 2150.0,
+      "y": 2052.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_cyclops_forge_master",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_fire_demon_general",
+    "name": "General Malgazar",
+    "position": {
+      "x": 2100.0,
+      "y": 2122.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_fire_demon_general",
+    "interaction_radius": 5.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_faction_leader_varian",
+    "name": "Marshal Varian",
+    "position": {
+      "x": 500.0,
+      "y": 500.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_marshal",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_blacksmith_master",
+    "name": "Master Alistair",
+    "position": {
+      "x": 505.0,
+      "y": 505.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_blacksmith",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_guild_merchant",
+    "name": "Merchant Silas",
+    "position": {
+      "x": 1605.0,
+      "y": 605.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_merchant",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_ship_captain",
+    "name": "Captain Redbeard",
+    "position": {
+      "x": 1205.0,
+      "y": 1205.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_captain",
+    "interaction_radius": 4.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_king_aldren",
+    "name": "King Aldren Vaelor",
+    "position": {
+      "x": 1610.0,
+      "y": 590.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_king",
+    "interaction_radius": 5.0,
+    "quest_ids": []
+  },
+  {
+    "id": "npc_captain_kenneth",
+    "name": "Capitão Kenneth",
+    "position": {
+      "x": 100.0,
+      "y": 100.0,
+      "z": 0
+    },
+    "sprite_id": "sprite_captain",
+    "interaction_radius": 4.0,
+    "quest_ids": ["quest_tutorial_sewer_rats"]
+  }
+]

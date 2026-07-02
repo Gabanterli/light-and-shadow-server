@@ -1,0 +1,124 @@
+{
+  "weapon_archetypes": [
+    {
+      "archetype": "Sword",
+      "damage_archetype": "Slashing",
+      "type": "melee",
+      "description": "Balanced physical weapon with versatile offensive profile.",
+      "compatible_classes": ["Knight", "Assassin", "Archer"],
+      "scaling_profile": {
+        "physical_scaling": 1.0,
+        "magic_scaling": 0.0,
+        "base_speed": "medium"
+      }
+    },
+    {
+      "archetype": "Axe",
+      "damage_archetype": "Slashing",
+      "type": "melee",
+      "description": "Slow heavy weapon with high burst damage.",
+      "compatible_classes": ["Knight"],
+      "scaling_profile": {
+        "physical_scaling": 1.3,
+        "magic_scaling": 0.0,
+        "base_speed": "slow"
+      }
+    },
+    {
+      "archetype": "Mace",
+      "damage_archetype": "Bludgeoning",
+      "type": "melee",
+      "description": "Blunt weapon specialized in stagger and anti-heavy-armor combat.",
+      "compatible_classes": ["Knight"],
+      "scaling_profile": {
+        "physical_scaling": 1.15,
+        "magic_scaling": 0.0,
+        "base_speed": "slow"
+      }
+    },
+    {
+      "archetype": "Spear",
+      "damage_archetype": "Piercing",
+      "type": "melee",
+      "description": "Extended melee reach and zoning capability.",
+      "compatible_classes": ["Knight", "Archer"],
+      "scaling_profile": {
+        "physical_scaling": 1.05,
+        "magic_scaling": 0.0,
+        "base_speed": "medium"
+      }
+    },
+    {
+      "archetype": "Dagger",
+      "damage_archetype": "Piercing",
+      "type": "melee",
+      "description": "Very high attack speed and crit-oriented burst.",
+      "compatible_classes": ["Assassin"],
+      "scaling_profile": {
+        "physical_scaling": 0.75,
+        "magic_scaling": 0.0,
+        "base_speed": "very_fast"
+      }
+    },
+    {
+      "archetype": "Bow",
+      "damage_archetype": "Ranged Physical",
+      "type": "ranged",
+      "description": "Long-range sustained physical DPS.",
+      "compatible_classes": ["Archer"],
+      "scaling_profile": {
+        "physical_scaling": 0.9,
+        "magic_scaling": 0.0,
+        "base_speed": "fast"
+      }
+    },
+    {
+      "archetype": "Crossbow",
+      "damage_archetype": "Ranged Physical",
+      "type": "ranged",
+      "description": "Slower than bow but higher burst and armor penetration.",
+      "compatible_classes": ["Archer"],
+      "scaling_profile": {
+        "physical_scaling": 1.2,
+        "magic_scaling": 0.0,
+        "base_speed": "slow"
+      }
+    },
+    {
+      "archetype": "Staff",
+      "damage_archetype": "Magical",
+      "type": "magic",
+      "description": "Primary spell-power weapon with strong AoE scaling.",
+      "compatible_classes": ["Mage", "Cleric"],
+      "scaling_profile": {
+        "physical_scaling": 0.3,
+        "magic_scaling": 1.4,
+        "base_speed": "slow"
+      }
+    },
+    {
+      "archetype": "Wand",
+      "damage_archetype": "Magical",
+      "type": "magic",
+      "description": "Fast-casting magical weapon with mana efficiency.",
+      "compatible_classes": ["Mage", "Cleric"],
+      "scaling_profile": {
+        "physical_scaling": 0.2,
+        "magic_scaling": 0.9,
+        "base_speed": "fast"
+      }
+    },
+    {
+      "archetype": "Tome / Relic",
+      "damage_archetype": "Magical",
+      "type": "magic",
+      "description": "Support-oriented magical focus for healing and utility scaling.",
+      "compatible_classes": ["Mage", "Cleric"],
+      "scaling_profile": {
+        "physical_scaling": 0.1,
+        "magic_scaling": 1.1,
+        "base_speed": "medium"
+      }
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+[
+  {
+    "RecipeID": "weapon_t1_recipe",
+    "OutputItemID": "weapon_t1",
+    "OutputQuantity": 1,
+    "SuccessRate": 1.0,
+    "Materials": [
+      {
+        "ItemID": "material_t1",
+        "Quantity": 5
+      }
+    ],
+    "UnlockRequirement": "Quest: Initial Combat Training"
+  },
+  {
+    "RecipeID": "armor_t1_recipe",
+    "OutputItemID": "armor_t1",
+    "OutputQuantity": 1,
+    "SuccessRate": 1.0,
+    "Materials": [
+      {
+        "ItemID": "material_t1",
+        "Quantity": 8
+      }
+    ],
+    "UnlockRequirement": "Quest: Arming the Outpost"
+  },
+  {
+    "RecipeID": "weapon_t2_recipe",
+    "OutputItemID": "weapon_t2",
+    "OutputQuantity": 1,
+    "SuccessRate": 1.0,
+    "Materials": [
+      {
+        "ItemID": "material_t1",
+        "Quantity": 10
+      },
+      {
+        "ItemID": "material_t2",
+        "Quantity": 3
+      }
+    ],
+    "UnlockRequirement": "Quest: Blade of structured narration"
+  },
+  {
+    "RecipeID": "armor_t2_recipe",
+    "OutputItemID": "armor_t2",
+    "OutputQuantity": 1,
+    "SuccessRate": 1.0,
+    "Materials": [
+      {
+        "ItemID": "material_t1",
+        "Quantity": 15
+      },
+      {
+        "ItemID": "material_t2",
+        "Quantity": 5
+      }
+    ],
+    "UnlockRequirement": "Quest: Armor of narrative milestones"
+  },
+  {
+    "RecipeID": "accessory_t2_recipe",
+    "OutputItemID": "accessory_t2",
+    "OutputQuantity": 1,
+    "SuccessRate": 1.0,
+    "Materials": [
+      {
+        "ItemID": "material_t2",
+        "Quantity": 6
+      }
+    ],
+    "UnlockRequirement": "Quest: Adornments of the Deep"
+  },
+  {
+    "RecipeID": "weapon_t3_recipe",
+    "OutputItemID": "weapon_t3",
+    "OutputQuantity": 1,
+    "SuccessRate": 1.0,
+    "Materials": [
+      {
+        "ItemID": "material_t2",
+        "Quantity": 12
+      },
+      {
+        "ItemID": "material_t3",
+        "Quantity": 4
+      }
+    ],
+    "UnlockRequirement": "Quest: Pinnacle of the Forge"
+  },
+  {
+    "RecipeID": "armor_t3_recipe",
+    "OutputItemID": "armor_t3",
+    "OutputQuantity": 1,
+    "SuccessRate": 1.0,
+    "Materials": [
+      {
+        "ItemID": "material_t2",
+        "Quantity": 20
+      },
+      {
+        "ItemID": "material_t3",
+        "Quantity": 6
+      }
+    ],
+    "UnlockRequirement": "Quest: Iron Citadel Trial"
+  }
+]

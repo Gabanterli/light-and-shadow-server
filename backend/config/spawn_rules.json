@@ -1,0 +1,50 @@
+{
+  "SystemName": "Hybrid Spawn Architecture",
+  "Categories": [
+    {
+      "Name": "Standard Spawn",
+      "TimerMinutesMin": 0.5,
+      "TimerMinutesMax": 5.0,
+      "Usage": "Used for common farm monsters.",
+      "Examples": ["goblins", "wolves", "skeletons", "spiders"],
+      "PlayerDensityAdaptive": false
+    },
+    {
+      "Name": "Dynamic Ecosystem Spawn",
+      "Factors": [
+        "player_density",
+        "hunting_pressure",
+        "alive_population"
+      ],
+      "Usage": "Used for ecological creatures.",
+      "Examples": ["beasts", "predators", "flora", "aquatics"],
+      "PlayerDensityAdaptive": true
+    },
+    {
+      "Name": "Rare Spawn",
+      "TimerMinutesMin": 30.0,
+      "TimerMinutesMax": 1440.0,
+      "Characteristics": [
+        "long_timers",
+        "multiple_locations",
+        "low_frequency"
+      ],
+      "Usage": "Semi-random spawn windows.",
+      "Examples": ["elite_dire_wolves", "named_assassins", "rare_flora_monsters"],
+      "PlayerDensityAdaptive": false
+    },
+    {
+      "Name": "Legendary Spawn",
+      "NoSimpleTimer": true,
+      "Triggers": [
+        "world_events",
+        "hidden_conditions",
+        "quest_progression",
+        "special_world_states"
+      ],
+      "Usage": "Special boss-scale dynamic spawning.",
+      "Examples": ["Dragon Lords", "Void Dragon Lord", "Archegenerals"],
+      "PlayerDensityAdaptive": false
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "SystemName": "World Activity Matrix",
+  "Philosophy": "Open-ended, non-linear activity sandbox governed by risk and reward rather than forced character-level gating.",
+  "CanonicalRules": [
+    {
+      "Id": "activity-freedom-principle",
+      "Text": "Players may engage in any available activity at any time, with no enforced progression sequence."
+    },
+    {
+      "Id": "risk-reward-binding",
+      "Text": "Higher risk activities must proportionally increase reward potential through loot quality, currency yield, or crafting material density."
+    },
+    {
+      "Id": "death-activity-link",
+      "Text": "Activities must explicitly define how death alters reward loss, loot exposure, and economic consequence."
+    },
+    {
+      "Id": "blessing-risk-modifier",
+      "Text": "Blessings function as a global risk mitigation modifier applied across all activity types."
+    },
+    {
+      "Id": "sandbox-activity-model",
+      "Text": "The world is a sandbox of independent activity nodes governed by risk, reward, and encounter configuration rather than player level pathing."
+    },
+    {
+      "Id": "region-danger-principle",
+      "Text": "Regions are not level-locked. All regions are accessible at any level, but naturally vary in danger, encounter density, and risk."
+    },
+    {
+      "Id": "risk-tier-system",
+      "Text": "Activities are classified by qualitative risk tiers: Minimal, Low, Moderate, High, Extreme."
+    },
+    {
+      "Id": "exploration-reward-neutral",
+      "Text": "Exploration rewards are abstract and undefined pending future canonical Crafting Bible definition."
+    },
+    {
+      "Id": "boss-risk-principle",
+      "Text": "Boss encounters represent the highest complexity and reward tier, but do not define guaranteed death probability."
+    }
+  ],
+  "ActivityClasses": {
+    "HUNT_ACTIVITIES": {
+      "Purpose": "Combat-driven resource acquisition, leveling, and rare item farming.",
+      "RiskTier": "High",
+      "LootExposureTier": "High",
+      "EncounterDensity": "Low to Medium",
+      "TTKExpectation": "High (Deliberate high TTK, tactical pacing)",
+      "BlessingRelevance": "High",
+      "EconomicOutput": "High (Loot, materials, equipment templates)",
+      "DeathExposure": "Full (Subject to player corpse loot, linear blessing mitigation applied)",
+      "Examples": [
+        "Solo hunts",
+        "Group hunting runs",
+        "Elite zones",
+        "Demon-infested ruins",
+        "Dragon nest encounters"
+      ]
+    },
+    "EXPLORATION_ACTIVITIES": {
+      "Purpose": "World discovery, cartography, and secret finding.",
+      "RiskTier": "Minimal",
+      "LootExposureTier": "Minimal",
+      "EncounterDensity": "Very Low",
+      "TTKExpectation": "Minimal",
+      "BlessingRelevance": "Low",
+      "EconomicOutput": "Exploration rewards are abstract and undefined pending future canonical Crafting Bible definition.",
+      "DeathExposure": "Minimal (Safe pathways, low monster aggro)",
+      "Examples": [
+        "Uncharted territory exploration",
+        "Hidden region discovery",
+        "Lore monument decoding"
+      ]
+    },
+    "QUEST_CONTRACT_ACTIVITIES": {
+      "Purpose": "Structured objective-based narrative and reputation progression.",
+      "RiskTier": "Moderate",
+      "LootExposureTier": "Moderate",
+      "EncounterDensity": "Variable",
+      "TTKExpectation": "Medium",
+      "BlessingRelevance": "Moderate",
+      "EconomicOutput": "Medium-High (Faction reputation, direct coin rewards, material caches)",
+      "DeathExposure": "Variable (Dependent on target zone danger levels)",
+      "Examples": [
+        "NPC contracts",
+        "Faction bounty hunts",
+        "Guild trade runs",
+        "Dynamic regional world events"
+      ]
+    },
+    "BOSS_WORLD_EVENT_ACTIVITIES": {
+      "Purpose": "Server-scale or multi-group cooperative high-tier challenges.",
+      "RiskTier": "Extreme",
+      "LootExposureTier": "Minimal",
+      "EncounterDensity": "High (Apex single target boss encounters)",
+      "TTKExpectation": "Extremely High (Multi-phase, several minutes)",
+      "BlessingRelevance": "Extreme",
+      "EconomicOutput": "Apex (Diamond coins, legendary crafting components)",
+      "DeathExposure": "Boss encounters represent the highest complexity and reward tier, but do not define guaranteed death probability. Boss rewards drop to a secure personal chest in safe zones rather than on corpse",
+      "Examples": [
+        "World bosses",
+        "Raid boss encounters",
+        "Sovereign dragon manifestations",
+        "Dungeon end bosses"
+      ]
+    }
+  }
+}

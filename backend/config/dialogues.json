@@ -1,0 +1,1494 @@
+[
+  {
+    "npc_id": "npc_mayor",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Olá, viajante! Nossa vila está sob ataque de Goblins terríveis. Você poderia nos ajudar?",
+        "responses": [
+          {
+            "text": "Sim, eu cuidarei deles!",
+            "next_node_id": "accept_quest",
+            "condition": {
+              "quest_id": "quest_kill_goblins",
+              "status": "not_started"
+            }
+          },
+          {
+            "text": "Como está a situação da quest dos Goblins?",
+            "next_node_id": "quest_status_goblins",
+            "condition": {
+              "quest_id": "quest_kill_goblins",
+              "status": "active"
+            }
+          },
+          {
+            "text": "Já derrotei os Goblins!",
+            "next_node_id": "complete_quest_goblins",
+            "condition": {
+              "quest_id": "quest_kill_goblins",
+              "status": "ready_to_complete"
+            }
+          },
+          {
+            "text": "Talvez outra hora.",
+            "next_node_id": "bye",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "accept_quest",
+        "text": "Excelente! Vá e derrote 3 Goblins. Retorne quando concluir.",
+        "quest_trigger": {
+          "action": "accept",
+          "quest_id": "quest_kill_goblins"
+        },
+        "responses": [
+          {
+            "text": "Até logo!",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "quest_status_goblins",
+        "text": "Você ainda precisa derrotar 3 Goblins. Vá, antes que seja tarde!",
+        "responses": [
+          {
+            "text": "Entendido.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "complete_quest_goblins",
+        "text": "Incrível! Muito obrigado por nos ajudar. Pegue esta recompensa!",
+        "quest_trigger": {
+          "action": "complete",
+          "quest_id": "quest_kill_goblins"
+        },
+        "responses": [
+          {
+            "text": "Obrigado!",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "bye",
+        "text": "Tudo bem, volte se mudar de ideia.",
+        "responses": []
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_guard",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Olá, recruta. Preciso de minério de ferro para consertar as armas.",
+        "responses": [
+          {
+            "text": "Vou procurar por ferro.",
+            "next_node_id": "accept_iron_quest",
+            "condition": {
+              "level": 2,
+              "quest_id": "quest_collect_iron",
+              "status": "not_started"
+            }
+          },
+          {
+            "text": "Aqui estão os minérios de ferro!",
+            "next_node_id": "complete_iron_quest",
+            "condition": {
+              "quest_id": "quest_collect_iron",
+              "status": "ready_to_complete"
+            }
+          },
+          {
+            "text": "Desculpe, estou ocupado.",
+            "next_node_id": "bye",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "accept_iron_quest",
+        "text": "Ótimo. Traga 5 Minérios de Ferro.",
+        "quest_trigger": {
+          "action": "accept",
+          "quest_id": "quest_collect_iron"
+        },
+        "responses": [
+          {
+            "text": "Estou indo.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "complete_iron_quest",
+        "text": "Perfeito! Isso vai ajudar muito na defesa.",
+        "quest_trigger": {
+          "action": "complete",
+          "quest_id": "quest_collect_iron"
+        },
+        "responses": [
+          {
+            "text": "Sempre às ordens!",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "bye",
+        "text": "Volte quando puder ajudar.",
+        "responses": []
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_king_thalindir",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Saudações, viajante. Eu sou o Rei Thalindir Elarion, governante supremo deste continente florestal de Natureza. Elarin é o coração da civilização élfica. O que traz você ao nosso reino?",
+        "responses": [
+          {
+            "text": "Qual é a situação de Elarin, Majestade?",
+            "next_node_id": "lore_elarin",
+            "condition": {}
+          },
+          {
+            "text": "Como está a relação com os outros povos do continente?",
+            "next_node_id": "lore_alliance",
+            "condition": {}
+          },
+          {
+            "text": "Obrigado, Majestade.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "lore_elarin",
+        "text": "Elarin é a capital real, um farol de sabedoria e magia ancestral. Meu conselheiro Enth ajuda a administrar o reino e a nossa economia.",
+        "responses": [
+          {
+            "text": "Compreendo. E sobre a aliança?",
+            "next_node_id": "lore_alliance",
+            "condition": {}
+          },
+          {
+            "text": "Obrigado pelas informações.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "lore_alliance",
+        "text": "Mantemos uma aliança frágil mas duradoura. Ao sul, os druidas humanos de Oakenspire cuidam da terra e do herbalismo. Ao leste, as forças de Sylvaris protegem nossas fronteiras. E ao oeste, permitimos o refúgio dos Orcs Verdes em Grunhold.",
+        "responses": [
+          {
+            "text": "Muito honrado por suas palavras.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_enth",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Olá. Sou Enth, conselheiro de Sua Majestade. Se você quer entender sobre a economia ou geografia do Continente da Natureza, posso lhe ajudar.",
+        "responses": [
+          {
+            "text": "Me fale sobre a economia do continente.",
+            "next_node_id": "economy",
+            "condition": {}
+          },
+          {
+            "text": "Me fale sobre a geografia.",
+            "next_node_id": "geography",
+            "condition": {}
+          },
+          {
+            "text": "Com licença.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "economy",
+        "text": "Nossa economia é focada no herbalismo e em materiais de artesanato. Os druidas de Oakenspire são mestres alquimistas, extraindo essências das flores mais raras para poções e cura.",
+        "responses": [
+          {
+            "text": "E quanto à geografia?",
+            "next_node_id": "geography",
+            "condition": {}
+          },
+          {
+            "text": "Interessante, obrigado.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "geography",
+        "text": "Florestas densas dominam 80% do nosso território. Somos cortados por dois grandes rios. Temos as florestas antigas ao norte, os vales dos rios ao sul, as matas selvagens ao oeste e os bosques de fronteira ao leste.",
+        "responses": [
+          {
+            "text": "Excelente. Obrigado, conselheiro.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_druid_elder",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Que a floresta guie seus passos. Sou o Ancião Faelar de Oakenspire. Aqui cultivamos a harmonia com a terra e estudamos os segredos do herbalismo e da alquimia no sul do continente.",
+        "responses": [
+          {
+            "text": "Que a luz guie você também.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_orc_refugee",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Quem vai lá? Sou Gorgok. Nossa fortaleza de Grunhold serve de refúgio para os orcs verdes que buscam abrigo contra as guerras externas. Só queremos viver em paz nas florestas do oeste.",
+        "responses": [
+          {
+            "text": "Fico feliz que encontraram paz aqui.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_elven_commander",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Alerta, viajante. Sou o Comandante Sylas de Sylvaris. Esta guarnição militar protege a fronteira leste contra qualquer ameaça que ouse invadir as florestas do nosso continente.",
+        "responses": [
+          {
+            "text": "Obrigado por proteger estas terras.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_valdrak",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Bem-vindo ao meu domínio nortista, Noctharyn. Sou o Conde Valdrak Nocthar, governante aristocrático destas terras. Como posso ser útil ao seu intelecto?",
+        "responses": [
+          {
+            "text": "Quero saber sobre a história do continente.",
+            "next_node_id": "history",
+            "condition": {}
+          },
+          {
+            "text": "Qual é o seu conflito com o Lich Morthak?",
+            "next_node_id": "conflict",
+            "condition": {}
+          },
+          {
+            "text": "Como funciona a política de sua facção?",
+            "next_node_id": "politics",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "history",
+        "text": "A escuridão do Shadow Continent é primordial, nativa desta terra de névoa constante e eras feudais. Não fomos corrompidos por nenhuma força externa; nascemos do poder do sangue e da magia negra primordial.",
+        "responses": [
+          {
+            "text": "Entendo. Me fale mais sobre as facções.",
+            "next_node_id": "politics",
+            "condition": {}
+          },
+          {
+            "text": "Obrigado.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "conflict",
+        "text": "Morthak, o rei Lich do sul, é um expansionista cego. Ele acredita que toda vida deve servir à morte física. Eu, no entanto, valorizo a utilidade e a diplomacia. Seres vivos são mais úteis quando podem negociar, barganhar e tributar do que como simples esqueletos sem mente.",
+        "responses": [
+          {
+            "text": "Faz sentido. Obrigado pela explicação.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "politics",
+        "text": "Nossa ideologia é simples: cada ser tem seu valor se for útil. Aceitamos viajantes e estrangeiros no norte, desde que contribuam para a riqueza do Domínio do Norte através de comércio e diplomacia.",
+        "responses": [
+          {
+            "text": "Interessante modo de governar.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_seraphine",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Ah, um sopro de vida fresca em Noctharyn... Sou a Lady Seraphine. O que atrai um mortal ao coração do nosso império aristocrático?",
+        "responses": [
+          {
+            "text": "Quais são os segredos da magia de sangue?",
+            "next_node_id": "blood_magic",
+            "condition": {}
+          },
+          {
+            "text": "O que você acha do Conde Valdrak?",
+            "next_node_id": "valdrak",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "blood_magic",
+        "text": "A magia de sangue é a mais pura forma de controle vital. Ela não corrompe, apenas canaliza a essência contida em cada batimento cardíaco para dobrar a realidade às nossas vontades.",
+        "responses": [
+          {
+            "text": "Isso soa poderoso.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "valdrak",
+        "text": "O Conde é brilhante e extremamente astuto. Sua inteligência política mantém o norte próspero, estável e livre das hordas irracionais do sul.",
+        "responses": [
+          {
+            "text": "Obrigado, milady.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_dregan",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Com licença, forasteiro. Sou o Capitão Dregan, mestre do porto de Grimharbor. Se você veio de navio do Continente Principal ou do Continente da Natureza, este é o seu porto seguro... ou o mais próximo disso.",
+        "responses": [
+          {
+            "text": "Como funciona o comércio em Grimharbor?",
+            "next_node_id": "trade",
+            "condition": {}
+          },
+          {
+            "text": "Quais rotas de navio estão disponíveis?",
+            "next_node_id": "travel_routes",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "trade",
+        "text": "Aqui no noroeste, operamos sem as amarras burocráticas dos reinos de luz. Mercados negros, contrabandos, piratas e mercenários... se você tem ouro, Grimharbor tem o produto.",
+        "responses": [
+          {
+            "text": "Entendido, capitão.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "travel_routes",
+        "text": "Oferecemos transporte marítimo direto de e para o Main Continent e o Nature Continent. Não exigimos nenhuma missão complexa para embarcar, apenas uma boa carteira!",
+        "responses": [
+          {
+            "text": "Perfeito.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_gormak",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Harrr! Quem ousa entrar em Kar'goth? Sou o Chefe de Guerra Gor'mak. Nossos clãs de Orcs Negros mandam nestas montanhas do oeste.",
+        "responses": [
+          {
+            "text": "Vocês estão aliados com os Vampiros?",
+            "next_node_id": "allies",
+            "condition": {}
+          },
+          {
+            "text": "O que vocês fazem nesta fortaleza?",
+            "next_node_id": "fortress",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "allies",
+        "text": "Aliados? Orcs Negros não servem a chupadores de sangue! Mas o Conde Valdrak é inteligente. Ele nos paga com ferro e nos deixa em paz para guerrear e fabricar nossas armas de cerco. É um trato útil.",
+        "responses": [
+          {
+            "text": "Uma aliança de conveniência.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "fortress",
+        "text": "Kar'goth é nossa fortaleza militar. Forjamos o ferro negro das montanhas, construímos catapultas gigantes e treinamos nossos guerreiros para esmagar qualquer um que cruze nosso caminho.",
+        "responses": [
+          {
+            "text": "Obrigado, Warchief.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_morthak",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Você ousa encarar o Vazio? Sou Morthak, o Eterno, Rei Lich do Sul e soberano absoluto de Necrathis. Curve-se diante do inevitável fim.",
+        "responses": [
+          {
+            "text": "Por que você quer destruir toda a vida?",
+            "next_node_id": "ideology",
+            "condition": {}
+          },
+          {
+            "text": "O que é Necrathis?",
+            "next_node_id": "necrathis_lore",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "ideology",
+        "text": "Não é destruição, é ordem absoluta. Toda vida é caótica, frágil e temporária. Somente na morte há estabilidade, lealdade eterna e paz eterna. Toda vida eventualmente deve servir à morte.",
+        "responses": [
+          {
+            "text": "Uma visão sombria...",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "necrathis_lore",
+        "text": "Necrathis é a grande capital do Império Necromântico do Sul. Uma majestosa metrópole de ossos e criptas, sustentada pelo poder das nossas legiões de mortos-vivos e necromantes.",
+        "responses": [
+          {
+            "text": "Obrigado.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_xerath",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Sinta a vibração do abismo, irmão... Sou o Alto Cultista Xerath de Vel'Sharum. Você busca os rituais sagrados da escuridão primordial?",
+        "responses": [
+          {
+            "text": "O que é Vel'Sharum?",
+            "next_node_id": "cult",
+            "condition": {}
+          },
+          {
+            "text": "Como é a geografia deste continente?",
+            "next_node_id": "geography",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "cult",
+        "text": "Vel'Sharum é o santuário dos rituais antigos e da invocação proibida. Nossos templos celebram o vazio primordial e nossas bibliotecas guardam tomos de conhecimento proibido.",
+        "responses": [
+          {
+            "text": "Entendo.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "geography",
+        "text": "Nosso continente é uma obra de arte sombria: 35% de terras mortas, 20% de pântanos amaldiçoados, 15% de montanhas escuras, 20% de cemitérios e ruínas, e 10% de costa marítima. No centro estão as Ashen Wastes, um hotspot de conflitos PvP constantes sob uma densa névoa necromântica.",
+        "responses": [
+          {
+            "text": "Excelente, obrigado pelas informações.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_aurelius",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Saudações, viajante. Sou Aurelius Dawnbringer, Lorde Protetor da Ordem Sagrada e representante da humanidade no Conselho Triuno da Luz. O que o traz perante a justiça divina?",
+        "responses": [
+          {
+            "text": "Como funciona o governo deste continente?",
+            "next_node_id": "council",
+            "condition": {}
+          },
+          {
+            "text": "Quais são as leis sagradas do reino?",
+            "next_node_id": "laws",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "council",
+        "text": "O Continente Sagrado é governado por um verdadeiro Conselho Triuno com autoridade igual entre seus membros: eu (lei, assuntos militares e proteção), Aelthir Luminar (sabedoria, conhecimento arcano e história) e Seraphiel (julgamento espiritual e equilíbrio divino). Embora eu atue como primeiro entre iguais (primus inter pares) em emergências diplomáticas e militares urgentes, não possuo autoridade unilateral. Todas as decisões requerem o consenso do conselho.",
+        "responses": [
+          {
+            "text": "E as leis sagradas?",
+            "next_node_id": "laws",
+            "condition": {}
+          },
+          {
+            "text": "Compreendo, Lorde Aurelius.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "laws",
+        "text": "Nossas leis exigem moral impecável, disciplina absoluta e obediência à ordem divina. Qualquer vestígio de corrupção ou heresia é punido sem hesitação. Aqui, a ordem é absoluta para que a escuridão nunca encontre uma brecha.",
+        "responses": [
+          {
+            "text": "Obrigado pela explicação.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_aelthir",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Que a luz primordial guie seus passos. Sou Aelthir Luminar, Guardião da Sabedoria Sagrada. Em que posso iluminar sua mente hoje?",
+        "responses": [
+          {
+            "text": "Pode me contar sobre a história do continente?",
+            "next_node_id": "history",
+            "condition": {}
+          },
+          {
+            "text": "Como funciona a magia sagrada aqui?",
+            "next_node_id": "magic",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "history",
+        "text": "Nosso continente é sagrado por sua própria natureza primordial. Ao contrário de outros reinos, ele não foi abençoado por deuses ou forças externas; a energia sagrada emana do solo, sendo pura e nativa desta terra majestosa.",
+        "responses": [
+          {
+            "text": "E sobre a magia sagrada?",
+            "next_node_id": "magic",
+            "condition": {}
+          },
+          {
+            "text": "História fascinante, sábio Aelthir.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "magic",
+        "text": "A magia sagrada é naturalmente amplificada por todo o continente. Ela flui diretamente de canais de energia terrestre e se manifesta como luz divina purificadora. Mas cuidado, pois tamanho poder exige um intelecto focado e um espírito imaculado.",
+        "responses": [
+          {
+            "text": "Interessante. Obrigado.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_seraphiel",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Mortais... sinto o peso de suas escolhas e a vibração de sua alma. Sou Seraphiel, a Voz da Luz Divina, membro do Conselho Triuno. O que deseja saber sobre o equilíbrio espiritual?",
+        "responses": [
+          {
+            "text": "O que são os Seraphim e qual o seu papel?",
+            "next_node_id": "seraphim_lore",
+            "condition": {}
+          },
+          {
+            "text": "Quais são as provações de acesso ao continente?",
+            "next_node_id": "trials",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "seraphim_lore",
+        "text": "Apenas cinco Seraphim existem em todo o mundo. Meus quatro irmãos vivem reclusos em templos isolados e sagrados, agindo apenas como guardiões e raramente interagindo com mortais. Eu sou a única que escolheu participar do governo no Conselho Triuno, pesando os corações e garantindo o julgamento espiritual.",
+        "responses": [
+          {
+            "text": "E quais são os julgamentos de acesso?",
+            "next_node_id": "trials",
+            "condition": {}
+          },
+          {
+            "text": "Entendo sua nobre missão.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "trials",
+        "text": "Para navegar até o Continente Sagrado, o candidato deve enfrentar o Julgamento de Acesso do Continente Sagrado (holy_continent_access_trial). Ele testa os três pilares espirituais essenciais: a Coragem para combater as trevas, a Sabedoria para reconhecer a verdade divina, e a Pureza para resistir a toda corrupção.",
+        "responses": [
+          {
+            "text": "Obrigado, Voz da Luz Divina.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_sunwall_commander",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Alto lá! Identifique-se! Sou o Comandante de Sunwall. Esta fortaleza é a barreira impenetrável contra as forças das trevas. Se você não provou sua honra, não passará por estes portões.",
+        "responses": [
+          {
+            "text": "Como funciona a defesa em Sunwall?",
+            "next_node_id": "defense",
+            "condition": {}
+          },
+          {
+            "text": "Como faço para conseguir permissão de viagem?",
+            "next_node_id": "access",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "defense",
+        "text": "Nossa fortaleza é erguida com muralhas gigantescas, templos defensivos e abrigos para os valorosos paladinos. Nós guardamos a fronteira oeste com disciplina militar absoluta. Nenhum demônio ou herético cruzará nossa linha.",
+        "responses": [
+          {
+            "text": "Como consigo permissão de viagem?",
+            "next_node_id": "access",
+            "condition": {}
+          },
+          {
+            "text": "Muito nobre, comandante.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "access",
+        "text": "Não aceitamos subornos ou desculpas. Para viajar livremente para o Continente Sagrado, você precisa atingir o nível 50 e completar a missão de Provamento Espiritual 'holy_continent_access_trial', conquistando os pilares de Coragem, Sabedoria e Pureza.",
+        "responses": [
+          {
+            "text": "Vou me preparar para os testes.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_lunareth_elder",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Bem-vindo a Lunareth, a antiga cidadela dos Elfos Superiores nas florestas sagradas. Sou o Ancião de Lunareth. O murmúrio das árvores me diz que você busca segredos antigos.",
+        "responses": [
+          {
+            "text": "O que é o Cristal Primordial e o Coração da Luz?",
+            "next_node_id": "crystal",
+            "condition": {}
+          },
+          {
+            "text": "Qual o papel dos Elfos Superiores no continente?",
+            "next_node_id": "elves_role",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "crystal",
+        "text": "No centro do continente, no Coração da Luz (Heart of Light), repousa o Cristal Primordial de Luz. Ele nunca foi criado ou abençoado; existe desde o início dos tempos. O cristal emite energia sagrada contínua que purifica toda corrupção, amplifica a magia divina e enfraquece entidades sombrias.",
+        "responses": [
+          {
+            "text": "Fantástico! E sobre o papel dos Elfos?",
+            "next_node_id": "elves_role",
+            "condition": {}
+          },
+          {
+            "text": "Obrigado, sábio ancião.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "elves_role",
+        "text": "Nós guardamos o conhecimento sagrado e arcano, estudando os mistérios do cosmo em nossos observatórios celestes e mantendo as groves sagradas intactas. Nossa sabedoria antiga guia o Conselho de Luz através de Aelthir Luminar.",
+        "responses": [
+          {
+            "text": "Obrigado por partilhar este conhecimento.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_kaelthar_elaris",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Saudações, viajante das terras distantes. Sou Kaelthar Elaris, o Rei da Coroa Congelada. Bem-vindo a Elarisheim, a capital do gelo primordial. O que busca no reino mais severo do norte?",
+        "responses": [
+          {
+            "text": "Quero saber sobre a história deste continente congelado.",
+            "next_node_id": "history",
+            "condition": {}
+          },
+          {
+            "text": "Qual a relação da sua linhagem com os Elfos do Continente da Natureza?",
+            "next_node_id": "bloodline",
+            "condition": {}
+          },
+          {
+            "text": "Quem é o antigo conselheiro gigante que dizem habitar as montanhas?",
+            "next_node_id": "jotunn",
+            "condition": {}
+          },
+          {
+            "text": "O que torna o frio deste lugar tão diferente?",
+            "next_node_id": "primordial_cold",
+            "condition": {}
+          },
+          {
+            "text": "Obrigado, Majestade.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "history",
+        "text": "Este continente é primordial, jovem herói. Nossas terras nunca conheceram o calor da primavera; o gelo que você pisa existe desde a fundação do mundo. Não fomos congelados por maldições ou magias arcanas artificiais. Trata-se de um inverno eterno e puramente natural, onde apenas os fortes e determinados prosperam.",
+        "responses": [
+          {
+            "text": "Compreendo, Majestade. Posso fazer outra pergunta?",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "bloodline",
+        "text": "Ah, você percebeu o sobrenome Elaris. Sim, sou um parente distante da linhagem real do Continente da Natureza. Ambos os nossos povos descendem de uma dinastia ancestral muito mais antiga, que governava antes da divisão das terras. Enquanto eles cultivaram as florestas verdejantes, nós escolhemos dominar o gelo e a resiliência do norte.",
+        "responses": [
+          {
+            "text": "Entendi. Posso fazer outra pergunta?",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "jotunn",
+        "text": "Você fala de Ymirr Stonefrost. Ele é um Jötunn, um dos gigantes primordiais e o ser vivo mais antigo destas terras. Ele não governa, mas sua sabedoria milenar influencia as decisões mais críticas do trono. Ele habita as profundezas das montanhas proibidas, além da fortaleza de Khaz Tirith. Apenas reis, anões selecionados e heróis provados podem buscá-lo.",
+        "responses": [
+          {
+            "text": "Interessante. Posso fazer outra pergunta?",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "primordial_cold",
+        "text": "O frio que emana das nossas tundras e geleiras não é um feitiço que possa ser dissipado. É a manifestação pura e elemental do mundo em seu estado mais firme e resiliente. Sobreviver aqui exige respeito pela natureza e uma alma temperada como o aço ártico.",
+        "responses": [
+          {
+            "text": "Fascinante. Posso fazer outra pergunta?",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_frosthaven_harbor_master",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Olá, marujo! Sou o Capitão de Porto de Frosthaven. Seus ossos já começaram a congelar? Sobreviver na Costa Congelada exige barcos reforçados, peles grossas e muito respeito pelas nevascas. O que quer saber sobre o nosso porto?",
+        "responses": [
+          {
+            "text": "Como é a cultura de sobrevivência por aqui?",
+            "next_node_id": "survival",
+            "condition": {}
+          },
+          {
+            "text": "Como vocês navegam nestas águas congeladas?",
+            "next_node_id": "navigation",
+            "condition": {}
+          },
+          {
+            "text": "Para onde posso viajar de barco a partir daqui?",
+            "next_node_id": "travel",
+            "condition": {}
+          },
+          {
+            "text": "Obrigado pelas informações, capitão.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "survival",
+        "text": "Aqui em Frosthaven, os humanos do norte vivem da pesca no gelo, da caça de feras árticas e do comércio marítimo. Não há espaço para fraqueza. Cada tempestade de neve é um teste para nossa resiliência. Aprendemos a honrar o mar e a terra por mais implacáveis que sejam.",
+        "responses": [
+          {
+            "text": "Compreendo. Posso fazer outra pergunta?",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "navigation",
+        "text": "Usamos navios especiais com cascos reforçados e runas anãs esculpidas na quilha para quebrar o gelo flutuante. Navegar entre as geleiras requer olhos afiados e mãos firmes, pois as correntes polares podem prender e esmagar uma embarcação comum em minutos!",
+        "responses": [
+          {
+            "text": "Fascinante. Posso fazer outra pergunta?",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "travel",
+        "text": "Nossas rotas marítimas ligam Frosthaven a todos os continentes conhecidos. Não exigimos permissões de reis para embarcar, mas o mar exige seu tributo em moedas para pagar a tripulação robusta que mantém os quebra-gelos funcionando.",
+        "responses": [
+          {
+            "text": "Bom saber. Posso fazer outra pergunta?",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_khaz_tirith_forge_master",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Saudações! Sou o Mestre de Forja de Khaz Tirith. O fogo das nossas forjas de runas nunca se apaga, mesmo cercado pelas montanhas mais gélidas do mundo. O que traz um aventureiro até a nossa cidadela de pedra e gelo?",
+        "responses": [
+          {
+            "text": "Como funciona a forja de runas dos anões do norte?",
+            "next_node_id": "forging",
+            "condition": {}
+          },
+          {
+            "text": "Que materiais raros vocês extraem destas montanhas?",
+            "next_node_id": "mining",
+            "condition": {}
+          },
+          {
+            "text": "Como encontro o gigante Ymirr Stonefrost?",
+            "next_node_id": "ymirr_way",
+            "condition": {}
+          },
+          {
+            "text": "Obrigado pelo seu tempo, mestre anão.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "forging",
+        "text": "Nós, anões das montanhas, não apenas derretemos metal; nós entalhamos runas de poder no aço aquecido e depois o resfriamos instantaneamente no gelo glacial mais puro. Isso confere às nossas lâminas e armaduras uma dureza incomparável e uma afinidade mágica com o elemento frio.",
+        "responses": [
+          {
+            "text": "Compreendo. Posso fazer outra pergunta?",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "mining",
+        "text": "Extraímos os raros cristais de gelo eterno das profundezas da terra e minérios de ferro ártico que absorvem a energia primordial do solo. Esses cristais mantêm as forjas em temperatura perfeita e criam os artefatos mágicos mais cobiçados do reino.",
+        "responses": [
+          {
+            "text": "Entendo. Posso fazer outra pergunta?",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "ymirr_way",
+        "text": "Ymirr Stonefrost... O grande Jötunn habita a Caverna Oculta nas montanhas proibidas, acessível apenas passando pelos túneis mais profundos e perigosos de Khaz Tirith. Mas tenha cuidado: os ventos que rugem por lá congelam o coração dos despreparados. Apenas reis e verdadeiros heróis encontram o caminho.",
+        "responses": [
+          {
+            "text": "Obrigado pelo aviso. Posso fazer outra pergunta?",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_ymirr_stonefrost",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Quem ousa perturbar o sono de pedra do mais antigo Jötunn? Sou Ymirr Stonefrost. Eu estava aqui quando a primeira nevasca soprou sobre esta terra, muito antes das cidades de pedra e gelo serem erguidas. Fale, mortal, antes que o frio o consuma.",
+        "responses": [
+          {
+            "text": "Conte-me sobre a mitologia dos Jötunn e a criação deste lugar.",
+            "next_node_id": "jotunn_myth",
+            "condition": {}
+          },
+          {
+            "text": "Como você aconselha o rei elfo?",
+            "next_node_id": "advisor_role",
+            "condition": {}
+          },
+          {
+            "text": "Como posso sobreviver a este frio eterno?",
+            "next_node_id": "primordial_secrets",
+            "condition": {}
+          },
+          {
+            "text": "Desculpe a intrusão, gigante ancestral.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "jotunn_myth",
+        "text": "Nós, os Jötunn, fomos formados do próprio gelo primordial que deu origem a este mundo. Para nós, este continente não é 'hostil' ou 'amaldiçoado' — ele é simplesmente puro, inalterado. O gelo preserva a memória do mundo. Enquanto os reinos caem e os mortais esquecem seu passado, as geleiras eternas lembram-se de tudo.",
+        "responses": [
+          {
+            "text": "Profundo... Posso fazer outra pergunta?",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "advisor_role",
+        "text": "Aconselho a linhagem de Elaris para que não se esqueçam da fragilidade de seus reinos perante o tempo. O rei Kaelthar é um jovem sábio, mas mesmo as mentes reais podem vacilar. Eu lembro ao trono que a verdadeira força não reside no domínio militar, mas no respeito às leis da natureza primordial.",
+        "responses": [
+          {
+            "text": "Entendi. Posso fazer outra pergunta?",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "primordial_secrets",
+        "text": "O segredo para sobreviver ao gelo não é combatê-lo com fogo, mas harmonizar o seu próprio calor espiritual com a quietude do norte. Acalme sua mente, fortaleça sua resiliência e deixe que a pureza do gelo primordial guie o seu caminho.",
+        "responses": [
+          {
+            "text": "Obrigado pela sabedoria, gigante ancestral.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_ignis_rex",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Saudações, mortal. Eu sou Ignis Rex, o Rei Mago de Fogo. Sinto o sussurro do General Menor do Primordial do Fogo correndo em minhas veias... O que você busca na grande Pyra Magnus?",
+        "responses": [
+          {
+            "text": "Quem é esse General Menor que o possui?",
+            "next_node_id": "possession_lore",
+            "condition": {}
+          },
+          {
+            "text": "Como o Continente de Fogo afeta a economia global?",
+            "next_node_id": "continent_role",
+            "condition": {}
+          },
+          {
+            "text": "Apenas prestando minhas homenagens, Majestade.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "possession_lore",
+        "text": "Ele é um emissário do próprio Primordial do Fogo que habita o núcleo do vulcão. Sua essência vive em mim, concedendo-me sabedoria arcana e um poder de chama incomensurável, embora às vezes suas ambições purificadoras testem meu autocontrole mortal.",
+        "responses": [
+          {
+            "text": "Entendo. Deixe-me perguntar outra coisa.",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "continent_role",
+        "text": "Nós somos o coração industrial do mundo! Toda grande lâmina e armadura lendária é moldada com o calor do nosso vulcão central. Sem nossas forjas, as defesas dos outros continentes seriam como argila diante do perigo.",
+        "responses": [
+          {
+            "text": "Impressionante. Deixe-me perguntar outra coisa.",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_crimson_warlord",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Hmph! Outro estrangeiro fraco pisando nas areias de Crimson Hollow. Eu sou o Warlord Gar'thok. Fale logo, ou entre na arena de guerra para provar seu valor!",
+        "responses": [
+          {
+            "text": "Como os Orcs Vermelhos vivem em tanto calor?",
+            "next_node_id": "orc_resistance",
+            "condition": {}
+          },
+          {
+            "text": "Qual é o papel da Arena de Guerra?",
+            "next_node_id": "arena_info",
+            "condition": {}
+          },
+          {
+            "text": "Já vou indo.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "orc_resistance",
+        "text": "Nossas peles foram temperadas pelo fogo eterno e nossas linhagens nasceram sob a fúria da cinza primordial! O calor do magma é como uma brisa suave para a nossa fúria de batalha.",
+        "responses": [
+          {
+            "text": "Deixe-me perguntar outra coisa.",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "arena_info",
+        "text": "A arena é onde os fracos são purificados e os fortes são coroados! Os guerreiros de Crimson Hollow lutam para ganhar a bênção do Rei Mago de Fogo e provar que somos os soberanos da superfície.",
+        "responses": [
+          {
+            "text": "Entendo. Deixe-me perguntar outra coisa.",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_molten_forge_master",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Benvindo à Molten Anvil, aventureiro. Sou o Mestre de Forja Brokk. Minhas mãos ciclópeas moldam armas com o calor do próprio centro da terra. Precisa de algo forjado?",
+        "responses": [
+          {
+            "text": "O que faz das suas armas as melhores do mundo?",
+            "next_node_id": "forge_secrets",
+            "condition": {}
+          },
+          {
+            "text": "Qual o segredo de usar o magma para forjar?",
+            "next_node_id": "magma_secrets",
+            "condition": {}
+          },
+          {
+            "text": "Apenas admirando seu trabalho magnífico.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "forge_secrets",
+        "text": "É a combinação de ferro basáltico ultra-raro coletado nas profundezas e o sopro elemental que só os Ciclopes dominam! Nossas lâminas nunca perdem o fio e guardam um calor eterno.",
+        "responses": [
+          {
+            "text": "Fascinante. Deixe-me perguntar outra coisa.",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "magma_secrets",
+        "text": "O magma flui diretamente sob nossas bigornas. Canalizamos os rios de fogo de forma geométrica para resfriar e reaquecer o metal sob pressão constante de ar vulcanizado.",
+        "responses": [
+          {
+            "text": "Fascinante. Deixe-me perguntar outra coisa.",
+            "next_node_id": "start",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_fire_demon_general",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "TOLO! Você ousa adentrar as câmaras do Vulcão Primordial? Eu, General Malgazar, reduzirei seus ossos a cinzas sob a ordem do Soberano do Fogo! Nós, demônios de fogo, fomos moldados diretamente da essência ígnea do Primordial do Fogo — o nosso progenitor cósmico supremo, que reside aprisionado no núcleo do mundo!",
+        "responses": [
+          {
+            "text": "Por que os demônios de fogo não atacam a superfície?",
+            "next_node_id": "demon_restraints",
+            "condition": {}
+          },
+          {
+            "text": "Estou aqui para purgar este vulcão!",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "demon_restraints",
+        "text": "Nossa fúria está contida dentro destas muralhas de rocha basáltica pela vontade de nosso criador primordial e sob a vigilância do Rei Mago. Toda a hierarquia demoníaca nasce do próprio tecido e poder cósmico de um Primordial. Mas o selo é frágil, e quando o Primordial rugir, suas chamas eternas um dia engolirão todas as terras!",
+        "responses": [
+          {
+            "text": "Não permitiremos que a fúria do Primordial se espalhe.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_faction_leader_varian",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Bem-vindo a Stone Tirith, herói. Sou o Marechal Varian. Nossa ordem militar protege este continente dos perigos de fora e das conspirações de dentro. Você está pronto para treinar e se unir à nossa causa?",
+        "responses": [
+          {
+            "text": "Estou pronto para defender Stone Tirith!",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_blacksmith_master",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Saudações, guerreiro. Sou o Mestre Alistair. Se você precisa de aço polido ou consertos de armadura para sobreviver lá fora, veio ao lugar certo. O que deseja?",
+        "responses": [
+          {
+            "text": "Gostaria de ver suas armas e armaduras.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_guild_merchant",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Olá! Sou o Mercador Silas. Estou baseado aqui no grande mercado de Ravenshire, comercializando especiarias, pergaminhos, materiais raros e administrando contratos de guilda. O que você procura?",
+        "responses": [
+          {
+            "text": "Quero comprar e vender mercadorias.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_ship_captain",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Ahoy, companheiro! Sou o Capitão Redbeard. Aqui em Blackwater Bay nós controlamos as maiores rotas comerciais do oceano. Posso levá-lo para os continentes distantes como Fogo, Gelo, Sagrado ou até Abyssia, contanto que você tenha o nível e as permissões exigidas!",
+        "responses": [
+          {
+            "text": "Para onde podemos navegar hoje?",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_king_aldren",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Saudações, herói. Sou o Rei Aldren Vaelor, o soberano simbólico deste Continente Principal, falando diretamente de minha sede real aqui em Ravenshire — a capital política e comercial oficial do continente. Minha corte foca na diplomacia, na alta nobreza e nas grandes guildas, mantendo o frágil equilíbrio sem transformar esta bela capital em uma fortaleza militar.",
+        "responses": [
+          {
+            "text": "É uma honra conhecê-lo nesta bela capital, Majestade.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "npc_id": "npc_captain_kenneth",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Alto lá, recruta! Bem-vindo a Ironhold Bastion. Sobreviver neste mundo exige força, disciplina e tática. Você parece novo por aqui e sem nenhum equipamento de combate. Está pronto para iniciar seu treinamento vocacional nas barracas e provar seu valor limpando a infestação de ratos nos esgotos?",
+        "responses": [
+          {
+            "text": "Estou pronto! Mostre-me as opções de treinamento vocacional.",
+            "next_node_id": "choose_path",
+            "condition": {
+              "quest_id": "quest_tutorial_sewer_rats",
+              "status": "not_started"
+            }
+          },
+          {
+            "text": "Como está a situação do esgoto?",
+            "next_node_id": "quest_status_rats",
+            "condition": {
+              "quest_id": "quest_tutorial_sewer_rats",
+              "status": "active"
+            }
+          },
+          {
+            "text": "Derrotei os 10 Ratos de Esgoto e limpei a área!",
+            "next_node_id": "complete_quest_rats",
+            "condition": {
+              "quest_id": "quest_tutorial_sewer_rats",
+              "status": "ready_to_complete"
+            }
+          },
+          {
+            "text": "Apenas de passagem, capitão.",
+            "next_node_id": "bye",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "choose_path",
+        "text": "Excelente. Aqui nas barracas de Ironhold, não forçamos você a escolher uma classe definitiva ainda (isso ocorre apenas no nível 10). Em vez disso, você deve treinar os fundamentos básicos. Qual caminho você deseja explorar para este teste?",
+        "responses": [
+          {
+            "text": "[Caminho de Combate Melee] Prefiro combate corpo a corpo tático.",
+            "next_node_id": "melee_path",
+            "condition": {}
+          },
+          {
+            "text": "[Caminho de Combate Ranged] Prefiro o arco e a precisão à distância.",
+            "next_node_id": "ranged_path",
+            "condition": {}
+          },
+          {
+            "text": "[Caminho de Combate Magic] Desejo estudar o fluxo de mana e magias.",
+            "next_node_id": "magic_path",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "melee_path",
+        "text": "Uma escolha robusta. O escudo e a espada ensinam paciência e bloqueio ativo. Pegue esta Espada Básica de Treinamento e Escudo de Madeira. Agora, vá para os esgotos ao sul do plaza e elimine 10 Ratos de Esgoto. Lembre-se: o combate aqui é lento e mortal. Estude os ataques deles e defenda-se!",
+        "quest_trigger": {
+          "action": "accept",
+          "quest_id": "quest_tutorial_sewer_rats"
+        },
+        "responses": [
+          {
+            "text": "Pela força e honra! Entendido, capitão.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "ranged_path",
+        "text": "Agilidade e posicionamento estratégico. Pegue esta Aljava Básica de Treinamento e um Arco Curto. Mantenha distância, gerencie seu ritmo de tiro e não deixe que eles o encurralem. Vá para os esgotos ao sul e limpe 10 Ratos de Esgoto.",
+        "quest_trigger": {
+          "action": "accept",
+          "quest_id": "quest_tutorial_sewer_rats"
+        },
+        "responses": [
+          {
+            "text": "Mira certeira! Entendido, capitão.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "magic_path",
+        "text": "Uma mente focada no fluxo de mana primordial. Pegue este Livro de Feitiços Básico de Treinamento e um Cetro Sagrado. Lembre-se de que a mana regenera com o tempo e com golpes acertados. Use seu fluxo de energia sabiamente. Elimine 10 Ratos de Esgoto nos esgotos ao sul.",
+        "quest_trigger": {
+          "action": "accept",
+          "quest_id": "quest_tutorial_sewer_rats"
+        },
+        "responses": [
+          {
+            "text": "Que a energia flua! Entendido, capitão.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "quest_status_rats",
+        "text": "Os esgotos de Ironhold continuam infestados. Você deve derrotar 10 Ratos de Esgoto. O combate tático requer paciência — use seus bloqueios, esquivas e espere as brechas. Não seja descuidado!",
+        "responses": [
+          {
+            "text": "Entendido, Capitão Kenneth. Vou continuar a limpeza.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "complete_quest_rats",
+        "text": "Incrível trabalho, soldado! Você limpou a ameaça com precisão, calma e respeito às táticas de combate de alto TTK. Você provou que tem resiliência! Como recompensa, você alcançou o nível 2 e está pronto para os desafios reais do mundo aberto. Tome estas moedas e poções de cura para sua jornada!",
+        "quest_trigger": {
+          "action": "complete",
+          "quest_id": "quest_tutorial_sewer_rats"
+        },
+        "responses": [
+          {
+            "text": "Muito obrigado, capitão! Estou pronto para o mundo de Light and Shadow.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "bye",
+        "text": "A vigilância é eterna, recruta. Volte quando estiver pronto para treinar.",
+        "responses": []
+      }
+    ]
+  }
+]

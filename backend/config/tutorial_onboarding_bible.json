@@ -1,0 +1,75 @@
+{
+  "SystemName": "Emergent Tutorial & Onboarding Bible (Final Canon Version)",
+  "Philosophy": "A purely diegetic, immersion-driven onboarding experience designed to introduce Level 1 players to the high-TTK combat, gear-driven progression, and open-world sandbox of Light and Shadow. It strictly forbids unrequested UI arrows, forced linear paths, or hand-holding quest markers.",
+  "CoreRules": [
+    {
+      "Id": "spawn-starting-rule",
+      "Text": "All newly created characters spawn in the central plaza of Ironhold Bastion at Level 1, possessing basic civilian clothes and zero weapons, encouraging them to interact immediately with the world to acquire power."
+    },
+    {
+      "Id": "no-forced-arrows-rule",
+      "Text": "Traditional MMORPG navigation systems like mini-map quest arrows, glowing path trails, and floating question marks are completely prohibited. Players find objectives using diegetic cues: dialogue descriptions, road signs, visual landmarks, and natural geographic flow."
+    },
+    {
+      "Id": "vocational-barracks-rule",
+      "Text": "The onboarding Captain NPC does not assign a permanent class (which is locked until level 10). Instead, the Captain directs players to one of three temporary training paths (Melee, Ranged, or Magic) to test fundamental combat archetypes."
+    },
+    {
+      "Id": "high-ttk-tutorial-combat",
+      "Text": "Tutorial combat maintains the core game principle of high Time-To-Kill (~2 minutes per слабый mob). This prevents button-mashing, teaches players to manage active defense/shields, watch attack cooldowns, and handle resource pacing (mana/stamina) from their very first fight."
+    },
+    {
+      "Id": "unsupervised-outskirts-rule",
+      "Text": "The sewers/outskirts are designed as a non-linear playground. Monsters are dispersed throughout the area, letting players explore and battle at their own pace without a rigid track."
+    }
+  ],
+  "TutorialFlow": {
+    "Step_1_Spawn_and_Greeting": {
+      "Action": "Player wakes up in Ironhold Bastion plaza. Captain Kenneth stands near the central statue, waving or calling out to unarmored novices.",
+      "DiegeticCue": "Captain Kenneth calls: 'Recruta! Venha até aqui se quiser sobreviver fora dessas muralhas!'"
+    },
+    "Step_2_Vocational_Selection": {
+      "Action": "Player talks to Captain Kenneth. The Captain explains that survival in the sandbox requires a weapon and training. The player selects a vocational training path.",
+      "Paths": {
+        "Melee": {
+          "Gear_Given": ["sword_basic", "shield"],
+          "Philosophy": "Focuses on active shield blocking, attack timing, and close-quarters durability."
+        },
+        "Ranged": {
+          "Gear_Given": ["bow_short", "quiver"],
+          "Philosophy": "Focuses on kiting, positioning, and managing arrow budgets."
+        },
+        "Magic": {
+          "Gear_Given": ["sacred_scepter", "spellbook"],
+          "Philosophy": "Focuses on watching mana pools, time-based regeneration, and spell timing."
+        }
+      }
+    },
+    "Step_3_Entering_the_Sewers": {
+      "Action": "Equipped with starter weapons, the player is instructed to find the iron hatch in the south plaza or the ruined sewer pipe in the outskirts to hunt Sewer Rats.",
+      "DiegeticCue": "Landmarks: Large iron grates emitting light steam, stone steps leading down with signs reading 'Esgotos Municipais - Perigo'."
+    },
+    "Step_4_The_Sewer_Rat_Trial": {
+      "Action": "The player defeats 10 Sewer Rats in the sewers or ruins outskirts.",
+      "CombatMath": {
+        "Sewer_Rat_HP": 320,
+        "Level_1_Player_DPS_Est": 2.7,
+        "Estimated_TTK": "118.5 seconds (approx. 2 minutes) per rat",
+        "Sewer_Rat_Damage_To_Player": "5 damage per bite (Player possesses 120 base HP; shielding reducing it to 2-3 damage, allowing the player to easily survive 2-minute fights with basic active mitigation)."
+      }
+    },
+    "Step_5_Graduation_to_Level_2": {
+      "Action": "The player returns to Captain Kenneth to deliver the quest. Kenneth awards experience and items, causing the player to hit Level 2, unlocking Mayor George's 'Ameaça Verde' questline and access to further areas.",
+      "Rewards": {
+        "XP_Granted": 110,
+        "XP_For_Level_2_Req": 108,
+        "Result": "Level 2 reached, character unlocked for deeper sandbox systems."
+      }
+    }
+  },
+  "UXGuide_DiegeticGuidance": {
+    "Visual_Indicators": "Sewer entrances have active dripping water, rusted grates, and torchlight reflecting off damp brick to draw players naturally to the objective area without glowing trails.",
+    "Audio_Atmosphere": "Screeching rats and metal echoes get louder as players approach the grates, guiding them audibly to the entrance.",
+    "NPC_Directions": "Captain Kenneth provides detailed cardinal directions: 'Siga direto para o sul do plaza, procure pelas grades de ferro fumegantes perto da muralha interna.'"
+  }
+}

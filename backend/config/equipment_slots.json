@@ -1,0 +1,54 @@
+{
+  "EquipmentSlots": [
+    {
+      "SlotID": "weapon",
+      "DisplayName": "Weapon",
+      "AllowedCategories": ["Sword", "Axe", "Bow", "Dagger", "Staff"]
+    },
+    {
+      "SlotID": "shield_offhand",
+      "DisplayName": "Shield / Off-hand",
+      "AllowedCategories": ["Shield", "Tome", "Quiver", "Dagger"]
+    },
+    {
+      "SlotID": "helmet",
+      "DisplayName": "Helmet",
+      "AllowedCategories": ["Plate Helm", "Leather Hood", "Magic Circlet"]
+    },
+    {
+      "SlotID": "armor",
+      "DisplayName": "Armor",
+      "AllowedCategories": ["Plate Chestplate", "Leather Jerkin", "Cloth Robes"]
+    },
+    {
+      "SlotID": "legs",
+      "DisplayName": "Legs",
+      "AllowedCategories": ["Plate Greaves", "Leather Chaps", "Cloth Trousers"]
+    },
+    {
+      "SlotID": "boots",
+      "DisplayName": "Boots",
+      "AllowedCategories": ["Iron Sabatons", "Leather Boots", "Satin Slippers"]
+    },
+    {
+      "SlotID": "ring_1",
+      "DisplayName": "Ring 1",
+      "AllowedCategories": ["Ring"]
+    },
+    {
+      "SlotID": "ring_2",
+      "DisplayName": "Ring 2",
+      "AllowedCategories": ["Ring"]
+    },
+    {
+      "SlotID": "amulet",
+      "DisplayName": "Amulet",
+      "AllowedCategories": ["Amulet"]
+    },
+    {
+      "SlotID": "cape",
+      "DisplayName": "Cape",
+      "AllowedCategories": ["Cape", "Cloak"]
+    }
+  ]
+}

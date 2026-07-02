@@ -1,0 +1,371 @@
+[
+  {
+    "ID": "sword_t1_rusty",
+    "Name": "Rusty Recruit Sword",
+    "Type": "weapon",
+    "Category": "Sword",
+    "Tier": 1,
+    "BaseDamage": 15.0,
+    "CritBonus": 0.0,
+    "CompatibleClasses": ["Knight", "Assassin", "Archer"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": true,
+    "ElementalStats": {},
+    "Description": "A basic iron sword with signs of corrosion. Reliable enough for a novice combatant."
+  },
+  {
+    "ID": "sword_t2_steel",
+    "Name": "Tempered Steel Broadsword",
+    "Type": "weapon",
+    "Category": "Sword",
+    "Tier": 2,
+    "BaseDamage": 35.0,
+    "CritBonus": 0.02,
+    "CompatibleClasses": ["Knight", "Assassin", "Archer"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": true,
+    "ElementalStats": {},
+    "Description": "Forged by local blacksmiths. Its heavier weight allows for solid, balanced swings."
+  },
+  {
+    "ID": "sword_t3_flame",
+    "Name": "Pyre-Forged Falchion",
+    "Type": "weapon",
+    "Category": "Sword",
+    "Tier": 3,
+    "BaseDamage": 58.0,
+    "CritBonus": 0.04,
+    "CompatibleClasses": ["Knight", "Assassin", "Archer"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": true,
+    "ElementalStats": {
+      "FireAttack": 12.0
+    },
+    "Description": "Imbued with molten heat during the folding process, adding lingering fire damage to strikes."
+  },
+  {
+    "ID": "sword_t3_wind",
+    "Name": "Zephyr Edge",
+    "Type": "weapon",
+    "Category": "Sword",
+    "Tier": 3,
+    "BaseDamage": 50.0,
+    "CritBonus": 0.08,
+    "CompatibleClasses": ["Knight", "Assassin", "Archer"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": true,
+    "ElementalStats": {
+      "NatureAttack": 10.0
+    },
+    "Description": "A lightweight sword focused on swift strikes and high critical rates over raw strength."
+  },
+  {
+    "ID": "sword_t4_sunshard",
+    "Name": "Sunshard Gladius",
+    "Type": "weapon",
+    "Category": "Sword",
+    "Tier": 4,
+    "BaseDamage": 102.0,
+    "CritBonus": 0.06,
+    "CompatibleClasses": ["Knight", "Assassin", "Archer"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": false,
+    "ElementalStats": {
+      "HolyAttack": 25.0
+    },
+    "Description": "An uncraftable sword containing fragments of sacred stone. Emits high holy energy."
+  },
+  {
+    "ID": "sword_t4_shadow",
+    "Name": "Dusk Harvester",
+    "Type": "weapon",
+    "Category": "Sword",
+    "Tier": 4,
+    "BaseDamage": 115.0,
+    "CritBonus": 0.02,
+    "CompatibleClasses": ["Knight", "Assassin"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": false,
+    "ElementalStats": {
+      "ShadowAttack": 20.0
+    },
+    "Description": "A heavy gothic blade that siphons light from its surroundings, dealing high shadow damage."
+  },
+  {
+    "ID": "sword_t5_calamity",
+    "Name": "Aegis-Breaker Calamity",
+    "Type": "weapon",
+    "Category": "Sword",
+    "Tier": 5,
+    "BaseDamage": 165.0,
+    "CritBonus": 0.12,
+    "CompatibleClasses": ["Knight"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": false,
+    "ElementalStats": {
+      "FireAttack": 35.0,
+      "ShadowAttack": 15.0
+    },
+    "Description": "A rare legendary artifact blade. Devastates defensive stances with catastrophic fire and shadow force."
+  },
+  {
+    "ID": "axe_t2_battle",
+    "Name": "Iron Battleaxe",
+    "Type": "weapon",
+    "Category": "Axe",
+    "Tier": 2,
+    "BaseDamage": 42.0,
+    "CritBonus": 0.0,
+    "CompatibleClasses": ["Knight"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": true,
+    "ElementalStats": {},
+    "Description": "Simple, robust design built for sundering defensive shields and heavy armor."
+  },
+  {
+    "ID": "axe_t4_volcanic",
+    "Name": "Magma Core Decapitator",
+    "Type": "weapon",
+    "Category": "Axe",
+    "Tier": 4,
+    "BaseDamage": 135.0,
+    "CritBonus": 0.04,
+    "CompatibleClasses": ["Knight"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": false,
+    "ElementalStats": {
+      "FireAttack": 40.0
+    },
+    "Description": "A heavy volcanic waraxe retrieved from deep magma zones. Ignites targets on contact."
+  },
+  {
+    "ID": "bow_t1_short",
+    "Name": "Oak Shortbow",
+    "Type": "weapon",
+    "Category": "Bow",
+    "Tier": 1,
+    "BaseDamage": 12.0,
+    "CritBonus": 0.03,
+    "CompatibleClasses": ["Archer"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": true,
+    "ElementalStats": {},
+    "Description": "A simple training bow. Lightweight and easy to draw."
+  },
+  {
+    "ID": "bow_t3_composite",
+    "Name": "Reinforced Composite Bow",
+    "Type": "weapon",
+    "Category": "Bow",
+    "Tier": 3,
+    "BaseDamage": 52.0,
+    "CritBonus": 0.07,
+    "CompatibleClasses": ["Archer"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": true,
+    "ElementalStats": {},
+    "Description": "Laminated wood and horn, providing high draw weight and solid piercing capacity."
+  },
+  {
+    "ID": "bow_t5_starsong",
+    "Name": "Astral Starsong",
+    "Type": "weapon",
+    "Category": "Bow",
+    "Tier": 5,
+    "BaseDamage": 145.0,
+    "CritBonus": 0.18,
+    "CompatibleClasses": ["Archer"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": false,
+    "ElementalStats": {
+      "HolyAttack": 40.0,
+      "NatureAttack": 20.0
+    },
+    "Description": "A masterwork bow infused with divine celestial magic. Shoots arrows of concentrated holy light."
+  },
+  {
+    "ID": "dagger_t2_stiletto",
+    "Name": "Poisoner Stiletto",
+    "Type": "weapon",
+    "Category": "Dagger",
+    "Tier": 2,
+    "BaseDamage": 26.0,
+    "CritBonus": 0.08,
+    "CompatibleClasses": ["Assassin"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": true,
+    "ElementalStats": {
+      "NatureAttack": 5.0
+    },
+    "Description": "A narrow thrusting blade coated in local forest venoms."
+  },
+  {
+    "ID": "dagger_t4_nightshade",
+    "Name": "Nightshade Carver",
+    "Type": "weapon",
+    "Category": "Dagger",
+    "Tier": 4,
+    "BaseDamage": 85.0,
+    "CritBonus": 0.15,
+    "CompatibleClasses": ["Assassin"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": false,
+    "ElementalStats": {
+      "ShadowAttack": 25.0
+    },
+    "Description": "An uncraftable dagger harvested from shadow anomalies, providing extreme critical precision."
+  },
+  {
+    "ID": "staff_t1_apprentice",
+    "Name": "Apprentice Ash Staff",
+    "Type": "weapon",
+    "Category": "Staff",
+    "Tier": 1,
+    "BaseDamage": 8.0,
+    "CritBonus": 0.01,
+    "CompatibleClasses": ["Mage"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": true,
+    "ElementalStats": {},
+    "Description": "A simple wooden conduit used to focus elementary spells."
+  },
+  {
+    "ID": "staff_t3_glacial",
+    "Name": "Glacial Sceptre",
+    "Type": "weapon",
+    "Category": "Staff",
+    "Tier": 3,
+    "BaseDamage": 35.0,
+    "CritBonus": 0.03,
+    "CompatibleClasses": ["Mage"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": true,
+    "ElementalStats": {
+      "IceAttack": 20.0
+    },
+    "Description": "Tipped with natural ice crystals from northern glaciers, amplifying freezing magic."
+  },
+  {
+    "ID": "staff_t5_voidlord",
+    "Name": "Voidlord Greatstaff",
+    "Type": "weapon",
+    "Category": "Staff",
+    "Tier": 5,
+    "BaseDamage": 90.0,
+    "CritBonus": 0.08,
+    "CompatibleClasses": ["Mage"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": false,
+    "ElementalStats": {
+      "ShadowAttack": 55.0
+    },
+    "Description": "A supreme dark conduit retrieved from deep void rifts, channeling immense shadow output."
+  },
+  {
+    "ID": "shield_t2_kite",
+    "Name": "Steel Kite Shield",
+    "Type": "weapon",
+    "Category": "Shield",
+    "Tier": 2,
+    "BaseDamage": 5.0,
+    "CritBonus": 0.0,
+    "CompatibleClasses": ["Knight"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": true,
+    "ElementalStats": {},
+    "Description": "Standard issue military defense shield. Highly reliable block rates."
+  },
+  {
+    "ID": "shield_t4_hallowed",
+    "Name": "Hallowed Aegis",
+    "Type": "weapon",
+    "Category": "Shield",
+    "Tier": 4,
+    "BaseDamage": 15.0,
+    "CritBonus": 0.0,
+    "CompatibleClasses": ["Knight"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": false,
+    "ElementalStats": {
+      "HolyAttack": 10.0
+    },
+    "Description": "A pristine shield containing light runes. Extremely high holy defense and deflection."
+  },
+  {
+    "ID": "helmet_t3_plate",
+    "Name": "Vanguard Iron Helm",
+    "Type": "armor",
+    "Category": "Plate Helm",
+    "Tier": 3,
+    "BaseDef": 45.0,
+    "BaseRes": 15.0,
+    "CompatibleClasses": ["Knight"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": true,
+    "Description": "Thick iron head protection offering robust physical resistance."
+  },
+  {
+    "ID": "armor_t4_gothic",
+    "Name": "Gothic Shadow Plate",
+    "Type": "armor",
+    "Category": "Plate Chestplate",
+    "Tier": 4,
+    "BaseDef": 120.0,
+    "BaseRes": 35.0,
+    "CompatibleClasses": ["Knight"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": false,
+    "Description": "Imposing gothic plate armor with inherent shadow warding."
+  },
+  {
+    "ID": "boots_t5_celestial",
+    "Name": "Celestial Sabatons",
+    "Type": "armor",
+    "Category": "Iron Sabatons",
+    "Tier": 5,
+    "BaseDef": 95.0,
+    "BaseRes": 50.0,
+    "CompatibleClasses": ["Knight", "Archer"],
+    "Stackable": false,
+    "MaxStack": 1,
+    "Craftable": false,
+    "Description": "Heavy armor boots that seem weightless, found only in sacred plains challenges."
+  },
+  {
+    "ID": "amulet_of_loss",
+    "Name": "Amulet of Loss",
+    "Type": "accessory",
+    "Category": "Amulet",
+    "Tier": 1,
+    "BaseDamage": 0.0,
+    "BaseDef": 0.0,
+    "BaseRes": 0.0,
+    "CritBonus": 0.0,
+    "Price": 100000,
+    "MarketPrice": 100000,
+    "Stackable": false,
+    "MaxStack": 1,
+    "Description": "Canonical accessory. Protects active equipment from being lost on death. Consumed upon use."
+  }
+]

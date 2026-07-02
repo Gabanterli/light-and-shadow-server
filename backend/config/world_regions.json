@@ -1,0 +1,823 @@
+[
+  {
+    "region_id": "main_continent",
+    "continent_name": "Main Continent",
+    "min_level": 1,
+    "bounding_boxes": [
+      {
+        "min_x": 0,
+        "max_x": 1999,
+        "min_y": 0,
+        "max_y": 1999
+      }
+    ],
+    "safe_respawn": {
+      "x": 100.0,
+      "y": 100.0,
+      "z": 0
+    },
+    "physical_scale": {
+      "width_tiles": 12000,
+      "height_tiles": 12000,
+      "width_km": 12.0,
+      "height_km": 12.0,
+      "area_km2": 144.0,
+      "traversable_percentage": 90.0,
+      "explorable_area_km2": 129.6,
+      "inaccessible_area_km2": 14.4,
+      "traversal_time_minutes_on_foot": "45-60"
+    },
+    "core_identity": {
+      "terrain": "Medieval fragmented civilization, balanced terrain world, no extreme elemental dominance.",
+      "geography_ratios": {
+        "plains": "40%",
+        "forests": "30%",
+        "hills": "15%",
+        "mountains": "10%",
+        "coastal_zones": "5%"
+      },
+      "races": [
+        {
+          "name": "Humans",
+          "roles": ["dominant species", "builders of kingdoms and trade networks"]
+        },
+        {
+          "name": "Elves, Dwarves & Green Orcs",
+          "roles": ["diplomatic partners", "integrated into trading guilds", "settled in frontier areas"]
+        }
+      ],
+      "political_structure": {
+        "government_model": "Symbolic Monarchy with Fragmented Independent Regions",
+        "ruler": "King Aldren Vaelor",
+        "ruler_role": "Symbolic monarch of the continent, residing officially in his royal seat of Ravenshire. He maintains political balance between independent regions and has no direct control over cities.",
+        "factions": [
+          "Human Kingdom Alliance (dominant influence)",
+          "Merchant Guild Confederation",
+          "Military Order of Stone Tirith",
+          "Independent Frontier Clans"
+        ],
+        "lore": "King Aldren Vaelor rules symbolically from his royal seat in Ravenshire, keeping peace and managing diplomacy while the independent city-states control their own military forces, mining, and maritime trade."
+      },
+      "atmosphere": "Classic high fantasy medieval world, busy trade ports, active mining frontlines, and peaceful safe zones."
+    },
+    "settlements": [
+      {
+        "id": "ironhold_bastion",
+        "name": "Ironhold Bastion",
+        "type": "Starter Military Bastion",
+        "settlement_scale": "Small City / Small Settlement",
+        "location": "Slightly south of central zone",
+        "governor": "Commander Valen (and Mayor George)",
+        "x": 100.0,
+        "y": 100.0,
+        "z": 0,
+        "description": "Beginner safe hub, training grounds, initial player entry point. Stationed with Mayor George and Guard Will. Represents the starter economy."
+      },
+      {
+        "id": "stone_tirith",
+        "name": "Stone Tirith",
+        "type": "Dwarf Mountain City",
+        "settlement_scale": "Large City",
+        "location": "Mountainous region",
+        "governor": "Thane Thromgar",
+        "x": 500.0,
+        "y": 500.0,
+        "z": 0,
+        "description": "Dwarven civilization center, weapon crafting capital, rich mining + forge economy."
+      },
+      {
+        "id": "blackwater_bay",
+        "name": "Blackwater Bay",
+        "type": "Coastal Trade & Pirate Hub",
+        "settlement_scale": "Medium City",
+        "location": "Southern coastline",
+        "governor": "Port Master Drake & Captain Redbeard",
+        "x": 1200.0,
+        "y": 1200.0,
+        "z": 0,
+        "description": "Global shipping hub, piracy zone, contraband and black market economy, major world travel port."
+      },
+      {
+        "id": "ravenshire",
+        "name": "Ravenshire",
+        "type": "Royal Capital & Trade Seat",
+        "settlement_scale": "Capital City",
+        "location": "Eastern region",
+        "governor": "King Aldren Vaelor & Lady Genevieve",
+        "x": 1600.0,
+        "y": 600.0,
+        "z": 0,
+        "description": "The official political and commercial capital of the Main Continent, and the royal seat of King Aldren Vaelor. Its identity is centered around noble houses, diplomacy, aristocracy, high commerce, and guild influence (strictly non-military)."
+      },
+      {
+        "id": "thornwall",
+        "name": "Thornwall",
+        "type": "Forest Hybrid City",
+        "settlement_scale": "Medium City",
+        "location": "Forest region (moderate density)",
+        "governor": "Chieftain Garak & Elder Elenwe",
+        "x": 800.0,
+        "y": 800.0,
+        "z": 0,
+        "description": "Diplomatic mixed-race city of humans, elven descendants, and green orcs. Nature economy hub, resource harvesting zone."
+      }
+    ]
+  },
+  {
+    "region_id": "fire_continent",
+    "continent_name": "Fire Continent",
+    "min_level": 50,
+    "bounding_boxes": [
+      {
+        "min_x": 2000,
+        "max_x": 2199,
+        "min_y": 2000,
+        "max_y": 2199
+      }
+    ],
+    "safe_respawn": {
+      "x": 2100.0,
+      "y": 2100.0,
+      "z": 0
+    },
+    "physical_scale": {
+      "width_tiles": 12000,
+      "height_tiles": 12000,
+      "width_km": 12.0,
+      "height_km": 12.0,
+      "area_km2": 144.0,
+      "traversable_percentage": 90.0,
+      "explorable_area_km2": 129.6,
+      "inaccessible_area_km2": 14.4,
+      "traversal_time_minutes_on_foot": "45-60"
+    },
+    "core_identity": {
+      "terrain": "Volcanic terrain dominated by active magma fields, basalt mountains, and ash plains, centered around the colossal living Primordial Volcano.",
+      "geography_ratios": {
+        "volcanic_magma_zones": "45%",
+        "ash_plains": "30%",
+        "mountain_forge_regions": "25%"
+      },
+      "races": [
+        {
+          "name": "Red Orcs",
+          "roles": ["dominant surface warriors", "tribal militaristic society", "extreme heat resistance"]
+        },
+        {
+          "name": "Fire Cult Humans",
+          "roles": ["religious civilization", "worship the Fire Primordial", "integrated into political system"]
+        },
+        {
+          "name": "Fire Cyclopes",
+          "roles": ["master blacksmiths", "creators of the world's best weapons", "forge mountain inhabitants"]
+        },
+        {
+          "name": "Fire Demons",
+          "roles": ["dwell inside primordial volcano", "rarely seen on surface", "servants of the Fire Primordial"]
+        }
+      ],
+      "political_structure": {
+        "government_model": "Unified Arcane-Military Monarchy",
+        "ruler": {
+          "name": "Ignis Rex",
+          "title": "Fire Mage King",
+          "role": "Arcane Ruler and High Monarch",
+          "lore": "Possessed by a Lesser General of the Fire Primordial. This entity heavily influences all decisions but does not fully override the King's identity."
+        }
+      },
+      "atmosphere": "Volcanic fantasy, industrial forge culture, a war-driven civilization under constant elemental fire dominance."
+    },
+    "settlements": [
+      {
+        "id": "pyra_magnus",
+        "name": "Pyra Magnus",
+        "type": "Capital City",
+        "settlement_scale": "Capital City",
+        "location": "Central Volcano Base",
+        "governor": "Fire Mage King (Ignis Rex)",
+        "x": 2100.0,
+        "y": 2100.0,
+        "z": 0,
+        "description": "The monumental volcanic capital city, seat of the Fire Mage King, serving as the political and arcane epicenter of the continent."
+      },
+      {
+        "id": "crimson_hollow",
+        "name": "Crimson Hollow",
+        "type": "Orc Stronghold",
+        "settlement_scale": "Medium City",
+        "location": "Northwestern Ash Plains",
+        "governor": "Red Orc Warlord",
+        "x": 2050.0,
+        "y": 2150.0,
+        "z": 0,
+        "description": "An aggressive Red Orc stronghold, military expansion hub, and epicenter of the war arena culture."
+      },
+      {
+        "id": "molten_anvil",
+        "name": "Molten Anvil",
+        "type": "Cyclops Forge City",
+        "settlement_scale": "Medium City",
+        "location": "Southeastern Forge Mountains",
+        "governor": "Chief Forge Master Cyclops",
+        "x": 2150.0,
+        "y": 2050.0,
+        "z": 0,
+        "description": "The ultimate forging city inhabited by Fire Cyclopes, powered by raw magma streams to craft the finest weapons in the world."
+      },
+      {
+        "id": "primordial_volcano",
+        "name": "Primordial Volcano",
+        "type": "Volcano Dungeon Zone",
+        "settlement_scale": "NOT YET CANONIZED",
+        "location": "Central Fire Continent",
+        "governor": "Lesser Generals of the Fire Primordial",
+        "x": 2100.0,
+        "y": 2120.0,
+        "z": 0,
+        "description": "The living core volcano and natural prison of Fire Demons. Rich in primordial fire energy and high-danger PvE encounters."
+      }
+    ]
+  },
+  {
+    "region_id": "ice_continent",
+    "continent_name": "Ice Continent",
+    "min_level": 1,
+    "bounding_boxes": [
+      {
+        "min_x": 2200,
+        "max_x": 2399,
+        "min_y": 2200,
+        "max_y": 2399
+      },
+      {
+        "min_x": 5800,
+        "max_x": 6000,
+        "min_y": 5800,
+        "max_y": 6000
+      }
+    ],
+    "safe_respawn": {
+      "x": 5900.0,
+      "y": 5850.0,
+      "z": 0
+    },
+    "physical_scale": {
+      "width_tiles": 12000,
+      "height_tiles": 12000,
+      "width_km": 12.0,
+      "height_km": 12.0,
+      "area_km2": 144.0,
+      "traversable_percentage": 90.0,
+      "explorable_area_km2": 129.6,
+      "inaccessible_area_km2": 14.4,
+      "traversal_time_minutes_on_foot": "45-60"
+    },
+    "core_identity": {
+      "terrain": "Primordial frozen continent with frozen tundras, snowy mountain chains, frozen lakes, icy valleys, glacial cliffs, and dangerous blizzards. This cold is entirely natural and primordial, not magical or cursed.",
+      "geography_ratios": {
+        "tundra": "55%",
+        "snow_mountains": "35%",
+        "frozen_coasts_and_lakes": "10%"
+      },
+      "races": [
+        {
+          "name": "Frost Elves",
+          "roles": ["ruling race", "diplomacy", "elemental ice mastery"]
+        },
+        {
+          "name": "Northern Humans",
+          "roles": ["hunting", "navigation", "trade", "warfare"]
+        },
+        {
+          "name": "Mountain Dwarves",
+          "roles": ["mining", "forging", "rune crafting"]
+        },
+        {
+          "name": "Jötunn",
+          "roles": ["ancient primordial giants", "oldest beings of the continent", "extremely rare"]
+        }
+      ],
+      "political_structure": {
+        "government_model": "Monarchy with ancient advisory tradition",
+        "ruler": {
+          "name": "Kaelthar Elaris",
+          "title": "King of the Frozen Crown",
+          "role": "political ruler, military authority, and protector of the continent",
+          "lore": "Distant relative of the Nature Continent's elven royal bloodline, sharing the ancestral Elaris surname."
+        },
+        "jotunn_advisor": {
+          "name": "Ymirr Stonefrost",
+          "race": "Jötunn",
+          "role": "Ancient hidden advisor to the king",
+          "lore": "Lives deep inside dangerous mountain interiors beyond Khaz Tirith. Extremely difficult to reach; only kings, selected dwarves, and exceptional heroes may seek his counsel to influence critical decisions."
+        }
+      },
+      "atmosphere": "Nordic fantasy, harsh survival in a frozen wilderness with ancient civilizations enduring the elemental cold."
+    },
+    "settlements": [
+      {
+        "id": "elarisheim",
+        "name": "Elarisheim",
+        "type": "Frost Elf Capital",
+        "settlement_scale": "Capital City",
+        "location": "Central Ice Plains",
+        "governor": "King Kaelthar Elaris",
+        "x": 5900.0,
+        "y": 5950.0,
+        "z": 0,
+        "description": "Capital of the Frost Elves and seat of King Kaelthar. Features the grand ice palace, crystalline towers, frozen gardens, and noble districts."
+      },
+      {
+        "id": "frosthaven",
+        "name": "Frosthaven",
+        "type": "Northern Human City / Port",
+        "settlement_scale": "Medium City",
+        "location": "Southern Frozen Coast",
+        "governor": "Frosthaven Harbor Master",
+        "x": 5900.0,
+        "y": 5850.0,
+        "z": 0,
+        "description": "Main human settlement and bustling trade port. Features busy docks, icebreaker ships, salted fish trade, and warm warrior lodges."
+      },
+      {
+        "id": "khaz_tirith",
+        "name": "Khaz Tirith",
+        "type": "Dwarven Fortress",
+        "settlement_scale": "NOT YET CANONIZED",
+        "location": "Eastern Snow Mountains",
+        "governor": "Khaz Tirith Forge Master",
+        "x": 5950.0,
+        "y": 5900.0,
+        "z": 0,
+        "description": "Ancient dwarven fortress carved into the frozen mountain heart. Gateway to the forbidden mountains where Ymirr resides. Features deep ice crystal mines and ancient runeforges."
+      },
+      {
+        "id": "ymirr_hidden_cavern",
+        "name": "Ymirr's Hidden Cavern",
+        "type": "Sacred Jötunn Cavern",
+        "settlement_scale": "Large City",
+        "location": "Deep Mountain Interiors",
+        "governor": "Ymirr Stonefrost",
+        "x": 5980.0,
+        "y": 5965.0,
+        "z": 0,
+        "description": "A secluded and extremely dangerous mountain interior where the legendary Jötunn advisor, Ymirr Stonefrost, lives.",
+        "hidden": true,
+        "undiscovered_by_default": true,
+        "travel_restricted": true,
+        "accessible_via": "future questlines, mountain traversal, or dungeon access"
+      }
+    ]
+  },
+  {
+    "region_id": "holy_continent",
+    "continent_name": "Holy Continent",
+    "min_level": 50,
+    "bounding_boxes": [
+      {
+        "min_x": 2400,
+        "max_x": 2599,
+        "min_y": 2400,
+        "max_y": 2599
+      },
+      {
+        "min_x": 4800,
+        "max_x": 5000,
+        "min_y": 4800,
+        "max_y": 5000
+      }
+    ],
+    "safe_respawn": {
+      "x": 4900.0,
+      "y": 4950.0,
+      "z": 0
+    },
+    "physical_scale": {
+      "width_tiles": 12000,
+      "height_tiles": 12000,
+      "width_km": 12.0,
+      "height_km": 12.0,
+      "area_km2": 144.0,
+      "traversable_percentage": 90.0,
+      "explorable_area_km2": 129.6,
+      "inaccessible_area_km2": 14.4,
+      "traversal_time_minutes_on_foot": "45-60"
+    },
+    "core_identity": {
+      "terrain": "Naturally sacred continent, sacred golden plains, holy forests, crystalline rivers, sacred sanctuaries, fortified military frontiers",
+      "races": [
+        {
+          "name": "Sacred Humans",
+          "roles": ["governance", "military", "holy orders"]
+        },
+        {
+          "name": "High Elves",
+          "roles": ["arcane sacred knowledge", "ancient wisdom", "holy magic mastery"]
+        },
+        {
+          "name": "Seraphim",
+          "roles": ["divine guardians", "rare celestial beings", "spiritual authorities"]
+        }
+      ],
+      "seraphim_lore": {
+        "rule": "Only 5 Seraphim exist in the world. 4 live in isolated temples rarely interacting with mortals, and 1 participates in governance.",
+        "governor_seraphim": "Seraphiel"
+      },
+      "political_structure": {
+        "government_model": "Holy Council (True Triune Council with equal authority)",
+        "official_name": "Council Triune of Light",
+        "members": [
+          {
+            "name": "Aurelius Dawnbringer",
+            "title": "High Lord of Sacred Order",
+            "roles": ["law", "military", "protection"],
+            "authority": "Equal member of the Triune Council. May act as primus inter pares (first among equals) only for diplomatic and military urgency, with no unilateral ruling authority."
+          },
+          {
+            "name": "Aelthir Luminar",
+            "title": "Keeper of Sacred Wisdom",
+            "roles": ["wisdom", "arcane knowledge", "history"],
+            "authority": "Equal member of the Triune Council. Preserves the ancient history and wisdom of the land."
+          },
+          {
+            "name": "Seraphiel",
+            "title": "Voice of Divine Light",
+            "roles": ["spiritual judgment", "divine balance"],
+            "authority": "Equal member of the Triune Council. Guides spiritual judgment and preserves celestial balance."
+          }
+        ]
+      },
+      "atmosphere": "Sacred medieval fantasy with divine light, majestic architecture, spiritual power, and rigid, disciplined, highly moral, judgmental order. Light does not always equal mercy."
+    },
+    "settlements": [
+      {
+        "id": "luminaar",
+        "name": "Luminaar",
+        "type": "Holy Capital",
+        "settlement_scale": "Capital City",
+        "location": "North / Sacred Plains",
+        "governor": "Council Triune of Light (Aurelius, Aelthir, Seraphiel)",
+        "x": 4900.0,
+        "y": 4950.0,
+        "z": 0,
+        "description": "Political and spiritual capital. Seat of the Council Triune of Light. Features a divine cathedral, council palace, holy libraries, and sacred plazas."
+      },
+      {
+        "id": "lunareth",
+        "name": "Lunareth",
+        "type": "High Elf Sacred City",
+        "settlement_scale": "Medium City",
+        "location": "East / Sacred Forest",
+        "governor": "Lunareth Elder",
+        "x": 4950.0,
+        "y": 4900.0,
+        "z": 0,
+        "description": "Ancient High Elf city hidden within sacred forests. Center of holy arcane knowledge, featuring arcane sanctuaries, sacred groves, white towers, and celestial observatories."
+      },
+      {
+        "id": "sunwall",
+        "name": "Sunwall",
+        "type": "Holy Military Fortress",
+        "settlement_scale": "Medium City",
+        "location": "West / Frontier",
+        "governor": "Sunwall Commander",
+        "x": 4850.0,
+        "y": 4900.0,
+        "z": 0,
+        "description": "Massive fortress defending the continent. Features giant walls, paladin barracks, training grounds, and defensive temples."
+      }
+    ],
+    "geography": {
+      "ratios": {
+        "sacred_plains": 45,
+        "sacred_forests": 30,
+        "sanctuaries_temples": 15,
+        "military_frontier": 10
+      },
+      "central_region": {
+        "name": "Heart of Light",
+        "description": "The unique central sacred region of the continent. Features the Primordial Crystal of Light.",
+        "x": 4900.0,
+        "y": 4900.0,
+        "core_object": "Primordial Crystal of Light",
+        "core_object_description": "A massive primordial crystal that has existed since the creation of the world.",
+        "properties": [
+          "emits holy energy continuously",
+          "purifies corruption",
+          "amplifies holy magic",
+          "weakens dark entities",
+          "source of the continent's sacred nature"
+        ],
+        "lore": "The continent is naturally holy because of the crystal. The crystal was never created, summoned, or blessed. It has always existed."
+      }
+    },
+    "travel": {
+      "access": "Restricted. Requires Level 50+ and completion of the quest 'holy_continent_access_trial'.",
+      "quest_requirement": "holy_continent_access_trial"
+    }
+  },
+  {
+    "region_id": "shadow_continent",
+    "continent_name": "Shadow Continent",
+    "min_level": 50,
+    "bounding_boxes": [
+      {
+        "min_x": 2600,
+        "max_x": 2799,
+        "min_y": 2600,
+        "max_y": 2799
+      },
+      {
+        "min_x": 3800,
+        "max_x": 4000,
+        "min_y": 3800,
+        "max_y": 4000
+      }
+    ],
+    "safe_respawn": {
+      "x": 3900.0,
+      "y": 3950.0,
+      "z": 0
+    },
+    "physical_scale": {
+      "width_tiles": 12000,
+      "height_tiles": 12000,
+      "width_km": 12.0,
+      "height_km": 12.0,
+      "area_km2": 144.0,
+      "traversable_percentage": 90.0,
+      "explorable_area_km2": 129.6,
+      "inaccessible_area_km2": 14.4,
+      "traversal_time_minutes_on_foot": "45-60"
+    },
+    "core_identity": {
+      "terrain": "Primordial native darkness, gothic medieval plains, constant fog, decayed civilization",
+      "civilization": "Vampires, Undead, Black Orcs, Dark Elves, Cultists, Lycanthropes, Liches, and Necromancers",
+      "factions": ["Northern Domain (Count Valdrak Nocthar)", "Southern Domain (Morthak the Eternal)"],
+      "atmosphere": "Gothic medieval fantasy with constant fog, decayed civilizations, and permanent political tension"
+    },
+    "settlements": [
+      {
+        "id": "noctharyn",
+        "name": "Noctharyn",
+        "type": "Royal Vampire Capital",
+        "settlement_scale": "Capital City",
+        "location": "North",
+        "governor": "Count Valdrak Nocthar",
+        "x": 3900.0,
+        "y": 3950.0,
+        "z": 0,
+        "description": "Grand gothic capital ruled by Count Valdrak Nocthar, featuring blood magic academies and noble vampire houses."
+      },
+      {
+        "id": "grimharbor",
+        "name": "Grimharbor",
+        "type": "Dark Harbor / Port City",
+        "settlement_scale": "Medium City",
+        "location": "Northwest coast",
+        "governor": "Harbormaster Dregan",
+        "x": 3850.0,
+        "y": 3925.0,
+        "z": 0,
+        "description": "Main entry point for foreign visitors, filled with black markets, smugglers, and mercenaries."
+      },
+      {
+        "id": "kar_goth",
+        "name": "Kar'goth",
+        "type": "Black Orc Fortress",
+        "settlement_scale": "Medium City",
+        "location": "West mountains",
+        "governor": "Warchief Gor'mak",
+        "x": 3825.0,
+        "y": 3900.0,
+        "z": 0,
+        "description": "Stronghold of Black Orc clans featuring war camps, iron forges, and siege workshops."
+      },
+      {
+        "id": "necrathis",
+        "name": "Necrathis",
+        "type": "Lich Capital",
+        "settlement_scale": "Capital City",
+        "location": "South",
+        "governor": "Morthak the Eternal",
+        "x": 3900.0,
+        "y": 3850.0,
+        "z": 0,
+        "description": "Main undead city ruled by Morthak, featuring a giant necropolis, bone towers, and undead legions."
+      },
+      {
+        "id": "vel_sharum",
+        "name": "Vel'Sharum",
+        "type": "Cultist City",
+        "settlement_scale": "Medium City",
+        "location": "Southeast",
+        "governor": "High Cultist Xerath",
+        "x": 3950.0,
+        "y": 3875.0,
+        "z": 0,
+        "description": "City of rituals, forbidden magic, dark temples, and forbidden libraries."
+      }
+    ],
+    "geography": {
+      "ratios": {
+        "dead_lands": 35,
+        "swamps": 20,
+        "mountains": 15,
+        "cemeteries_ruins": 20,
+        "coastline": 10
+      },
+      "central_region": {
+        "name": "Ashen Wastes",
+        "description": "Ancient plain covered in gray ash, serving as a frontier between northern and southern powers, filled with giant skeletons, cursed graveyards, dead forests, and necromantic fog."
+      }
+    },
+    "travel": {
+      "routes": [
+        "Main Continent",
+        "Nature Continent"
+      ],
+      "access": "Accessible by ship without mandatory quest"
+    }
+  },
+  {
+    "region_id": "nature_continent",
+    "continent_name": "Nature Continent",
+    "min_level": 50,
+    "bounding_boxes": [
+      {
+        "min_x": 2800,
+        "max_x": 2999,
+        "min_y": 2800,
+        "max_y": 2999
+      }
+    ],
+    "safe_respawn": {
+      "x": 2900.0,
+      "y": 2900.0,
+      "z": 0
+    },
+    "physical_scale": {
+      "width_tiles": 12000,
+      "height_tiles": 12000,
+      "width_km": 12.0,
+      "height_km": 12.0,
+      "area_km2": 144.0,
+      "traversable_percentage": 90.0,
+      "explorable_area_km2": 129.6,
+      "inaccessible_area_km2": 14.4,
+      "traversal_time_minutes_on_foot": "45-60"
+    },
+    "core_identity": {
+      "terrain": "Forest-dominated",
+      "civilization": "Elven civilization & Human druids",
+      "factions": ["Green orc refugee fortress"],
+      "economy": "Focused on herbalism and crafting materials"
+    },
+    "settlements": [
+      {
+        "id": "elarin",
+        "name": "Elarin",
+        "type": "Royal Elven Capital",
+        "settlement_scale": "Capital City",
+        "location": "North",
+        "governor": "King Thalindir Elarion",
+        "advisor": "Enth",
+        "x": 2900.0,
+        "y": 2950.0,
+        "z": 0
+      },
+      {
+        "id": "sylvaris",
+        "name": "Sylvaris",
+        "type": "Elven Military City",
+        "settlement_scale": "Medium City",
+        "location": "East",
+        "x": 2950.0,
+        "y": 2900.0,
+        "z": 0
+      },
+      {
+        "id": "oakenspire",
+        "name": "Oakenspire",
+        "type": "Human Druid City",
+        "settlement_scale": "Medium City",
+        "location": "South",
+        "x": 2900.0,
+        "y": 2850.0,
+        "z": 0
+      },
+      {
+        "id": "grunhold",
+        "name": "Grunhold",
+        "type": "Green Orc Fortress",
+        "settlement_scale": "Medium City",
+        "location": "West",
+        "x": 2850.0,
+        "y": 2900.0,
+        "z": 0
+      }
+    ],
+    "geography": {
+      "forest_percentage": 80,
+      "major_rivers_count": 2,
+      "regions": {
+        "north": "Northern ancient forests",
+        "south": "Southern river valleys",
+        "west": "Western wild forests",
+        "east": "Eastern frontier woods"
+      }
+    },
+    "travel": {
+      "access": "Maritime access from main continent",
+      "roads": "Internal roads connect major settlements"
+    }
+  },
+  {
+    "region_id": "abyssia_continent",
+    "continent_name": "Abyssia",
+    "min_level": 150,
+    "bounding_boxes": [
+      {
+        "min_x": 3000,
+        "max_x": 3799,
+        "min_y": 3000,
+        "max_y": 3799
+      }
+    ],
+    "safe_respawn": {
+      "x": 3400.0,
+      "y": 3100.0,
+      "z": 0
+    },
+    "physical_scale": {
+      "width_tiles": 16000,
+      "height_tiles": 16000,
+      "width_km": 16.0,
+      "height_km": 16.0,
+      "area_km2": 256.0,
+      "traversable_percentage": 90.0,
+      "explorable_area_km2": 230.4,
+      "inaccessible_area_km2": 25.6,
+      "traversal_time_minutes_on_foot": "70-90"
+    },
+    "core_identity": {
+      "terrain": "Corrupted void, floating abyssal islands, ruins, and deep dark chasms.",
+      "atmosphere": "Post-apocalyptic void, extreme high-level endgame content, abyssal horror.",
+      "races": [
+        {
+          "name": "Human Resistance",
+          "roles": ["survival", "defense", "counter-offensive"]
+        },
+        {
+          "name": "Abyssal Horrors",
+          "roles": ["corruptors", "invaders"]
+        }
+      ],
+      "political_structure": {
+        "government_model": "Military Martial Law (Resistance Command)",
+        "ruler": {
+          "name": "Commander Varian",
+          "title": "Grand Marshal of the Last Bastion",
+          "role": "Military Leader",
+          "lore": "The last standing grand marshal of the human forces defending the threshold between the human world and the void."
+        }
+      }
+    },
+    "settlements": [
+      {
+        "id": "last_bastion",
+        "name": "Last Bastion",
+        "type": "Human Resistance Settlement",
+        "settlement_scale": "Small City / Small Settlement",
+        "location": "Southern Abyssi",
+        "governor": "Commander Varian",
+        "x": 3400.0,
+        "y": 3100.0,
+        "z": 0,
+        "description": "The absolute last human resistance outpost standing in the Abyss. Serves as a safe zone, respawn point, repair hub, vendor base, and quest headquarters.",
+        "properties": [
+          "safe_zone",
+          "respawn_point",
+          "repair_services",
+          "vendors",
+          "quest_hub"
+        ]
+      }
+    ],
+    "regions_and_zones": [
+      {
+        "id": "void_rift_ruins",
+        "name": "Abyssal Void Rift Ruins",
+        "description": "The shattered remnants of a grand ancient civilization, now crawling with high-danger void creatures."
+      },
+      {
+        "id": "corrupted_zone_gamma",
+        "name": "Crystalline Corrupted Zone",
+        "description": "A high-risk traversal zone covered in purple crystal growths leaking raw abyssal corruption."
+      }
+    ],
+    "travel": {
+      "access": "Restricted ship travel. Requires level 150+, completion of the endgame questline, and the Abyssi access permission flag."
+    }
+  }
+]

@@ -1,0 +1,130 @@
+{
+  "SystemName": "Offhand Bible (Final Canon Version)",
+  "Philosophy": "The offhand slot is a major identity-defining equipment slot. Equipment in this slot shapes active behavior and role emergence.",
+  "CanonicalRules": [
+    {
+      "Id": "offhand-lock-001",
+      "RuleName": "offhand-rule",
+      "Text": "Each vocation has strict allowed off-hand equipment defining build identity."
+    },
+    {
+      "Id": "attr-lock-001",
+      "RuleName": "attribute-less-rule",
+      "Text": "The game does not use traditional RPG attributes. Progression is skill-based and item-driven only."
+    },
+    {
+      "Id": "vector-lock-001",
+      "RuleName": "role-vector-rule",
+      "Text": "Combat role output must be displayed as numeric performance vectors instead of categorical labels."
+    },
+    {
+      "Id": "equip-modifier-rule",
+      "RuleName": "equipment-modifier-rule",
+      "Text": "Equipment may modify extended combat parameters including offensive, defensive, elemental, and utility attributes, independently from class base stats."
+    }
+  ],
+  "OffhandArchetypes": {
+    "defensive": {
+      "Name": "Defensive Offhand",
+      "Items": ["shield"],
+      "GeneralEffect": "Provides high physical mitigation and magic resistance."
+    },
+    "offensive_physical": {
+      "Name": "Offensive Physical Offhand",
+      "Items": ["sword", "dagger"],
+      "GeneralEffect": "Increases movement speed and attack speed for physical dual-wield configurations."
+    },
+    "offensive_magical": {
+      "Name": "Offensive Magical Offhand",
+      "Items": ["spellbook", "sacred_scepter"],
+      "GeneralEffect": "Amplifies magical damage, magic level, mana efficiency, and cooldown reduction."
+    },
+    "utility": {
+      "Name": "Utility Offhand",
+      "Items": ["quiver"],
+      "GeneralEffect": "Exclusively for Archers. Amplifies movement speed, distance fighting, crit metrics, and attack speed."
+    }
+  },
+  "ItemDetails": [
+    {
+      "ItemId": "shield",
+      "Name": "Escudo de Batalha (Shield)",
+      "Archetype": "defensive",
+      "EquipmentModifiers": {
+        "HP": 80,
+        "Armor": 45,
+        "MagicResistance": 20,
+        "MovementSpeed": -5
+      },
+      "Description": "Solid defensive block device offering superior armor, magic resistance, and bonus HP."
+    },
+    {
+      "ItemId": "sword",
+      "Name": "Espada Companheira (Off-Hand Sword)",
+      "Archetype": "offensive_physical",
+      "EquipmentModifiers": {
+        "CritChance": 8,
+        "CritDamage": 15,
+        "AttackSpeed": 10,
+        "ArmorPenetration": 5,
+        "MovementSpeed": 10
+      },
+      "Description": "Companion blade for dual-wield strike velocity, adding critical strike chance and armor penetration."
+    },
+    {
+      "ItemId": "dagger",
+      "Name": "Adaga de Mão Esquerda (Off-Hand Dagger)",
+      "Archetype": "offensive_physical",
+      "EquipmentModifiers": {
+        "CritChance": 10,
+        "CritDamage": 10,
+        "AttackSpeed": 12,
+        "ArmorPenetration": 3,
+        "MovementSpeed": 15
+      },
+      "Description": "Light off-hand blade optimizing fast positioning, high crit rate, and maximum swiftness."
+    },
+    {
+      "ItemId": "spellbook",
+      "Name": "Grimório Arcano (Spellbook)",
+      "Archetype": "offensive_magical",
+      "EquipmentModifiers": {
+        "MagicLevel": 5,
+        "ManaEfficiency": 10,
+        "CooldownReduction": 8,
+        "FireDamage": 15,
+        "IceDamage": 15,
+        "ShadowDamage": 15,
+        "NatureDamage": 15
+      },
+      "Description": "Spellbooks provide magical level scaling, increased mana efficiency, and elemental spell damage."
+    },
+    {
+      "ItemId": "sacred_scepter",
+      "Name": "Cetro Sagrado de Luz (Sacred Scepter)",
+      "Archetype": "offensive_magical",
+      "EquipmentModifiers": {
+        "MagicLevel": 4,
+        "HealingPower": 25,
+        "HolyDamage": 20,
+        "CooldownReduction": 5,
+        "ManaEfficiency": 8
+      },
+      "Description": "Sacred scepters amplify holy damage, healing output, magic level, and reduce spell cooldowns."
+    },
+    {
+      "ItemId": "quiver",
+      "Name": "Aljava de Flechas (Quiver)",
+      "Archetype": "utility",
+      "EquipmentModifiers": {
+        "CritChance": 12,
+        "CritDamage": 20,
+        "AttackSpeed": 15,
+        "ArmorPenetration": 10,
+        "DistanceFighting": 8,
+        "MovementSpeed": 12
+      },
+      "Description": "Archer-exclusive utility offhand providing ammunition storage, high critical chance/damage, and distance fighting boosts."
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "SystemName": "Class & Vocation Bible (Final Canon Version)",
+  "Philosophy": "Light and Shadow implements a delayed specialization model. All characters start as neutral, classless novices from level 1 to 9, allowing them to experiment with starter mechanics, equipment, and playstyles in the neutral starting city of Ironhold Bastion before permanently committing to an exclusive combat class at level 10.",
+  "CanonicalRules": [
+    {
+      "Id": "class-core-principle",
+      "Text": "Characters begin classless and later specialize into permanent combat classes that define exclusive skills, spells, and progression paths."
+    },
+    {
+      "Id": "novice-phase-rule",
+      "Text": "All characters remain classless novices between levels 1 and 9."
+    },
+    {
+      "Id": "novice-weapon-rule",
+      "Text": "Classless characters between levels 1 and 9 may equip and use any starter weapon available in Ironhold Bastion."
+    },
+    {
+      "Id": "class-selection-rule",
+      "Text": "At level 10, every character must permanently select one of the five playable classes."
+    },
+    {
+      "Id": "class-permanence-rule",
+      "Text": "Class selection at level 10 is permanent and cannot be changed afterward."
+    },
+    {
+      "Id": "gear-driven-class-rule",
+      "Text": "Class identity defines access to abilities and progression paths, but combat role is primarily determined by equipped items rather than fixed class statistics alone."
+    },
+    {
+      "Id": "class-skill-exclusivity-rule",
+      "Text": "Each class possesses exclusive skills and spells that cannot be learned or used by other classes."
+    },
+    {
+      "Id": "item-class-requirement-rule",
+      "Text": "Items may contain explicit class requirements defined in their template metadata. Only compatible classes may equip or use those items."
+    },
+    {
+      "Id": "class-base-attribute-rule",
+      "Text": "Each class possesses unique base attributes assigned upon class selection at level 10, defining its initial combat strengths and weaknesses."
+    },
+    {
+      "Id": "class-race-neutrality-rule",
+      "Text": "Class selection must never override race neutrality or create race-based class restrictions."
+    }
+  ],
+  "SpecializationLevels": {
+    "NoviceRange": {
+      "Min": 1,
+      "Max": 9
+    },
+    "ClassUnlock": 10
+  }
+}

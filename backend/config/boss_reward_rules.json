@@ -1,0 +1,45 @@
+{
+  "RewardPhilosophy": {
+    "System": "PersonalLoot",
+    "Description": "Boss rewards are generated individually for each eligible participant. No shared loot pool, no floor loot competition, no first-click loot."
+  },
+  "EligibilityValidation": {
+    "Method": "HybridEligibility",
+    "Requirements": {
+      "MinimumParticipationSeconds": 30.0,
+      "MinimumContributionPercentage": 1.0
+    },
+    "EligibleActions": [
+      "damage",
+      "healing",
+      "tanking",
+      "support"
+    ],
+    "AntiExploitGoals": [
+      "prevent_afk_leeching",
+      "prevent_alt_abuse",
+      "prevent_one_hit_tagging"
+    ]
+  },
+  "ProtectedBossChestLaw": {
+    "Rule": "Personal boss rewards are never dropped directly in combat zones.",
+    "DeliveryMethod": "ProtectedRewardChest",
+    "ChestProperties": [
+      "safe_zone_access",
+      "personal_ownership",
+      "protected_rewards"
+    ],
+    "Exclusions": {
+      "ProtectedChestAppliesTo": [
+        "boss_rewards",
+        "raid_rewards",
+        "special_event_rewards"
+      ],
+      "OpenLootAppliesTo": [
+        "player_corpses",
+        "world_loot",
+        "regular_monster_corpses"
+      ]
+    }
+  }
+}

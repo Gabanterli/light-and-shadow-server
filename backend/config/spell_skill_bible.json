@@ -1,0 +1,81 @@
+{
+  "SystemName": "Spell & Skill Bible (Final Canon Version)",
+  "Philosophy": "Combat is designed around high survivability, sustained pressure, tactical positioning, and fast reactive spell execution. Spell combat utilizes instant-cast Spells with short category-specific cooldowns and global cooldowns, while scaling damage based on class design (weapon-centric vs spell-centric).",
+  "CanonicalRules": [
+    {
+      "Id": "high-ttk-spell-combat-rule",
+      "Text": "Combat is designed around high survivability, sustained pressure, tactical positioning, and fast reactive spell execution."
+    },
+    {
+      "Id": "skill-cooldown-rule",
+      "Text": "Skills are divided into three cooldown categories: Basic (0–4s), Strong (8–15s), Ultimate (15–20s)."
+    },
+    {
+      "Id": "global-cooldown-rule",
+      "Text": "All active skills trigger a global cooldown of 0.35 seconds to prevent instant burst stacking and macro abuse."
+    },
+    {
+      "Id": "instant-cast-rule",
+      "Text": "All spells and active skills are instant cast. Combat pacing relies on cooldowns, positioning, and mana flow instead of cast-time delays."
+    },
+    {
+      "Id": "damage-source-rule",
+      "Text": "Weapon-centric classes primarily deal damage through weapon scaling, while spell-centric classes primarily deal damage through spell scaling."
+    },
+    {
+      "Id": "spell-scaling-rule",
+      "Text": "Spell power scales from weapon magical base, magic level, and elemental affinity."
+    },
+    {
+      "Id": "mana-flow-rule",
+      "Text": "Mana regenerates passively over time and through successful combat hits, functioning as a pacing regulator rather than a hard combat limiter."
+    },
+    {
+      "Id": "healing-scaling-rule",
+      "Text": "Healing scales from weapon magical base, magic level, and holy amplification."
+    },
+    {
+      "Id": "spell-critical-rule",
+      "Text": "Spells can critically strike using the global critical hit system."
+    },
+    {
+      "Id": "limited-cc-rule",
+      "Text": "Crowd control exists in limited form and must never dominate combat pacing."
+    },
+    {
+      "Id": "aoe-softcap-rule",
+      "Text": "Area damage uses progressive soft target caps to prevent large-scale scaling abuse."
+    },
+    {
+      "Id": "buff-category-rule",
+      "Text": "Buffs stack by category exclusivity rather than unrestricted stacking."
+    },
+    {
+      "Id": "party-protection-rule",
+      "Text": "Party members are protected from allied AoE damage. Non-party targets remain vulnerable."
+    },
+    {
+      "Id": "assassin-critical-override-rule",
+      "Text": "The Assassin critical hit multiplier override (2.2x) applies to every valid outgoing damage source, including physical, magical, skill-based, and elemental damage."
+    },
+    {
+      "Id": "skill-taxonomy-rule",
+      "Text": "Every spell and skill belongs to one canonical category: Damage, Heal, Buff, Debuff, Mobility, or Utility."
+    }
+  ],
+  "MathFormulas": {
+    "SpellScalingFormula": {
+      "Formula": "SpellPower = WeaponMagicalBase * MagicLevel * (1 + ElementalAffinityBonus / 100)",
+      "Description": "Traditional attributes are forbidden. Spell power scales only from weapon magical base, magic level, and elemental affinity."
+    },
+    "AoEScalingFormula": {
+      "Formula": "Multiplier = f(Targets): 1-5 targets = 100%, 6-10 targets = 80%, 11-20 targets = 60%, 20+ targets = 40% damage",
+      "Description": "Area damage uses progressive soft target caps to prevent large-scale scaling abuse."
+    },
+    "GlobalCooldownSec": 0.35,
+    "HealingScalingFormula": {
+      "Formula": "Healing Power = WeaponMagicalBase * MagicLevel * HolyAmplification",
+      "Description": "Healing strength scales from weapon magical base, magic level, and holy amplification. Works at 100% effectiveness in PvP."
+    }
+  }
+}

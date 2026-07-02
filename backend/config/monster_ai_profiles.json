@@ -1,0 +1,126 @@
+[
+  {
+    "Archetype": "BRUISER_TANK",
+    "Role": "frontline",
+    "Description": "Absorbs damage, blocks player movement, and protects fragile nearby allies.",
+    "CombatType": "melee",
+    "Traits": {
+      "HighHP": true,
+      "HighDefense": true,
+      "LowMobility": true
+    },
+    "Behavior": {
+      "CloseDistanceAggressively": true,
+      "PreferMelee": true,
+      "ProtectAllies": true
+    },
+    "ThreatWeight": 0.80,
+    "InstinctWeight": 0.20,
+    "FleeSurvivalMode": "FrenzyUnderDeath",
+    "DefaultLeashTier": 2
+  },
+  {
+    "Archetype": "PREDATOR_ASSASSIN",
+    "Role": "kill vulnerable targets",
+    "Description": "Prioritizes weak targets, utilizes burst damage and rapid repositioning.",
+    "CombatType": "melee_burst",
+    "Traits": {
+      "HighBurst": true,
+      "HighMobility": true,
+      "LowHP": true
+    },
+    "Behavior": {
+      "TargetPriority": [
+        "low_hp",
+        "low_armor",
+        "ranged_caster"
+      ],
+      "RapidRepositioning": true
+    },
+    "ThreatWeight": 0.40,
+    "InstinctWeight": 0.60,
+    "FleeSurvivalMode": "TacticalRetreat",
+    "DefaultLeashTier": 3
+  },
+  {
+    "Archetype": "RANGED_HUNTER",
+    "Role": "ranged pressure",
+    "Description": "Kiting, distance maintenance, and continuous repositioning.",
+    "CombatType": "ranged",
+    "PreferredRangeTiles": {
+      "Min": 6,
+      "Max": 12
+    },
+    "Behavior": {
+      "Kiting": true,
+      "MaintainDistance": true,
+      "RepositionOnCloseRange": true
+    },
+    "ThreatWeight": 0.50,
+    "InstinctWeight": 0.50,
+    "FleeSurvivalMode": "TacticalRetreat",
+    "DefaultLeashTier": 2
+  },
+  {
+    "Archetype": "CASTER",
+    "Role": "magical pressure",
+    "Description": "Executes spell rotations, deals AoE damage, and applies debuffs.",
+    "CombatType": "magic_ranged",
+    "Behavior": {
+      "SpellRotation": true,
+      "AoEDamage": true,
+      "ApplyDebuffs": true,
+      "TargetPriority": [
+        "clusters",
+        "low_magic_resistance",
+        "stationary_targets"
+      ]
+    },
+    "ThreatWeight": 0.50,
+    "InstinctWeight": 0.50,
+    "FleeSurvivalMode": "TacticalRetreat",
+    "DefaultLeashTier": 2
+  },
+  {
+    "Archetype": "SUPPORT",
+    "Role": "sustain allies",
+    "Description": "Heals, shields, and buffs friendly entities.",
+    "CombatType": "hybrid",
+    "Behavior": {
+      "HealAllies": true,
+      "ShieldAllies": true,
+      "BuffAllies": true,
+      "TargetPriority": [
+        "commander",
+        "frontline_bruiser",
+        "nearest_ally"
+      ]
+    },
+    "ThreatWeight": 0.30,
+    "InstinctWeight": 0.70,
+    "FleeSurvivalMode": "Cowardly",
+    "DefaultLeashTier": 2
+  },
+  {
+    "Archetype": "ELITE_COMMANDER",
+    "Role": "battlefield control",
+    "Description": "Coordinates encounters, applies auras, and alters combat flow.",
+    "CombatType": "melee_or_ranged",
+    "Auras": [
+      "attack_speed_boost",
+      "defense_boost",
+      "frenzy",
+      "fear"
+    ],
+    "Behavior": {
+      "CoordinateEncounters": true,
+      "ApplyAuras": true,
+      "AlterCombatFlow": true,
+      "UsesHybridDecisionLogic": true
+    },
+    "ThreatWeight": 0.50,
+    "InstinctWeight": 0.50,
+    "FleeSurvivalMode": "DeathBeforeRetreat",
+    "DefaultLeashTier": 4
+  }
+]

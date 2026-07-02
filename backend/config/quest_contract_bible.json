@@ -1,0 +1,152 @@
+{
+  "SystemName": "Quest & Contract Bible (Final Canon Version)",
+  "Philosophy": "Light and Shadow provides absolute sandbox freedom, where quests and contracts coexist as parallel, optional activities that support macro progression, world building, and repeatable endgame loops without imposing mandatory theme-park progression lanes.",
+  "CanonicalRules": [
+    {
+      "Id": "quest-system-core",
+      "Text": "The game uses both persistent quest content and repeatable contract content as parallel world activity systems."
+    },
+    {
+      "Id": "activity-freedom-quest-rule",
+      "Text": "Quests and contracts are optional world activities and never impose mandatory linear progression paths."
+    },
+    {
+      "Id": "quest-freedom-principle",
+      "Text": "Quests are abundant world activities and are not limited to progression gating. Players may pursue quests for progression, lore, rewards, exploration, or personal goals."
+    },
+    {
+      "Id": "contract-repeatable-rule",
+      "Text": "Contracts are repeatable tasks that provide long-term gameplay loops independent of story progression."
+    },
+    {
+      "Id": "quest-reward-rule",
+      "Text": "Quest rewards may include progression, economy, knowledge, and unlock-based rewards."
+    },
+    {
+      "Id": "xp-source-priority-rule",
+      "Text": "Hunts remain the primary source of character experience while quests provide secondary progression rewards."
+    },
+    {
+      "Id": "npc-faction-rule",
+      "Text": "NPC factions function as progression, learning, and contract hubs rather than player social organizations."
+    },
+    {
+      "Id": "spell-learning-hybrid-rule",
+      "Text": "Spells are learned through both faction training and quest-based unlocks depending on spell rarity and narrative significance."
+    },
+    {
+      "Id": "quest-persistence-rule",
+      "Text": "Quests never fail permanently and remain recoverable regardless of interruption or abandonment."
+    },
+    {
+      "Id": "quest-design-boundary",
+      "Text": "Quest systems must support sandbox freedom and may never replace open-world activity choice as the core gameplay philosophy."
+    },
+    {
+      "Id": "faction-extensibility-rule",
+      "Text": "NPC factions are not limited to a fixed number and may expand dynamically as the world evolves through future content, continents, and narrative systems."
+    },
+    {
+      "Id": "quest-reward-template-rule",
+      "Text": "Quest rewards use deterministic reward templates selected from fixed canonical reward pools."
+    }
+  ],
+  "QuestClassifications": {
+    "MAIN": {
+      "Purpose": "Macro progression, major world unlocks, continent access, and primary story arcs.",
+      "UnlockExamples": ["Continents", "Boss Access", "Restricted Hunts", "High-tier Dungeons"]
+    },
+    "STORY": {
+      "Purpose": "Lore, worldbuilding, history of Primordials, faction stories, and deep historic conflicts.",
+      "Gating": "No progression gating. Fully optional narrative exploration."
+    },
+    "UNLOCK": {
+      "Purpose": "Unlock spells, crafting recipes, progression systems, or specialty hunts.",
+      "Style": "Serves as progression milestones that players pursue at their own choice."
+    },
+    "SIDE": {
+      "Purpose": "Enrich local village depth, support minor NPC narratives, and provide optional rewards.",
+      "Abundance": "Highly abundant throughout all game regions."
+    }
+  },
+  "ContractSystem": {
+    "Repeatability": "Infinite repeatable world loops. Refreshes periodically or on completion.",
+    "Types": [
+      {
+        "Type": "Hunt",
+        "Target": "Standard monster targets in specific regions."
+      },
+      {
+        "Type": "Bounty",
+        "Target": "Named rare/elite monsters with dynamic spawn indicators."
+      },
+      {
+        "Type": "Escort",
+        "Target": "Protect regional caravans or emissaries traveling through non-safe zones."
+      },
+      {
+        "Type": "Delivery",
+        "Target": "Transport fragile cargo/messages between distant outposts under open-world conditions."
+      },
+      {
+        "Type": "Elite Kill",
+        "Target": "Defeat high-danger regional elite creatures."
+      }
+    ]
+  },
+  "RewardsEngine": {
+    "AllowedRewards": [
+      "experience",
+      "coins_bronze",
+      "coins_silver",
+      "coins_gold",
+      "coins_diamond",
+      "crafting_materials",
+      "deterministic_items",
+      "recipes",
+      "spell_unlocks",
+      "faction_reputation"
+    ],
+    "XPPriorityLaw": "Hunts remain the primary source of character experience. Quests and contracts provide smaller experience gains to preserve hunt-centric progression balance."
+  },
+  "NPCFactions": {
+    "Architecture": "Extensible. Factions are not limited to a fixed number and may expand dynamically through future content.",
+    "StarterList": [
+      {
+        "FactionId": "hunter_lodge",
+        "Name": "Hunter Lodges",
+        "Description": "Hunters and tracker circles providing hunt contracts, tracking training, and specialized hunting gear templates."
+      },
+      {
+        "FactionId": "mage_order",
+        "Name": "Mage Orders",
+        "Description": "Arcane researchers and elemental masters offering spell learning, spell quests, and ancient lore."
+      },
+      {
+        "FactionId": "religious_order",
+        "Name": "Religious Orders",
+        "Description": "Temple keepers guarding holy altars, offering blessing services, and quest contracts related to the Primordials."
+      },
+      {
+        "FactionId": "mercenary_guild",
+        "Name": "Mercenary Guilds",
+        "Description": "Solder-of-fortune guilds offering bounties, delivery, and escort contracts."
+      },
+      {
+        "FactionId": "shadow_cult",
+        "Name": "Shadow Cults",
+        "Description": "Hidden cults operating outside safe zones, providing high-risk contracts, forbidden spell unlocks, and chaos lore."
+      }
+    ]
+  },
+  "SpellLearningSystem": {
+    "FactionTrainerSpells": "Common discipline spells available directly from faction NPC trainers in exchange for coin and elemental level prerequisites.",
+    "QuestUnlockedSpells": "Rare, unique, forbidden, or high-lore spells unlocked only after completing specific Main, Story, or Unlock quests."
+  },
+  "FailurePolicy": {
+    "PermanentFailure": false,
+    "AbandonmentAllowed": true,
+    "Resumable": true,
+    "NPCDonorImmortality": "All quest-giver and quest-target NPCs are fully immortal. They can never die, preventing any possibility of progression deadlocks."
+  }
+}

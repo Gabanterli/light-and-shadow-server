@@ -1,0 +1,147 @@
+{
+  "SystemName": "Itemization Bible (Final Canon Version)",
+  "Philosophy": "A gear-important but skill-driven system. Equipment amplifies combat effectiveness but does not replace class identity, skill timing, or spatial positioning. Strict linear power capping avoids exponential stat bloat.",
+  "CanonicalRules": [
+    {
+      "Id": "item-core-principle",
+      "Text": "Items enhance combat power and build identity but must not override skill execution or class identity."
+    },
+    {
+      "Id": "item-tier-rule",
+      "Text": "The game uses exactly 5 item tiers (Tier 1 to Tier 5). There is no secondary rarity tier label system (such as Common, Rare, Epic, Legendary). Rarity and power are bundled directly into the Tier rank."
+    },
+    {
+      "Id": "tier-power-rule",
+      "Text": "Higher tiers provide stronger stats and more valuable affixes. Progression is strictly gated to prevent infinite scaling and exponential stat explosion. Tier 1 < Tier 2 < Tier 3 < Tier 4 < Tier 5."
+    },
+    {
+      "Id": "tier-5-rule",
+      "Text": "Tier 5 items are nearly legendary artifacts. They are extremely rare, prestigious, and exceptionally valuable in the player-driven economy. They are not common drops."
+    },
+    {
+      "Id": "crafting-tier-rule",
+      "Text": "Crafting is restricted to Tier 1, Tier 2, and Tier 3. Tier 4 and Tier 5 items cannot be crafted and must only enter the economy through world acquisition."
+    },
+    {
+      "Id": "item-upgrade-rule",
+      "Text": "Items CANNOT be upgraded, evolved, refined, enhanced with stars, or reforged into higher tiers. Every item is final upon creation or drop. Its identity is permanent."
+    },
+    {
+      "Id": "horizontal-itemization-rule",
+      "Text": "The system supports massive horizontal variety. Multiple items of the same tier have divergent stat profiles (e.g., high base attack vs. low base attack but higher critical strike or elemental modifiers) to ensure build diversity."
+    },
+    {
+      "Id": "weapon-category-rule",
+      "Text": "Canonical weapon types are restricted to: Sword, Axe, Mace, Spear, Dagger, Bow, Crossbow, Staff, Wand, and Tome / Relic. These define Layer 1 of the weapon system."
+    },
+    {
+      "Id": "damage-archetype-rule",
+      "Text": "Damage archetypes define how damage is calculated independently of weapon shape. The canonical damage archetypes are: Slashing, Piercing, Bludgeoning, Magical, and Ranged Physical."
+    },
+    {
+      "Id": "dual-wield-final-rule",
+      "Text": "Offhand weapon contributes exactly 75% of its total damage value. Main hand contributes 100% of its damage value."
+    },
+    {
+      "Id": "equipment-slot-rule",
+      "Text": "Canonical equipment slots are restricted to: Weapon, Shield / Off-hand, Helmet, Armor, Legs, Boots, Ring 1, Ring 2, Amulet, and Cape."
+    },
+    {
+      "Id": "class-item-requirement-rule",
+      "Text": "Items may have explicit class requirements (e.g., Mage Staff can only be wielded by Mage; Shield can only be wielded by Knight). Race-based restrictions are strictly forbidden."
+    },
+    {
+      "Id": "elemental-affinity-item-rule",
+      "Text": "Items may contain elemental offensive or defensive modifiers aligned with the 5 canonical elemental schools (Fire, Ice, Holy, Shadow, Nature)."
+    },
+    {
+      "Id": "item-drop-rule",
+      "Text": "Items enter the world through monster drops, boss drops, world events, contracts, and dungeons. Tier 5 drops are exclusively restricted to world bosses, end-tier dungeons, and extreme-risk content."
+    },
+    {
+      "Id": "market-compatibility-rule",
+      "Text": "All items are fully tradable, market-compatible, and transferable through secure trade, respecting the Trade & Market Bible."
+    },
+    {
+      "Id": "death-penalty-item-rule",
+      "Text": "Only carried items in the active inventory are exposed to death-loss drop risks. Banked items remain completely secure as per the Death Penalty Bible."
+    },
+    {
+      "Id": "equip-modifier-rule",
+      "Text": "Equipment may modify extended combat parameters including offensive, defensive, elemental, and utility attributes, independently from class base stats."
+    },
+    {
+      "Id": "cdr-lock-rule",
+      "Text": "Cooldown Reduction is an ultra-rare utility modifier restricted mainly to Tier 4 and Tier 5 items, with a global maximum cap of 15%."
+    },
+    {
+      "Id": "level-scaling-rule",
+      "Text": "Base HP and Base Mana represent class starting values and scale upward with level progression using vocation-specific scaling curves."
+    },
+    {
+      "Id": "final-resource-formula",
+      "Text": "Final HP and Mana are calculated from base class values, level scaling, and equipment bonuses."
+    },
+    {
+      "Id": "infinite-level-softcap-rule",
+      "Text": "Character level progression is infinite but follows soft-cap scaling to prevent uncontrolled power creep."
+    },
+    {
+      "Id": "elemental-cap-rule",
+      "Text": "Elemental affinity progression has a hard maximum level of 100."
+    },
+    {
+      "Id": "power-hierarchy-rule",
+      "Text": "Character power is structured through four layers: Level (baseline growth), Skill (mastery growth), Gear (main power source), and Elemental specialization (capped at level 100)."
+    }
+  ],
+  "MathFormulas": {
+    "FinalDamage": "Final Damage = (Weapon Damage + Skill Damage) * Elemental Modifier * Critical Modifier",
+    "ArmorMitigation": "Damage Reduction = Armor / (Armor + K) [K = 250]",
+    "ScalingDetails": {
+      "WeaponDamage": "Fixed damage value from equipped weapon item (no Strength or Dexterity scaling).",
+      "SkillDamage": "Fixed power value from the skill or spell database (e.g. Sword Slash = 120, Fireball = 180).",
+      "ElementalModifier": "Derived from elemental affinity offset and elemental resistances.",
+      "CriticalModifier": "Normal classes receive 1.5x damage on critical hits, whereas Assassins receive 2.2x damage.",
+      "DualWieldScaling": "Offhand weapon contributes exactly 75% of its total damage value, while main hand contributes 100%."
+    }
+  },
+  "StatModifyingPhilosophy": {
+    "ClassBaseStats": [
+      "BaseHP",
+      "BaseMana",
+      "ManaRegen",
+      "BaseArmor",
+      "BaseMagicResistance",
+      "BaseMoveSpeed"
+    ],
+    "AllowedEquipmentModifiers": {
+      "Defensive": [
+        "HP",
+        "Armor",
+        "MagicResistance"
+      ],
+      "PhysicalOffensive": [
+        "CritChance",
+        "CritDamage",
+        "AttackSpeed",
+        "ArmorPenetration",
+        "DistanceFighting"
+      ],
+      "MagicalOffensive": [
+        "MagicLevel",
+        "HealingPower",
+        "HolyDamage",
+        "FireDamage",
+        "IceDamage",
+        "ShadowDamage",
+        "NatureDamage"
+      ],
+      "Utility": [
+        "MovementSpeed",
+        "ManaEfficiency",
+        "CooldownReduction"
+      ]
+    }
+  }
+}

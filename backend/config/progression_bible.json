@@ -1,0 +1,149 @@
+{
+  "SystemName": "Progression Bible (Final Canon Version)",
+  "Philosophy": "Character power is strictly skill-driven, gear-influenced, and elemental-scaled, completely bypassing traditional primary attribute models.",
+  "CanonicalRules": [
+    {
+      "Id": "attribute-less-progression-rule",
+      "Text": "Light and Shadow does not use traditional RPG primary attributes. The attributes Strength, Dexterity, Intelligence, Vitality, Agility, and Luck do not exist anywhere in progression, combat, itemization, formulas, class growth, or player stats. Character progression is entirely skill-driven."
+    },
+    {
+      "Id": "skill-based-power-rule",
+      "Text": "Character power is determined by combat proficiencies, equipment quality, and elemental scaling."
+    },
+    {
+      "Id": "hybrid-skill-gain-rule",
+      "Text": "Skill progression occurs through both real skill usage (Layer 1) and contextual mastery XP (Layer 2)."
+    },
+    {
+      "Id": "anti-macro-skill-rule",
+      "Text": "Repeated low-risk repetitive actions provide heavily reduced skill gains to prevent idle macro farming."
+    },
+    {
+      "Id": "exponential-skill-curve-rule",
+      "Text": "Each subsequent skill level requires progressively more effort than the previous level."
+    },
+    {
+      "Id": "no-hard-skill-cap-rule",
+      "Text": "Combat proficiencies have no hard maximum value and can increase indefinitely."
+    },
+    {
+      "Id": "controlled-combat-scaling-rule",
+      "Text": "Displayed skill values progress infinitely, but effective combat contribution scales down through prestige bands to prevent runaway power creep."
+    },
+    {
+      "Id": "combat-offense-formula-rule",
+      "Text": "Offensive output is derived exclusively from weapon base damage, effective skill contribution, elemental modifiers, and critical multipliers. Strength, Dexterity, Intelligence, Vitality, Agility, and Luck are strictly excluded."
+    },
+    {
+      "Id": "shielding-skill-rule",
+      "Text": "Shielding is a full combat proficiency and progresses through successful defensive combat participation."
+    },
+    {
+      "Id": "hybrid-combat-xp-rule",
+      "Text": "Combat skill progression uses a three-layer XP model composed of action XP, damage contribution XP, and combat outcome bonus XP."
+    },
+    {
+      "Id": "action-xp-rule",
+      "Text": "Every valid combat action generates a minimum guaranteed XP contribution."
+    },
+    {
+      "Id": "damage-contribution-xp-rule",
+      "Text": "Damage contribution XP primarily scales with liquid damage rather than raw damage."
+    },
+    {
+      "Id": "combat-outcome-bonus-rule",
+      "Text": "Significant combat outcomes provide bonus mastery XP."
+    },
+    {
+      "Id": "anti-macro-hard-penalty-rule",
+      "Text": "Repetitive low-risk actions receive at least 90 percent XP reduction."
+    },
+    {
+      "Id": "cdr-lock-rule",
+      "Text": "Cooldown Reduction is an ultra-rare utility modifier restricted mainly to Tier 4 and Tier 5 items, with a global maximum cap of 15%."
+    },
+    {
+      "Id": "level-scaling-rule",
+      "Text": "Base HP and Base Mana represent class starting values and scale upward with level progression using vocation-specific scaling curves."
+    },
+    {
+      "Id": "final-resource-formula",
+      "Text": "Final HP and Mana are calculated from base class values, level scaling, and equipment bonuses."
+    },
+    {
+      "Id": "infinite-level-softcap-rule",
+      "Text": "Character level progression is infinite but follows soft-cap scaling to prevent uncontrolled power creep."
+    },
+    {
+      "Id": "elemental-cap-rule",
+      "Text": "Elemental affinity progression has a hard maximum level of 100."
+    },
+    {
+      "Id": "power-hierarchy-rule",
+      "Text": "Character power is structured through four layers: Level (baseline growth with soft caps), Skill (mastery growth), Gear (main power source), and Elemental specialization (capped at level 100)."
+    }
+  ],
+  "CanonicalSkills": [
+    { "Id": "sword_fighting", "Name": "Sword Fighting", "Description": "Governs combat effectiveness when wielding blades." },
+    { "Id": "axe_fighting", "Name": "Axe Fighting", "Description": "Governs combat effectiveness when wielding battleaxes." },
+    { "Id": "club_fighting", "Name": "Club Fighting", "Description": "Governs combat effectiveness when wielding maces and clubs." },
+    { "Id": "dagger_fighting", "Name": "Dagger Fighting", "Description": "Governs combat effectiveness when wielding precision daggers." },
+    { "Id": "distance_fighting", "Name": "Distance Fighting", "Description": "Governs combat effectiveness when wielding bows and throwing weapons." },
+    { "Id": "magic_level", "Name": "Magic Level", "Description": "Governs spell power and restorative magic scaling." },
+    { "Id": "shielding", "Name": "Shielding", "Description": "Governs physical block chance and shield performance through defensive combat." }
+  ],
+  "ProgressionCurveBands": {
+    "Band_1_30": "Fast progression (low XP requirements per level)",
+    "Band_31_60": "Moderate progression (moderate XP requirements)",
+    "Band_61_90": "Slow progression (high XP requirements)",
+    "Band_91_150": "Very slow progression (extremely high XP requirements)",
+    "Band_151_Plus": "Extremely slow progression (prestige-level progression rates)"
+  },
+  "PrestigeScalingBands": [
+    { "MinLevel": 1, "MaxLevel": 150, "CombatContributionMultiplier": 1.00, "Description": "Full combat effectiveness" },
+    { "MinLevel": 151, "MaxLevel": 250, "CombatContributionMultiplier": 0.75, "Description": "Moderate diminishing scaling" },
+    { "MinLevel": 251, "MaxLevel": null, "CombatContributionMultiplier": 0.50, "Description": "Heavy diminishing scaling (infinite prestige range)" }
+  ],
+  "MathematicalModels": {
+    "EffectiveSkillCalculation": {
+      "Formula": "If S <= 150: S. If 150 < S <= 250: 150 + (S - 150) * 0.75. If S > 250: 225 + (S - 250) * 0.50",
+      "Description": "Calculates the effective skill contribution from any infinite displayed skill level S using prestige bands."
+    },
+    "RequiredXPFormula": {
+      "Formula": "XP_For_Next_Level(L) = Math.floor(100 * Math.pow(1.08, L))",
+      "Description": "Exponential progression curve where L is current skill level. Cumulative XP follows standard summation."
+    },
+    "OffensiveFormula": {
+      "Formula": "Base_Raw_Damage = Weapon_Base_Damage + Effective_Combat_Skill * 0.5",
+      "Description": "Primary damage base scaling purely off weapon damage and effective combat skill."
+    },
+    "ActionXPFormula": {
+      "Formula": "Action_XP = Base_Action_Coefficient * Skill_Weight",
+      "Description": "Guaranteed minimum XP contribution generated by every valid combat swing, shot, cast, or block."
+    },
+    "DamageContributionXPFormula": {
+      "Formula": "Damage_XP = Liquid_Damage * 0.25 + Mitigated_Damage * 0.10",
+      "Description": "XP scaling directly with real combat impact, prioritizing liquid damage (HP removed from target) over pre-mitigation raw damage."
+    },
+    "CombatOutcomeBonusFormula": {
+      "Formula": "Outcome_XP = Event_Base_XP * Target_Difficulty_Multiplier",
+      "Description": "Substantial progression bonus awarded on milestone accomplishments (elite mob kill, boss defeat, PvP contribution)."
+    },
+    "AntiMacroPenaltyFormula": {
+      "Formula": "Effective_XP = Total_XP * (1 - Penalty_Rate) where Penalty_Rate >= 0.90",
+      "Description": "Severe progressive penalty applied to repetitive, low-risk automated or stationary actions."
+    },
+    "LevelProgressionSoftcapFormula": {
+      "Formula": "For Level L: let N1 = max(0, min(L - 1, 199)), N2 = max(0, min(L - 1 - N1, 300)), N3 = max(0, L - 1 - N1 - N2). Growth = N1 * BaseGrowth * 1.0 + N2 * BaseGrowth * 0.5 + N3 * BaseGrowth * 0.25",
+      "Description": "Calculates level progression stats (HP and Mana) with a soft-cap over three bands: 100% efficiency up to Lvl 200, 50% from 201 to 500, and 25% for 501+."
+    },
+    "ElementalCapFormula": {
+      "Formula": "Effective_Elemental_Affinity = min(Affinity_Level, 100)",
+      "Description": "Hard maximum cap of 100 on elemental affinity progression."
+    },
+    "PowerHierarchyDefinition": {
+      "Formula": "Overall Power = f(Level_Growth[soft_capped], Skill_Mastery[diminishing], Gear_Bonuses[primary], Elemental_Specialization[capped_100])",
+      "Description": "Standardized power hierarchy structure defining level, skill, gear, and elemental capabilities."
+    }
+  }
+}

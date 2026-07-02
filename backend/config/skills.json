@@ -1,0 +1,32 @@
+{
+  "SystemName": "Canonical Skills & Proficiencies",
+  "Categories": {
+    "WeaponSkills": [
+      { "Id": "sword", "Name": "Sword Usage", "Description": "Improves effectiveness when wielding swords." },
+      { "Id": "axe", "Name": "Axe Usage", "Description": "Improves effectiveness when wielding battleaxes." },
+      { "Id": "club", "Name": "Club Usage", "Description": "Improves effectiveness when wielding clubs or maces." },
+      { "Id": "spear", "Name": "Spear Usage", "Description": "Improves effectiveness when wielding spears." },
+      { "Id": "bow", "Name": "Bow Usage", "Description": "Improves effectiveness when wielding bows." },
+      { "Id": "dagger", "Name": "Dagger Usage", "Description": "Improves effectiveness when wielding daggers." }
+    ],
+    "DefensiveSkills": [
+      { "Id": "shielding", "Name": "Shielding", "Description": "Increases block chance and armor absorption when a shield is equipped." },
+      { "Id": "dodge", "Name": "Dodge", "Description": "Increases dodge chance to entirely avoid physical strikes." },
+      { "Id": "parry", "Name": "Parry", "Description": "Increases parry chance to deflect melee damage with weapons." },
+      { "Id": "block", "Name": "Block", "Description": "Increases weapon-block protection." }
+    ],
+    "MagicSchools": [
+      { "Id": "fire_magic", "Name": "Fire Magic", "Description": "Increases fire-based spell power and reduces fire mana costs." },
+      { "Id": "ice_magic", "Name": "Ice Magic", "Description": "Increases ice-based spell power and adds slowing potency." },
+      { "Id": "holy_magic", "Name": "Holy Magic", "Description": "Increases holy-based magic potency and divine healing outputs." },
+      { "Id": "shadow_magic", "Name": "Shadow Magic", "Description": "Increases shadow-based magical strikes and critical power." },
+      { "Id": "nature_magic", "Name": "Nature Magic", "Description": "Increases nature spell outputs." },
+      { "Id": "healing", "Name": "Healing", "Description": "Improves pure healing throughput and mana-saving chances." }
+    ]
+  },
+  "SkillGrowthModel": {
+    "Formula": "ProficiencyGain = 1 / (CurrentLevel * 10)",
+    "MaxProficiency": 100,
+    "UsageTrigger": "Repeated hit or trigger of associated category"
+  }
+}

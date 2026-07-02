@@ -1,0 +1,63 @@
+{
+  "SystemName": "Hybrid Demon Spawn Engine",
+  "CanonicalLoreRule": "Demonic manifestation depends on hierarchy level, corruption intensity, and Primordial influence.",
+  "HierarchicalSpawns": [
+    {
+      "Hierarchy": "Common Demons",
+      "SpawnMethod": "Fixed Corrupted Areas Only",
+      "TypicalZones": ["volcanic_demon_zones", "corrupted_dungeons", "deep_shadow_territories"],
+      "Examples": ["volcanic_imps", "fiends"],
+      "CanBeSummonedBy": ["Commanders", "Archegenerals"]
+    },
+    {
+      "Hierarchy": "Minor Demons",
+      "SpawnMethod": "Semi-Fixed Spawn",
+      "TypicalTimerMinutesMin": 30,
+      "TypicalTimerMinutesMax": 720,
+      "Examples": ["hellhounds", "succubus_scouts"],
+      "CanBeSummonedBy": ["Archegenerals"]
+    },
+    {
+      "Hierarchy": "Commanders",
+      "SpawnMethod": "No Natural Respawn",
+      "TriggerConditions": [
+        "corruption_rituals",
+        "high_corruption_thresholds",
+        "dungeon_events",
+        "summoning_conditions"
+      ],
+      "Examples": ["pit_lord_vazar", "shadow_general"]
+    },
+    {
+      "Hierarchy": "Archegenerals",
+      "SpawnMethod": "Never behave as ordinary open-world mobs",
+      "TriggerConditions": [
+        "major_raid_events",
+        "storyline_catastrophes",
+        "dimensional_breaches"
+      ],
+      "Examples": ["malphas_voidbroker"]
+    }
+  ],
+  "SummoningAuthorityRules": {
+    "RuleText": "Higher demons may manifest lower demons. Lower demons cannot summon higher hierarchy.",
+    "ValidSummons": [
+      { "Summoner": "Commanders", "Summoned": "Common Demons", "Allowed": true },
+      { "Summoner": "Archegenerals", "Summoned": "Commanders", "Allowed": true },
+      { "Summoner": "Minor Demons", "Summoned": "Commanders", "Allowed": false }
+    ]
+  },
+  "PrimordialInfluence": {
+    "RuleText": "Each Primordial continent increases activity of demons aligned with that Primordial.",
+    "MainContinent": {
+      "Name": "Main Continent",
+      "HasPrimordial": false,
+      "NaturalDemonSpawnAllowed": false,
+      "AllowedExceptionTriggers": [
+        "invasions",
+        "rituals",
+        "catastrophic_events"
+      ]
+    }
+  }
+}

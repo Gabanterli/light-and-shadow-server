@@ -1,0 +1,102 @@
+{
+  "SystemName": "Race & Character Creation Bible (Final Canon Version)",
+  "Philosophy": "Playable races exist for identity, aesthetics, and lore, and do not create mechanical power differences. This ensures absolute competitive fairness, visual freedom, and prevents meta-gaming race-class combinations.",
+  "CanonicalRules": [
+    {
+      "Id": "race-core-principle",
+      "Text": "Playable races exist for identity, aesthetics, and lore and do not create mechanical power differences."
+    },
+    {
+      "Id": "playable-races-rule",
+      "Text": "The game supports five playable races: Forest Elf, Human, Dwarf, Ice Elf, and Green Orc."
+    },
+    {
+      "Id": "race-neutrality-rule",
+      "Text": "Playable races provide no mechanical combat, progression, or statistical advantages."
+    },
+    {
+      "Id": "starting-zone-rule",
+      "Text": "All playable races begin in the same starting region."
+    },
+    {
+      "Id": "ironhold-starting-city-rule",
+      "Text": "All newly created characters begin in the neutral starting city of Ironhold Bastion."
+    },
+    {
+      "Id": "class-race-freedom-rule",
+      "Text": "All playable races may choose any available class or vocation."
+    },
+    {
+      "Id": "racial-reputation-rule",
+      "Text": "Race does not influence faction reputation, NPC behavior, or city access."
+    },
+    {
+      "Id": "racial-permanence-rule",
+      "Text": "Chosen race is permanent and does not evolve into higher racial forms."
+    },
+    {
+      "Id": "racial-hitbox-rule",
+      "Text": "All playable races use identical gameplay hitboxes regardless of visual body proportions."
+    },
+    {
+      "Id": "gender-selection-rule",
+      "Text": "Character creation supports male and female gender selection."
+    },
+    {
+      "Id": "race-design-boundary",
+      "Text": "Race systems must enhance identity and immersion without affecting gameplay balance."
+    }
+  ],
+  "PlayableRaces": {
+    "ForestElf": {
+      "Name": "Forest Elf",
+      "Description": "Ancient protectors of the whispering woods. Possess elegant visual style, leaf-braided hair, and natural organic patterns.",
+      "Aesthetics": "Elegant, earthy tones, slender frames."
+    },
+    "Human": {
+      "Name": "Human",
+      "Description": "Versatile and ambitious builders of empires. Characterized by balanced proportions and varied ancestral backgrounds.",
+      "Aesthetics": "Diverse styles, metallic details, traditional fabrics."
+    },
+    "Dwarf": {
+      "Name": "Dwarf",
+      "Description": "Resolute clans of the subterranean deeps. Known for broad statures, heavy ornate jewelry, and braided facial hair.",
+      "Aesthetics": "Stout, metallic accents, stone and gemstone motifs."
+    },
+    "IceElf": {
+      "Name": "Ice Elf",
+      "Description": "Stoic survivors of the eternal frozen peaks. Display frost-pale skin, pale blue eyes, and shimmering crystalline accessories.",
+      "Aesthetics": "Sleek, cool colors, crystalline geometric patterns."
+    },
+    "GreenOrc": {
+      "Name": "Green Orc",
+      "Description": "Noble warriors from the volcanic steppes. Feature imposing heights, tusk protrusions, and runic skin tattoos.",
+      "Aesthetics": "Imposing, warm and rugged leather, metal spike motifs."
+    }
+  },
+  "NeutralityVerification": {
+    "DamageBonus": 0.0,
+    "DefenseBonus": 0.0,
+    "HpBonus": 0,
+    "ManaBonus": 0,
+    "XpBonus": 0.0,
+    "ResistanceBonus": 0.0,
+    "SpeedBonus": 0.0,
+    "HitboxUniformity": "Standardized Cylinder (Radius: 0.45m, Height: 1.8m)"
+  },
+  "StartingInfrastructure": {
+    "StartingCity": "Ironhold Bastion",
+    "OnboardingServices": [
+      "Depot (DP) storage",
+      "Secure Bank Vaults",
+      "Global Market Terminal",
+      "Tutorial NPCs",
+      "Early Quest Boards",
+      "Safe Zone Sanctuary"
+    ]
+  },
+  "CharacterOptions": {
+    "Genders": ["Male", "Female"],
+    "GenderImpact": "Visual representations and voicelines only; 100% mechanical neutrality."
+  }
+}

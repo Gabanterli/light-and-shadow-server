@@ -1,0 +1,418 @@
+[
+  {
+    "ID": "humanoids",
+    "Name": "Humanoids",
+    "Subfamilies": [
+      {
+        "Name": "Goblinoids",
+        "Species": ["goblin_scout", "goblin_skirmisher", "goblin_king"]
+      },
+      {
+        "Name": "Orcs",
+        "Species": ["orc_warrior", "orc_berserker", "orc_shaman"]
+      },
+      {
+        "Name": "Outlaws",
+        "Species": ["bandit", "highwayman", "pirate", "cultist"]
+      }
+    ],
+    "CanonicalExamples": ["goblins", "orcs", "bandits", "pirates", "cultists"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Classified strictly by family structure, not artificial labels like common or legendary."
+  },
+  {
+    "ID": "beasts",
+    "Name": "Beasts",
+    "Subfamilies": [
+      {
+        "Name": "Canines",
+        "Species": ["feral_wolf", "timber_wolf"]
+      },
+      {
+        "Name": "Ursines",
+        "Species": ["brown_bear", "grizzly_bear"]
+      },
+      {
+        "Name": "Suidae",
+        "Species": ["razorback_boar"]
+      }
+    ],
+    "CanonicalExamples": ["wolves", "bears", "boars"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Classified by natural species grouping."
+  },
+  {
+    "ID": "predators",
+    "Name": "Predators",
+    "Subfamilies": [
+      {
+        "Name": "Apex Canines",
+        "Species": ["dire_wolf", "alpha_pack_leader"]
+      },
+      {
+        "Name": "Felines",
+        "Species": ["shadow_panther", "sabertooth_tiger"]
+      }
+    ],
+    "CanonicalExamples": ["dire wolves", "panthers", "sabertooths"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Higher echelon carnivorous fauna residing in deep wilderness zones."
+  },
+  {
+    "ID": "insects_vermin",
+    "Name": "Insects / Vermin",
+    "Subfamilies": [
+      {
+        "Name": "Formicidae",
+        "Species": ["giant_worker_ant", "giant_soldier_ant"]
+      },
+      {
+        "Name": "Arachnids",
+        "Species": ["cave_spider", "venomous_weaver"]
+      },
+      {
+        "Name": "Scorpionidae",
+        "Species": ["sand_scorpion", "desert_sting"]
+      },
+      {
+        "Name": "Coleoptera",
+        "Species": ["armored_beetle"]
+      }
+    ],
+    "CanonicalExamples": ["giant ants", "spiders", "scorpions", "beetles"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Swarming invertebrate species adapted to underground or desert biomes."
+  },
+  {
+    "ID": "reptilians",
+    "Name": "Reptilians",
+    "Subfamilies": [
+      {
+        "Name": "Saurians",
+        "Species": ["lizardman_hunter", "lizardman_shaman"]
+      },
+      {
+        "Name": "Basilisks",
+        "Species": ["stone_gaze_basilisk"]
+      },
+      {
+        "Name": "Serpents",
+        "Species": ["giant_viper", "constrictor_snake"]
+      },
+      {
+        "Name": "Nagas",
+        "Species": ["naga_tide_hunter", "naga_siren"]
+      }
+    ],
+    "CanonicalExamples": ["lizardmen", "basilisks", "serpents", "nagas"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Cold-blooded tribes with rigid elemental structures."
+  },
+  {
+    "ID": "avians",
+    "Name": "Avians",
+    "Subfamilies": [
+      {
+        "Name": "Harpies",
+        "Species": ["screech_harpy", "blood_feather_harpy"]
+      },
+      {
+        "Name": "Scavengers",
+        "Species": ["canyon_vulture", "shadow_raven"]
+      },
+      {
+        "Name": "Raptors",
+        "Species": ["giant_eagle", "sky_hunter"]
+      }
+    ],
+    "CanonicalExamples": ["harpies", "vultures", "ravens", "giant eagles"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Winged hunters employing high aerial mobility."
+  },
+  {
+    "ID": "aquatics",
+    "Name": "Aquatics",
+    "Subfamilies": [
+      {
+        "Name": "Selachimorpha",
+        "Species": ["bloodthirsty_shark", "reef_hunter"]
+      },
+      {
+        "Name": "Sirens",
+        "Species": ["deep_sea_siren", "abyssal_voice"]
+      },
+      {
+        "Name": "Leviathans",
+        "Species": ["kraken_spawn", "sea_serpent_hatchling"]
+      }
+    ],
+    "CanonicalExamples": ["sharks", "sirens", "krakens", "sea serpents"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Abyssal denizens inhabiting open seas and watery caverns."
+  },
+  {
+    "ID": "amphibians",
+    "Name": "Amphibians",
+    "Subfamilies": [
+      {
+        "Name": "Anura",
+        "Species": ["giant_frog", "toxic_toad"]
+      },
+      {
+        "Name": "Caudata",
+        "Species": ["swamp_salamander"]
+      }
+    ],
+    "CanonicalExamples": ["giant frogs", "toads", "salamanders"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Wetland dwellers specializing in toxic skin secretions."
+  },
+  {
+    "ID": "undead",
+    "Name": "Undead",
+    "Subfamilies": [
+      {
+        "Name": "Skeletal",
+        "Species": ["skeleton_archer", "skeleton_knight"]
+      },
+      {
+        "Name": "Corpses",
+        "Species": ["plague_zombie", "rotting_flesh"]
+      },
+      {
+        "Name": "Liches",
+        "Species": ["lich_lord", "necromancer_elite"]
+      },
+      {
+        "Name": "Wraiths",
+        "Species": ["dungeon_wraith", "soul_reaper"]
+      }
+    ],
+    "CanonicalExamples": ["skeletons", "zombies", "liches", "wraiths"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Necrotic entities fueled by lingering negative energy."
+  },
+  {
+    "ID": "spirits",
+    "Name": "Spirits",
+    "Subfamilies": [
+      {
+        "Name": "Apparitions",
+        "Species": ["lost_ghost", "wailing_phantom"]
+      },
+      {
+        "Name": "Wisps",
+        "Species": ["forest_wisp", "swamp_glow"]
+      }
+    ],
+    "CanonicalExamples": ["ghosts", "wisps", "phantoms"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Incorporeal remains of souls locked in regional bounds."
+  },
+  {
+    "ID": "elementals",
+    "Name": "Elementals",
+    "Subfamilies": [
+      {
+        "Name": "Pyroclastics",
+        "Species": ["fire_elemental", "lava_golem"]
+      },
+      {
+        "Name": "Cryogenics",
+        "Species": ["ice_elemental", "frost_spark"]
+      },
+      {
+        "Name": "Tempests",
+        "Species": ["storm_elemental", "lightning_spark"]
+      }
+    ],
+    "CanonicalExamples": ["fire elementals", "ice elementals", "storm elementals"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Pure elemental energy given physical manifestations."
+  },
+  {
+    "ID": "flora_creatures",
+    "Name": "Flora Creatures",
+    "Subfamilies": [
+      {
+        "Name": "Arboreal",
+        "Species": ["elder_treant", "wood_guardian"]
+      },
+      {
+        "Name": "Carnivorous Flora",
+        "Species": ["spitfire_plant", "strangling_vine"]
+      },
+      {
+        "Name": "Vines",
+        "Species": ["vine_horror", "tangled_root"]
+      }
+    ],
+    "CanonicalExamples": ["treants", "carnivorous plants", "vine horrors"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Sentient plant life with dynamic adaptation features."
+  },
+  {
+    "ID": "fungi",
+    "Name": "Fungi",
+    "Subfamilies": [
+      {
+        "Name": "Mycelials",
+        "Species": ["mushroom_walker", "mycelial_horror"]
+      },
+      {
+        "Name": "Spores",
+        "Species": ["plague_spore", "shrieking_puffball"]
+      }
+    ],
+    "CanonicalExamples": ["mushroom walkers", "plague spores", "mycelial horrors"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Spreading spore-based lifeforms that corrupt ecosystems."
+  },
+  {
+    "ID": "constructs",
+    "Name": "Constructs",
+    "Subfamilies": [
+      {
+        "Name": "Golems",
+        "Species": ["stone_golem", "iron_colossus"]
+      },
+      {
+        "Name": "Animated",
+        "Species": ["animated_armor", "floating_sword"]
+      },
+      {
+        "Name": "Arcane Sentinels",
+        "Species": ["arcane_sentinel_eye"]
+      }
+    ],
+    "CanonicalExamples": ["golems", "animated armor", "arcane sentinels"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Inanimate materials animated by engineering or magic."
+  },
+  {
+    "ID": "cursed_beings",
+    "Name": "Cursed Beings",
+    "Subfamilies": [
+      {
+        "Name": "Lycanthropes",
+        "Species": ["werewolf_hunter", "werewolf_stalker"]
+      },
+      {
+        "Name": "Corrupted Mortals",
+        "Species": ["cursed_knight", "corrupted_monk"]
+      }
+    ],
+    "CanonicalExamples": ["werewolves", "cursed knights", "corrupted monks"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Mortals subjected to irreversible dark magic curses."
+  },
+  {
+    "ID": "aberrations",
+    "Name": "Aberrations",
+    "Subfamilies": [
+      {
+        "Name": "Void Horrors",
+        "Species": ["void_stalker", "abyssal_horror"]
+      },
+      {
+        "Name": "Flesh Mutants",
+        "Species": ["amorphous_flesh", "mutated_claw"]
+      }
+    ],
+    "CanonicalExamples": ["void horrors", "flesh mutants", "anomalies"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Extradimensional anomalies breaking traditional rules of physics."
+  },
+  {
+    "ID": "demons",
+    "Name": "Demons",
+    "Subfamilies": [
+      {
+        "Name": "Common Hierarchy",
+        "Species": ["volcanic_imp", "shadow_fiend"]
+      },
+      {
+        "Name": "Minor Hierarchy",
+        "Species": ["hellhound", "succubus_scout"]
+      },
+      {
+        "Name": "Commanders",
+        "Species": ["pit_lord_vazar", "shadow_general"]
+      },
+      {
+        "Name": "Archegenerals",
+        "Species": ["malphas_voidbroker"]
+      }
+    ],
+    "CanonicalExamples": ["volcanic imps", "shadow fiends", "hellhounds", "pit lords"],
+    "SpawnsAtMainContinent": false,
+    "RarityLoreRule": "Special canonical family tied directly to Primordials. No natural spawning on Main Continent."
+  },
+  {
+    "ID": "dragons",
+    "Name": "Dragons",
+    "Subfamilies": [
+      {
+        "Name": "Lesser Drakes",
+        "Species": ["wyvern", "fire_drake"]
+      },
+      {
+        "Name": "Juvenile Dragons",
+        "Species": ["juvenile_shadow_dragon"]
+      },
+      {
+        "Name": "Adult Dragons",
+        "Species": ["volcanic_dragon", "ancient_glacier_dragon"]
+      },
+      {
+        "Name": "Sovereign Dragons",
+        "Species": ["void_dragon_lord"]
+      }
+    ],
+    "CanonicalExamples": ["wyverns", "fire drakes", "adult dragons", "Dragon Lords"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Special canonical family independent from Primordials. Follows territorial and hoard laws."
+  },
+  {
+    "ID": "titans_colossals",
+    "Name": "Titans / Colossals",
+    "Subfamilies": [
+      {
+        "Name": "Giants",
+        "Species": ["hill_giant", "frost_giant"]
+      },
+      {
+        "Name": "Cyclopes",
+        "Species": ["one_eye_cyclops"]
+      },
+      {
+        "Name": "Colossi",
+        "Species": ["ancient_ruin_colossus"]
+      }
+    ],
+    "CanonicalExamples": ["giants", "cyclops", "colossi"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Colossal scale humanoids dating back to first age construction."
+  },
+  {
+    "ID": "celestials",
+    "Name": "Celestials",
+    "Subfamilies": [
+      {
+        "Name": "Seraphs",
+        "Species": ["seraph_guardian", "archangel_avatar"]
+      },
+      {
+        "Name": "Sacred Guardians",
+        "Species": ["holy_sentinel"]
+      },
+      {
+        "Name": "Divine Beasts",
+        "Species": ["sacred_unicorn", "pegasus_steed"]
+      }
+    ],
+    "CanonicalExamples": ["seraphs", "sacred guardians", "divine beasts"],
+    "SpawnsAtMainContinent": true,
+    "RarityLoreRule": "Pure radiant beings serving the light alignment of the cosmos."
+  }
+]
