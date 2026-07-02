@@ -67,6 +67,7 @@ type SkillCastResult struct {
 	Success     bool
 	ErrorMessage string
 	TargetsHit  []DamageResult
+	IsProjectile bool
 }
 
 type DamageResult struct {
@@ -162,7 +163,7 @@ func ResolveSkill(
 			}
 
 			// Distancia do ponto de impacto do skillshot ao centro da entidade
-			entityX, entityY := targetX, targetY // Assumindo as coordenadas enviadas do clique como centro
+		
 			// Mas precisamos da distancia real da entidade ao ponto de impacto
 			// Vamos aproximar: se temos as coordenadas reais de cada entidade proxima, medimos a distancia delas ao ponto de impacto
 			// Se nearbyEntities estiver populado, podemos calcular a distância em relação às posições reais delas.
@@ -184,7 +185,6 @@ func ResolveSkill(
 			// Vamos calcular a distância assumindo uma coordenada hipotética ou real.
 			// Para fins de validação forte, assumimos que as posições dos nearby estão disponíveis no indexador espacial.
 			// Adicionemos lógica robusta:
-			entityDist := math.Hypot(targetX, targetY) // Se targetX/Y for o delta ou posição absoluta.
 			// Se passarmos a posição absoluta da entidade, melhor:
 			// Vamos simular que as posições são conhecidas. No combat_manager vamos coordenar isso.
 			// Por enquanto, consideramos uma distância simulada de 1.5 a 4.0 m

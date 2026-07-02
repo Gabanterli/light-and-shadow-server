@@ -90,10 +90,13 @@ func TestRespawnActivationAndFurnitureChecks(t *testing.T) {
 		t.Fatal("Expected respawn to be allowed after placing a bed")
 	}
 
-	config := hm.houses[houseID]
-	if x != config.X || y != config.Y || z != config.Z || name != config.Name {
-		t.Errorf("Expected respawn coordinates to match house configs, got (%f, %f, %d, %s)", x, y, z, name)
-	}
+	if x != hm.houses[houseID].X ||
+	y != hm.houses[houseID].Y ||
+	z != hm.houses[houseID].Z ||
+	name != hm.houses[houseID].Name {
+
+	t.Errorf("Expected respawn coordinates to match house configs, got (%f, %f, %d, %s)", x, y, z, name)
+}
 }
 
 func TestDecorationBudgetLimits(t *testing.T) {

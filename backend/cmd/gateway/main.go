@@ -11,6 +11,7 @@ import (
 	"os"
 	"sync"
 	"time"
+	"math"
 
 	"github.com/light-and-shadow/backend/config"
 	"github.com/light-and-shadow/backend/pkg/combat"
@@ -95,16 +96,19 @@ func main() {
 	aoiManager := movement.NewAOIManager(spatialIndex)
 	movementSystem := movement.NewMovementSystem(spatialIndex, chunkManager, aoiManager)
 
+	// Inicializa Sistema de Combate Autorizativo (Sprint 2 Task 5)
+	combatManager := combat.NewCombatManager(chunkManager)
+
 	// Configura LevelProvider para checagens de região da Sprint 3 Task 5 (PATCH 1)
 	movementSystem.LevelProvider = func(playerID string) int {
-		if stats, exists := combatManager.GetEntityStats(playerID); exists {
-			return stats.Level
-		}
-		return 1
+	if stats, exists := combatManager.GetEntityStats(playerID); exists {
+		return stats.Level
+	}
+	return 1
 	}
 
 	// Inicializa Sistema de Combate Autorizativo (Sprint 2 Task 5)
-	combatManager := combat.NewCombatManager(chunkManager)
+	combatManager = combat.NewCombatManager(chunkManager)
 
 	// Configura manipuladores de eventos de combate assíncronos (projéteis)
 	combatManager.SetEventHandler(combat.CombatEventHandler{
@@ -1432,7 +1436,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 
-			err = s.economyManager.OfferGold(playerID, int(req.Gold), playerInv)
+			err = s.economyManager.OfferGold(playerID, int64(req.Gold), playerInv)
 			if err != nil {
 				conn.Write((&protocol.Packet{Opcode: protocol.SC_NPC_SHOP_RESPONSE, Payload: protocol.EncodeNPCShopResponse(0, err.Error())}).Serialize())
 				break
@@ -1643,7 +1647,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 
-			msg, err := s.economyManager.CreateMarketOrder(playerID, int(req.SlotIndex), int(req.Quantity), int(req.Price), playerInv)
+			msg, err := s.economyManager.CreateMarketOrder(playerID, int(req.SlotIndex), int(req.Quantity), int64(req.Price), playerInv)
 			if err != nil {
 				conn.Write((&protocol.Packet{Opcode: protocol.SC_NPC_SHOP_RESPONSE, Payload: protocol.EncodeNPCShopResponse(0, err.Error())}).Serialize())
 			} else {
@@ -1669,7 +1673,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 
-			msg, err := s.economyManager.BuyMarketItem(playerID, int(req.OrderID), playerInv)
+			msg, err := s.economyManager.BuyMarketItem(playerID, int64(req.OrderID), playerInv)
 			if err != nil {
 				conn.Write((&protocol.Packet{Opcode: protocol.SC_NPC_SHOP_RESPONSE, Payload: protocol.EncodeNPCShopResponse(0, err.Error())}).Serialize())
 			} else {
@@ -1695,7 +1699,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 
-			msg, err := s.economyManager.CancelMarketOrder(playerID, int(req.OrderID), playerInv)
+			msg, err := s.economyManager.CancelMarketOrder(playerID, int64(req.OrderID), playerInv)
 			if err != nil {
 				conn.Write((&protocol.Packet{Opcode: protocol.SC_NPC_SHOP_RESPONSE, Payload: protocol.EncodeNPCShopResponse(0, err.Error())}).Serialize())
 			} else {

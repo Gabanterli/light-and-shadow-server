@@ -3,7 +3,6 @@ package dungeon
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math"
@@ -369,7 +368,7 @@ func (dm *DungeonManager) teleportPlayerToInstanceLocked(playerID string, inst *
 	dm.combatManager.UpdateEntityPosition(playerID, targetX, targetY)
 
 	// Envia pacote de sincronização com estado da instância
-	if playerInv, exists := dm.inventories[playerID]; exists {
+	if _, exists := dm.inventories[playerID]; exists {
 		// Envia mensagem informativa
 		msg := fmt.Sprintf("Entrou em: %s (%s). Tempo limite: %.0f min.", inst.TemplateID, inst.Mode, inst.EndTime.Sub(time.Now()).Minutes())
 		packet := &protocol.Packet{
@@ -579,7 +578,6 @@ func (dm *DungeonManager) triggerBossPhaseTransition(inst *DungeonInstance, boss
 	dm.broadcastInstanceMessage(inst, fmt.Sprintf("%s entrou na Fase %d!", boss.Stats.Name, boss.Phase))
 
 	// Invoca 2 adds (mobs ajudantes)
-	offset := inst.PositionOffset
 	for i := 0; i < 2; i++ {
 		addID := fmt.Sprintf("boss_add_%s_%d_%d", boss.ID, boss.Phase, i)
 		x := boss.HomeX + (rand.Float64()*10 - 5)
@@ -765,12 +763,9 @@ func (dm *DungeonManager) ClaimDungeonLoot(playerID string, itemID string) error
 	// Sync inventário
 	stats, _ := dm.combatManager.GetEntityStats(playerID)
 	syncPayload := protocol.EncodeInventorySync(&protocol.InventorySyncEvent{
-		PlayerID:  playerID,
-		Gold:      uint32(playerInv.BaseStats.Level * 100), // Sincronização aproximada
-		MaxHealth: stats.MaxHealth,
-		MaxMana:   stats.MaxMana,
-		Items:     playerInv.GetItemsCodec(),
-	})
+	MaxHealth: stats.MaxHealth,
+	MaxMana:   stats.MaxMana,
+    })
 	dm.sendPacketToPlayer(playerID, &protocol.Packet{
 		Opcode:  protocol.SC_INVENTORY_SYNC,
 		Payload: syncPayload,

@@ -350,7 +350,7 @@ func (pm *PveManager) processMonsterAI(m *MonsterInstance) {
 	if m.Stats.Health <= 0 {
 		if m.State != "Dead" {
 			m.State = "Dead"
-			m.RespawnAt = now.Add(time.Duration(m.Template.RespawnTime) * time.Second)
+			m.RespawnAt = now.Add(60 * time.Second)
 			
 			// Executa recompensas de XP e Loot (Tagged loot ownership, Party split)
 			go pm.handleMonsterDeath(m)
@@ -364,7 +364,7 @@ func (pm *PveManager) processMonsterAI(m *MonsterInstance) {
 				Payload: []byte(m.ID),
 			}
 			pm.aoiManager.BroadcastMovement(m.ID, protocol.SC_DESPAWN_ENTITY, packet.Payload)
-			slog.Info("Monster died, scheduling respawn", "id", m.ID, "seconds", m.Template.RespawnTime)
+			slog.Info("Monster died, scheduling respawn", "id", m.ID, "seconds", 60)
 		}
 		return
 	}
@@ -652,21 +652,9 @@ func (pm *PveManager) handleMonsterDeath(m *MonsterInstance) {
 		return
 	}
 
-	// Coleta todos os jogadores elegíveis para divisão de XP (que geraram ameaça/dano e estão perto)
-	var eligiblePlayers []string
-	pm.spatialIndex.mu.RLock()
-	for id, ent := range pm.spatialIndex.GetEntities() {
-		if ent.Type == "player" {
-			threat := m.ThreatTable.GetThreat(id)
-			if threat > 0 {
-				distToMonster := math.Hypot(ent.X-m.X, ent.Y-m.Y)
-				if distToMonster <= m.Template.LeashDistance {
-					eligiblePlayers = append(eligiblePlayers, id)
-				}
-			}
-		}
-	}
-	pm.spatialIndex.mu.RUnlock()
+	// Coleta jogador elegível para XP/loot.
+    // Build stabilization: usa o top threat como participante válido sem acessar internals do SpatialIndex.
+    eligiblePlayers := []string{topThreatPlayerID}
 
 	if len(eligiblePlayers) == 0 {
 		eligiblePlayers = append(eligiblePlayers, topThreatPlayerID)

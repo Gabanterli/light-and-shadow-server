@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"math"
 	"os"
 	"strings"
 	"sync"
@@ -849,7 +848,7 @@ func (hm *HousingManager) WithdrawStorage(playerID string, houseID string, slotI
 		return fmt.Errorf("house state not found")
 	}
 
-	config, ok := hm.houses[houseID]
+	_, ok = hm.houses[houseID]
 	if !ok {
 		return fmt.Errorf("house config not found")
 	}
@@ -1235,7 +1234,7 @@ func (hm *HousingManager) EvictHouse(houseID string) error {
 		return fmt.Errorf("house state missing")
 	}
 
-	config, ok := hm.houses[houseID]
+	_, ok = hm.houses[houseID]
 	if !ok {
 		return fmt.Errorf("house config missing")
 	}

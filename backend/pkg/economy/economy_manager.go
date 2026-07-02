@@ -10,10 +10,8 @@ import (
 	"math"
 	"sync"
 	"time"
-
 	"github.com/light-and-shadow/backend/pkg/inventory"
 	"github.com/light-and-shadow/backend/pkg/movement"
-	"github.com/light-and-shadow/backend/pkg/persistence"
 )
 
 // ItemDefinition representa os metadados de itens carregados do config
@@ -21,20 +19,20 @@ type ItemDefinition struct {
 	ItemID      string `json:"id"`
 	Name        string `json:"name"`
 	Type        string `json:"type"`
-	ValueGold   int    `json:"value_gold"`
-	RepairCost  int    `json:"repair_cost"`
+	ValueGold   int64    `json:"value_gold"`
+	RepairCost  int64    `json:"repair_cost"`
 	MaxStack    int    `json:"max_stack,omitempty"`
 }
 
 // MarketOrder representa uma ordem ativa no leilão
 type MarketOrder struct {
-	OrderID         int       `json:"order_id"`
+	OrderID         int64       `json:"order_id"`
 	SellerName      string    `json:"seller_name"`
 	ItemID          string    `json:"item_id"`
 	ItemUUID        string    `json:"item_uuid"`
 	Quantity        int       `json:"quantity"`
-	PriceGold       int       `json:"price_gold"`
-	TaxGold         int       `json:"tax_gold"`
+	PriceGold       int64       `json:"price_gold"`
+	TaxGold         int64       `json:"tax_gold"`
 	ExpiresAt       time.Time `json:"expires_at"`
 	CreatedAt       time.Time `json:"created_at"`
 }
@@ -44,8 +42,8 @@ type TradeSession struct {
 	TradeID   string
 	PlayerA   string
 	PlayerB   string
-	GoldA     int
-	GoldB     int
+	GoldA     int64
+	GoldB     int64
 	ItemsA    map[int]*inventory.InventoryItem // Slot -> Item
 	ItemsB    map[int]*inventory.InventoryItem // Slot -> Item
 	LockedA   bool
@@ -141,19 +139,17 @@ func (em *EconomyManager) BuyNPCItem(playerID string, itemID string, qty int, pl
 		return "", fmt.Errorf("item %s not found in catalog", itemID)
 	}
 
-	totalCost := def.ValueGold * qty
+	totalCost := def.ValueGold * int64(qty)
 	if totalCost < 0 {
 		return "", errors.New("negative overflow on cost calculation")
 	}
 
 	// Atômico: Verifica gold e remove gold (PATCH 1)
-	if !playerInv.RemoveGold(totalCost) {
+	if !playerInv.RemoveGold(int64(totalCost)) {
 		return "", fmt.Errorf("insufficient gold: need %d, have %d", totalCost, playerInv.GetGold())
 	}
 
 	// Tenta adicionar ao inventário em slots livres ou stackáveis
-	playerInv.mu.Lock()
-	defer playerInv.mu.Unlock()
 
 	// Encontra slots para alocar os itens
 	// Se for stackable, procura slot existente com o mesmo itemID que não esteja cheio
@@ -213,11 +209,11 @@ func (em *EconomyManager) BuyNPCItem(playerID string, itemID string, qty int, pl
 
 	if toAllocate > 0 {
 		// Sem espaço suficiente! Desfaz atômico devolvendo o gold
-		playerInv.Gold += totalCost
+		playerInv.AddGold(totalCost)
 		return "", errors.New("inventory full")
 	}
 
-	playerInv.isDirty = true
+	playerInv.SetDirty(true)
 	slog.Info("NPC purchase executed successfully", "player", playerID, "item", itemID, "qty", qty, "cost", totalCost)
 	return fmt.Sprintf("Bought %d %s", qty, def.Name), nil
 }
@@ -232,38 +228,33 @@ func (em *EconomyManager) SellNPCItem(playerID string, slotIndex int, qty int, p
 		return "", errors.New("slot is currently locked in an active trade")
 	}
 
-	playerInv.mu.Lock()
 	item, exists := playerInv.Items[slotIndex]
 	if !exists || item == nil {
-		playerInv.mu.Unlock()
 		return "", errors.New("item not found in selected slot")
 	}
 
 	if item.Quantity < qty {
-		playerInv.mu.Unlock()
 		return "", errors.New("not enough items in slot to sell")
 	}
 
 	def, exists := em.itemDefs[item.ItemID]
 	if !exists {
-		playerInv.mu.Unlock()
 		return "", errors.New("invalid item definition")
 	}
 
 	// Venda dá 50% do valor de compra
-	sellValue := int(math.Floor(float64(def.ValueGold) * 0.50))
+	sellValue := (def.ValueGold * 50) / 100
 	if sellValue < 1 {
 		sellValue = 1
 	}
-	totalYield := sellValue * qty
+	totalYield := sellValue * int64(qty)
 
 	// Remove item do inventário
 	item.Quantity -= qty
 	if item.Quantity == 0 {
 		delete(playerInv.Items, slotIndex)
 	}
-	playerInv.isDirty = true
-	playerInv.mu.Unlock()
+	playerInv.SetDirty(true)
 
 	// Adiciona Gold atômico (PATCH 1)
 	playerInv.AddGold(totalYield)
@@ -278,41 +269,34 @@ func (em *EconomyManager) RepairItem(playerID string, slotIndex int, playerInv *
 		return "", errors.New("slot is locked in active trade")
 	}
 
-	playerInv.mu.Lock()
 	item, exists := playerInv.Items[slotIndex]
 	if !exists || item == nil {
-		playerInv.mu.Unlock()
 		return "", errors.New("item not found in selected slot")
 	}
 
 	if item.Durability >= 100 {
-		playerInv.mu.Unlock()
 		return "", errors.New("item already has maximum durability")
 	}
 
 	def, exists := em.itemDefs[item.ItemID]
 	if !exists {
-		playerInv.mu.Unlock()
 		return "", errors.New("invalid item metadata")
 	}
 
 	damage := 100 - item.Durability
-	cost := def.RepairCost * damage
+	cost := def.RepairCost * int64(damage)
 	if cost < 0 {
 		cost = 0
 	}
-	playerInv.mu.Unlock()
 
 	// Atômico: Verifica se tem gold suficiente e remove (PATCH 1)
-	if !playerInv.RemoveGold(cost) {
-		return "", fmt.Errorf("insufficient gold to repair: cost %d, have %d", cost, playerInv.GetGold())
-	}
+    if !playerInv.RemoveGold(cost) {
+	return "", fmt.Errorf("insufficient gold: need %d, have %d", cost, playerInv.GetGold())
+}
 
-	playerInv.mu.Lock()
 	item.Durability = 100
-	playerInv.isDirty = true
-	playerInv.mu.Unlock()
-
+	playerInv.SetDirty(true)
+	
 	slog.Info("Equipment repaired successfully", "player", playerID, "item", def.ItemID, "cost", cost)
 	return fmt.Sprintf("Repaired %s for %d Gold", def.Name, cost), nil
 }
@@ -346,7 +330,7 @@ func (em *EconomyManager) StartTradeSession(playerA, playerB string) (string, er
 		return "", errors.New("players are too far apart to trade (must be within 3 tiles)")
 	}
 
-	tradeID := persistence.GenerateUUIDv4()
+	tradeID := fmt.Sprintf("%d", time.Now().UnixNano())
 	session := &TradeSession{
 		TradeID:   tradeID,
 		PlayerA:   playerA,
@@ -365,7 +349,7 @@ func (em *EconomyManager) StartTradeSession(playerA, playerB string) (string, er
 }
 
 // OfferGold oferece gold para a troca. Só funciona se a sua parte não estiver bloqueada (Locked)
-func (em *EconomyManager) OfferGold(playerID string, gold int, playerInv *inventory.PlayerInventory) error {
+func (em *EconomyManager) OfferGold(playerID string, gold int64, playerInv *inventory.PlayerInventory) error {
 	em.mu.Lock()
 	tradeID, exists := em.playerToTrade[playerID]
 	if !exists {
@@ -379,9 +363,9 @@ func (em *EconomyManager) OfferGold(playerID string, gold int, playerInv *invent
 		return errors.New("cannot offer negative gold")
 	}
 
-	if playerInv.GetGold() < gold {
-		return errors.New("insufficient gold to offer")
-	}
+	if playerInv.GetGold() < int64(gold) {
+	return errors.New("insufficient gold to offer")
+    }
 
 	em.mu.Lock()
 	defer em.mu.Unlock()
@@ -420,16 +404,13 @@ func (em *EconomyManager) OfferItem(playerID string, slotIndex int, qty int, pla
 	session := em.activeTrades[tradeID]
 	em.mu.Unlock()
 
-	playerInv.mu.Lock()
 	item, existsItem := playerInv.Items[slotIndex]
 	if !existsItem || item == nil {
-		playerInv.mu.Unlock()
 		return errors.New("item not found in selected inventory slot")
 	}
 	if item.Quantity < qty {
-		playerInv.mu.Unlock()
-		return errors.New("not enough items in slot to offer")
-	}
+	return errors.New("not enough items in slot to offer")
+    }
 
 	// Cria uma cópia do item com a quantidade oferecida
 	offered := &inventory.InventoryItem{
@@ -439,7 +420,6 @@ func (em *EconomyManager) OfferItem(playerID string, slotIndex int, qty int, pla
 		SlotIndex:  slotIndex, // Mapeia o slot original para evitar bypass
 		ItemUUID:   item.ItemUUID,
 	}
-	playerInv.mu.Unlock()
 
 	em.mu.Lock()
 	defer em.mu.Unlock()
@@ -516,22 +496,27 @@ func (em *EconomyManager) CompleteTrade(playerID string, invA, invB *inventory.P
 
 	// AMBOS ACEITARAM! Executa de forma transacional e segura em termos de threads e banco de dados
 	// lock duplo hierárquico nos inventários para evitar deadlocks de concorrência
-	if invA.PlayerID < invB.PlayerID {
-		invA.mu.Lock()
-		invB.mu.Lock()
-	} else {
-		invB.mu.Lock()
-		invA.mu.Lock()
-	}
-	defer invA.mu.Unlock()
-	defer invB.mu.Unlock()
+	var first, second *inventory.PlayerInventory
+
+    if invA.PlayerID < invB.PlayerID {
+	first = invA
+	second = invB
+    } else {
+	first = invB
+	second = invA
+    }
+
+    first.Lock()
+	second.Lock()
+	defer second.Unlock()
+	defer first.Unlock()
 
 	// 1. Validações adicionais finais antes da transferência de fundos
-	if invA.Gold < session.GoldA {
+	if invA.Gold < int64(session.GoldA) {
 		em.CancelTrade(playerID)
 		return false, "", fmt.Errorf("player %s has insufficient gold", session.PlayerA)
 	}
-	if invB.Gold < session.GoldB {
+	if invB.Gold < int64(session.GoldB) {
 		em.CancelTrade(playerID)
 		return false, "", fmt.Errorf("player %s has insufficient gold", session.PlayerB)
 	}
@@ -668,8 +653,8 @@ func (em *EconomyManager) CompleteTrade(playerID string, invA, invB *inventory.P
 	}
 
 	// Marca ambos os inventários como Dirty para o autosave persistir no DB (PATCH 2)
-	invA.isDirty = true
-	invB.isDirty = true
+	invA.SetDirty(true)
+	invB.SetDirty(true)
 
 	// 4. Log do Trade no PostgreSQL (Rollback-safe persistência se ativo - PATCH 5)
 	if em.db != nil {
@@ -767,7 +752,7 @@ func (em *EconomyManager) ValidateProximityAndStatus(playerID string, playerHP f
 // =========================================================================
 
 // CreateMarketOrder cria uma ordem de leilão escrowando o item do inventário do jogador imediatamente (PATCH 3)
-func (em *EconomyManager) CreateMarketOrder(playerID string, slotIndex int, qty int, priceGold int, playerInv *inventory.PlayerInventory) (string, error) {
+func (em *EconomyManager) CreateMarketOrder(playerID string, slotIndex int, qty int, priceGold int64, playerInv *inventory.PlayerInventory) (string, error) {
 	if priceGold <= 0 || qty <= 0 {
 		return "", errors.New("invalid quantity or price parameters")
 	}
@@ -780,16 +765,13 @@ func (em *EconomyManager) CreateMarketOrder(playerID string, slotIndex int, qty 
 		return "", errors.New("marketplace database connection is in fallback offline mode")
 	}
 
-	playerInv.mu.Lock()
 	item, exists := playerInv.Items[slotIndex]
 	if !exists || item == nil {
-		playerInv.mu.Unlock()
 		return "", errors.New("item not found in selected slot")
 	}
 
 	if item.Quantity < qty {
-		playerInv.mu.Unlock()
-		return "", errors.New("insufficient item quantity in slot")
+	return "", errors.New("insufficient item quantity in slot")
 	}
 
 	itemID := item.ItemID
@@ -801,11 +783,10 @@ func (em *EconomyManager) CreateMarketOrder(playerID string, slotIndex int, qty 
 	if item.Quantity == 0 {
 		delete(playerInv.Items, slotIndex)
 	}
-	playerInv.isDirty = true
-	playerInv.mu.Unlock()
+	playerInv.SetDirty(true)
 
 	// Taxa de listagem: 5% do valor do preço pedido
-	tax := int(math.Floor(float64(priceGold) * 0.05))
+	tax := int64(math.Floor(float64(priceGold) * 0.05))
 	if tax < 1 {
 		tax = 1
 	}
@@ -813,7 +794,6 @@ func (em *EconomyManager) CreateMarketOrder(playerID string, slotIndex int, qty 
 	// Remove a taxa de listagem de forma atômica do ouro do vendedor (PATCH 1)
 	if !playerInv.RemoveGold(tax) {
 		// Devolve os itens em caso de erro (Rollback-safe)
-		playerInv.mu.Lock()
 		if current, ok := playerInv.Items[slotIndex]; ok {
 			current.Quantity += qty
 		} else {
@@ -825,7 +805,6 @@ func (em *EconomyManager) CreateMarketOrder(playerID string, slotIndex int, qty 
 				ItemUUID:   itemUUID,
 			}
 		}
-		playerInv.mu.Unlock()
 		return "", fmt.Errorf("insufficient gold to cover listing tax: need %d", tax)
 	}
 
@@ -837,7 +816,6 @@ func (em *EconomyManager) CreateMarketOrder(playerID string, slotIndex int, qty 
 	if err != nil {
 		// Rollback in-memory
 		playerInv.AddGold(tax)
-		playerInv.mu.Lock()
 		if current, ok := playerInv.Items[slotIndex]; ok {
 			current.Quantity += qty
 		} else {
@@ -849,13 +827,12 @@ func (em *EconomyManager) CreateMarketOrder(playerID string, slotIndex int, qty 
 				ItemUUID:   itemUUID,
 			}
 		}
-		playerInv.mu.Unlock()
 		return "", fmt.Errorf("failed to begin SQL transaction: %w", err)
 	}
 	defer tx.Rollback()
 
 	// Pega ID do personagem do vendedor no PostgreSQL
-	var sellerCharID int
+	var sellerCharID int64
 	err = tx.QueryRowContext(ctx, "SELECT id FROM characters WHERE name = $1", playerID).Scan(&sellerCharID)
 	if err != nil {
 		return "", fmt.Errorf("character %s not found in DB: %w", playerID, err)
@@ -864,7 +841,7 @@ func (em *EconomyManager) CreateMarketOrder(playerID string, slotIndex int, qty 
 	// Expiração padrão de 24 horas (PATCH 3)
 	expiresAt := time.Now().Add(24 * time.Hour)
 
-	var orderID int
+	var orderID int64
 	err = tx.QueryRowContext(ctx, `
 		INSERT INTO market_orders (seller_character_id, item_id, item_uuid, quantity, price_gold, tax_gold, expires_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -885,7 +862,7 @@ func (em *EconomyManager) CreateMarketOrder(playerID string, slotIndex int, qty 
 }
 
 // BuyMarketItem processa a compra de uma ordem escrowed do mercado com taxação e transferências atômicas (PATCH 1, 3, 5)
-func (em *EconomyManager) BuyMarketItem(buyerID string, orderID int, buyerInv *inventory.PlayerInventory) (string, error) {
+func (em *EconomyManager) BuyMarketItem(buyerID string, orderID int64, buyerInv *inventory.PlayerInventory) (string, error) {
 	if em.db == nil {
 		return "", errors.New("marketplace database offline")
 	}
@@ -901,13 +878,13 @@ func (em *EconomyManager) BuyMarketItem(buyerID string, orderID int, buyerInv *i
 	defer tx.Rollback()
 
 	// Busca detalhes da ordem bloqueando a linha correspondente de forma segura (Lock)
-	var sellerCharID int
+	var sellerCharID int64
 	var sellerName string
 	var itemID string
 	var itemUUID sql.NullString
 	var qty int
-	var priceGold int
-	var taxGold int
+	var priceGold int64
+	var taxGold int64
 	var expiresAt time.Time
 
 	err = tx.QueryRowContext(ctx, `
@@ -941,7 +918,7 @@ func (em *EconomyManager) BuyMarketItem(buyerID string, orderID int, buyerInv *i
 	buyerInv.RemoveGold(priceGold)
 
 	// Adiciona os itens escrowed no inventário do comprador de forma autoritativa
-	buyerInv.mu.Lock()
+	buyerInv.Lock()
 	allocated := false
 	for s := 0; s < 30; s++ {
 		if buyerInv.Items[s] == nil {
@@ -956,7 +933,7 @@ func (em *EconomyManager) BuyMarketItem(buyerID string, orderID int, buyerInv *i
 			break
 		}
 	}
-	buyerInv.mu.Unlock()
+	buyerInv.Unlock()
 
 	if !allocated {
 		// Devolve o gold do comprador (Rollback)
@@ -964,14 +941,14 @@ func (em *EconomyManager) BuyMarketItem(buyerID string, orderID int, buyerInv *i
 		return "", errors.New("purchase aborted: buyer inventory has no free slots")
 	}
 
-	buyerInv.isDirty = true
+	buyerInv.SetDirty(true)
 
 	// Atualiza gold do vendedor no PostgreSQL de forma direta e segura no banco
 	// Vendedor recebe: Preço - Taxa (tax_gold é recolhido pelo leilão)
 	payout := priceGold // Taxa de listagem (taxGold) já foi cobrada na postagem da ordem!
 	_, err = tx.ExecContext(ctx, "UPDATE characters SET gold = gold + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2", payout, sellerCharID)
 	if err != nil {
-		buyerInv.mu.Lock()
+		buyerInv.Lock()
 		// Remove item do inventário do comprador (Rollback)
 		for s, item := range buyerInv.Items {
 			if item != nil && item.ItemUUID == itemUUID.String && item.ItemID == itemID {
@@ -979,23 +956,23 @@ func (em *EconomyManager) BuyMarketItem(buyerID string, orderID int, buyerInv *i
 				break
 			}
 		}
-		buyerInv.mu.Unlock()
+		buyerInv.Unlock()
 		buyerInv.AddGold(priceGold)
 		return "", fmt.Errorf("failed to transfer gold to seller: %w", err)
 	}
 
 	// Insere no histórico de leilão
-	var buyerCharID int
+	var buyerCharID int64
 	err = tx.QueryRowContext(ctx, "SELECT id FROM characters WHERE name = $1", buyerID).Scan(&buyerCharID)
 	if err != nil {
-		buyerInv.mu.Lock()
+		buyerInv.Lock()
 		for s, item := range buyerInv.Items {
 			if item != nil && item.ItemUUID == itemUUID.String && item.ItemID == itemID {
 				delete(buyerInv.Items, s)
 				break
 			}
 		}
-		buyerInv.mu.Unlock()
+		buyerInv.Unlock()
 		buyerInv.AddGold(priceGold)
 		return "", fmt.Errorf("failed to retrieve buyer identity from DB: %w", err)
 	}
@@ -1016,14 +993,14 @@ func (em *EconomyManager) BuyMarketItem(buyerID string, orderID int, buyerInv *i
 
 	// Commit transacional definitivo (PATCH 5)
 	if err := tx.Commit(); err != nil {
-		buyerInv.mu.Lock()
+		buyerInv.Lock()
 		for s, item := range buyerInv.Items {
 			if item != nil && item.ItemUUID == itemUUID.String && item.ItemID == itemID {
 				delete(buyerInv.Items, s)
 				break
 			}
 		}
-		buyerInv.mu.Unlock()
+		buyerInv.Unlock()
 		buyerInv.AddGold(priceGold)
 		return "", fmt.Errorf("transaction commit failed: %w", err)
 	}
@@ -1033,7 +1010,7 @@ func (em *EconomyManager) BuyMarketItem(buyerID string, orderID int, buyerInv *i
 }
 
 // CancelMarketOrder cancela uma ordem de leilão devolvendo o item escrowed para o inventário do vendedor
-func (em *EconomyManager) CancelMarketOrder(playerID string, orderID int, playerInv *inventory.PlayerInventory) (string, error) {
+func (em *EconomyManager) CancelMarketOrder(playerID string, orderID int64, playerInv *inventory.PlayerInventory) (string, error) {
 	if em.db == nil {
 		return "", errors.New("marketplace database offline")
 	}
@@ -1070,7 +1047,6 @@ func (em *EconomyManager) CancelMarketOrder(playerID string, orderID int, player
 	}
 
 	// Devolve os itens do Escrow de volta ao inventário (atômico)
-	playerInv.mu.Lock()
 	allocated := false
 	for s := 0; s < 30; s++ {
 		if playerInv.Items[s] == nil {
@@ -1085,13 +1061,12 @@ func (em *EconomyManager) CancelMarketOrder(playerID string, orderID int, player
 			break
 		}
 	}
-	playerInv.mu.Unlock()
 
 	if !allocated {
 		return "", errors.New("cancel aborted: your inventory has no free slots to receive the escrowed items back")
 	}
 
-	playerInv.isDirty = true
+	playerInv.SetDirty(true)
 
 	// Remove ordem do PostgreSQL
 	_, err = tx.ExecContext(ctx, "DELETE FROM market_orders WHERE id = $1", orderID)

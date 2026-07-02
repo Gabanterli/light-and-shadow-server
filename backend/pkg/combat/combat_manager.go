@@ -735,3 +735,12 @@ func (cm *CombatManager) tickHpRegenAndAggro() {
 func (cm *CombatManager) Close() {
 	cm.scheduler.Stop()
 }
+
+// GetAggroTable retorna a tabela de ameaça de forma thread-safe
+func (cm *CombatManager) GetAggroTable(id string) (*AggroTable, bool) {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
+	table, ok := cm.aggroTables[id]
+	return table, ok
+}

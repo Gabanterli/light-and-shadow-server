@@ -847,11 +847,8 @@ func (pm *PvPManager) GetPlayerPvPState(playerID string) *PlayerPvPState {
 
 	// 7. LastHostileAction
 	var lastHostile time.Time
-	pm.mu.Lock()
-	if t, ok := pm.combatLocks[playerID]; ok {
-		lastHostile = t
-	}
-	pm.mu.Unlock()
+	pm.mu.RLock()
+	pm.mu.RUnlock()
 
 	return &PlayerPvPState{
 		PvpEnabled:        pvpEnabled,

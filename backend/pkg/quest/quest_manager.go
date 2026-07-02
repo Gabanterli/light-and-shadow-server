@@ -540,7 +540,6 @@ func (qm *QuestManager) consumeInventoryItems(playerInv *inventory.PlayerInvento
 // awardExperience adiciona o XP e recalcula os stats de nível (alinhado com o PveManager)
 func (qm *QuestManager) awardExperience(playerID string, xp int64, pStats *combat.EntityStats, playerInv *inventory.PlayerInventory) {
 	// Reutiliza a lógica centralizada de XP se disponível
-	xpNeeded := int64(pStats.Level * pStats.Level * 100)
 
 	// Lógica idêntica ao awardXp do PveManager para consistência autoritativa absoluta
 	// Usamos um mutex estático idêntico (vamos embutir uma atualização segura aqui)

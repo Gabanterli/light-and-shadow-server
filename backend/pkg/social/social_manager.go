@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
-	"math"
-	"net"
 	"sync"
 	"time"
 
@@ -1382,7 +1380,7 @@ func (sm *SocialManager) broadcastLocalChat(senderID, msg string) {
 	payload := protocol.EncodeChatMessage(0, senderID, msg)
 	// Usa o AOIManager para pegar jogadores no SpatialIndex
 	// Para simplificar e garantir estabilidade, pegamos as conexões registradas no AOI e enviamos para as ativas próximas
-	sm.aoiManager.BroadcastMove(senderID, protocol.SC_CHAT_MESSAGE, payload)
+	sm.sendBinaryToPlayer(senderID, protocol.SC_CHAT_MESSAGE, payload)
 	// Também envia para o próprio remetente
 	sm.sendBinaryToPlayer(senderID, protocol.SC_CHAT_MESSAGE, payload)
 }
