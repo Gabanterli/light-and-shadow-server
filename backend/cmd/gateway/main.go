@@ -440,14 +440,11 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 		s.clientsMu.Lock()
 		delete(s.clients, conn)
 		s.clientsMu.Unlock()
-
-		// Disconnect invalida sessÃ£o no Redis (PATCH 3)
-		if sessionToken != "" && s.redisClient != nil {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			_ = s.redisClient.Client.Del(ctx, sessionToken).Err()
-			cancel()
-			slog.Info("Session invalidated from Redis due to client disconnect", "token", sessionToken)
-		}
+        // Sessão de autenticação preservada no Redis até TTL ou logout explícito.
+        // O disconnect limpa estado ativo do player, mas não revoga a sessão.
+        if sessionToken != "" {
+            slog.Info("Client disconnected; auth session preserved until TTL", "account_id", authenticatedAccountID)
+        }
 
 		// Desregistra jogador do motor de movimentos e AOI para liberar recursos de rede
 		if playerID != "" {
@@ -561,8 +558,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
                 break
             }
 	slog.Info("Requesting character list from PostgreSQL")
-
-	// FASE 3.3 Task 2: account_id=1 temporÃ¡rio atÃ© o login TCP validar conta real.
+		// FASE 3.3 Task 4D: usa account_id autenticado retornado pelo Auth Server.
 	characters, err := s.persistenceMgr.ListCharactersByAccount(authenticatedAccountID)
 	if err != nil {
 		slog.Error("Failed to list characters from PostgreSQL", "error", err)
