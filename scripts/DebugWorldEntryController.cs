@@ -10,8 +10,6 @@ public partial class DebugWorldEntryController : Control
     private Label? _statusLabel;
     private Button? _backButton;
 
-    private const string AuthScenePath = "res://scenes/DebugAuthScene.tscn";
-
     public override void _Ready()
     {
         _statusLabel = GetNode<Label>("VBoxContainer/StatusLabel");
@@ -31,7 +29,7 @@ public partial class DebugWorldEntryController : Control
 
     private void OnBackButtonPressed()
     {
-        // Simple scene change back to the auth screen.
-        GetTree().ChangeSceneToFile(AuthScenePath);
+        // Use the centralized scene flow manager to go back.
+        SceneFlow.ToDebugAuth(this);
     }
 }
