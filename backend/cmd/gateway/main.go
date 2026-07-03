@@ -512,7 +512,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
                 response := &protocol.Packet{
                     Opcode:   protocol.SC_LOGIN_RESPONSE,
                     Sequence: packet.Sequence,
-                    Payload:  []byte("ERROR|invalid_login_payload"),
+                    Payload:  protocol.EncodeLoginResponse(false, 0, "", "invalid_login_payload"),
                 }
                 conn.Write(response.Serialize())
                 break
@@ -528,7 +528,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
                 response := &protocol.Packet{
                     Opcode:   protocol.SC_LOGIN_RESPONSE,
                     Sequence: packet.Sequence,
-                    Payload:  []byte("ERROR|invalid_credentials"),
+                    Payload:  protocol.EncodeLoginResponse(false, 0, "", "invalid_credentials"),
                 }
                 conn.Write(response.Serialize())
                 break
@@ -545,7 +545,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
             response := &protocol.Packet{
                 Opcode:   protocol.SC_LOGIN_RESPONSE,
                 Sequence: packet.Sequence,
-                Payload:  []byte(sessionToken),
+                Payload:  protocol.EncodeLoginResponse(true, uint32(authenticatedAccountID), sessionToken, ""),
             }
             conn.Write(response.Serialize())
 

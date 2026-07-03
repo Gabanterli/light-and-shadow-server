@@ -1564,4 +1564,88 @@ func EncodeUnlockSubclassResponse(success bool, errorMessage string, subclass st
 	return payload
 }
 
+type LoginResponse struct {
+    Success   bool
+    AccountID uint32
+    Token     string
+    ErrorCode string
+}
 
+func EncodeLoginResponse(success bool, accountID uint32, token string, errorCode string) []byte {
+    status := byte(0)
+    if success {
+        status = 1
+    }
+
+    payload := []byte{status}
+
+    var accountBuf [4]byte
+    binary.LittleEndian.PutUint32(accountBuf[:], accountID)
+    payload = append(payload, accountBuf[:]...)
+
+    payload = appendLengthPrefixedProtocolString(payload, token)
+    payload = appendLengthPrefixedProtocolString(payload, errorCode)
+
+    return payload
+}
+
+func DecodeLoginResponse(payload []byte) (*LoginResponse, error) {
+    if len(payload) < 5 {
+        return nil, fmt.Errorf("login response payload too small: %d", len(payload))
+    }
+
+    status := payload[0]
+    accountID := binary.LittleEndian.Uint32(payload[1:5])
+    offset := 5
+
+    token, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
+    if err != nil {
+        return nil, err
+    }
+    offset = nextOffset
+
+    errorCode, _, err := readLengthPrefixedProtocolString(payload, offset)
+    if err != nil {
+        return nil, err
+    }
+
+    return &LoginResponse{
+        Success:   status == 1,
+        AccountID: accountID,
+        Token:     token,
+        ErrorCode: errorCode,
+    }, nil
+}
+
+func appendLengthPrefixedProtocolString(payload []byte, value string) []byte {
+    raw := []byte(value)
+    if len(raw) > 65535 {
+        raw = raw[:65535]
+    }
+
+    var lenBuf [2]byte
+    binary.LittleEndian.PutUint16(lenBuf[:], uint16(len(raw)))
+
+    payload = append(payload, lenBuf[:]...)
+    payload = append(payload, raw...)
+
+    return payload
+}
+
+func readLengthPrefixedProtocolString(payload []byte, offset int) (string, int, error) {
+    if offset+2 > len(payload) {
+        return "", offset, fmt.Errorf("not enough bytes to read string length")
+    }
+
+    length := int(binary.LittleEndian.Uint16(payload[offset : offset+2]))
+    offset += 2
+
+    if offset+length > len(payload) {
+        return "", offset, fmt.Errorf("not enough bytes to read string payload")
+    }
+
+    value := string(payload[offset : offset+length])
+    offset += length
+
+    return value, offset, nil
+}
