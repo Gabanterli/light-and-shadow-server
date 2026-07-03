@@ -101,6 +101,14 @@ public sealed class GatewayTcpClient : IDisposable
         return BinaryProtocol.DecodeCharacterSelectResponse(responsePacket.Payload);
     }
 
+    public async Task SendMoveRequestAsync(int targetX, int targetY, sbyte targetZ, byte direction, ulong clientTimestamp, CancellationToken cancellationToken = default)
+    {
+        EnsureConnected();
+        var payload = BinaryProtocol.EncodeMoveRequest(targetX, targetY, targetZ, direction, clientTimestamp);
+        var packet = new Packet(2004, NextSequence(), payload);
+        await SendPacketAsync(packet, cancellationToken);
+    }
+
     public void Disconnect()
     {
         try

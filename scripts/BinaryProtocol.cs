@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 using System.Text;
 
 namespace LightAndShadow.Client;
@@ -109,6 +110,38 @@ public static class BinaryProtocol
         };
     }
 
+    public static byte[] EncodeMoveRequest(int targetX, int targetY, sbyte targetZ, byte direction, ulong clientTimestamp)
+    {
+        var payload = new byte[18];
+        var offset = 0;
+        
+        WriteInt32LE(payload, offset, targetX);
+        offset += 4;
+        
+        WriteInt32LE(payload, offset, targetY);
+        offset += 4;
+
+        payload[offset] = (byte)targetZ;
+        offset += 1;
+
+        payload[offset] = direction;
+        offset += 1;
+
+        WriteUInt64LE(payload, offset, clientTimestamp);
+        
+        return payload;
+    }
+
+    public static MoveConfirmData? DecodeMoveConfirm(byte[] payload)
+    {
+        return JsonSerializer.Deserialize<MoveConfirmData>(payload);
+    }
+
+    public static PlayerUpdateData? DecodePlayerUpdate(byte[] payload)
+    {
+        return JsonSerializer.Deserialize<PlayerUpdateData>(payload);
+    }
+
     public static InventorySyncData DecodeInventorySync(byte[] payload)
     {
         var offset = 0;
@@ -185,6 +218,19 @@ public static class BinaryProtocol
         return (ushort)(buffer[offset] | (buffer[offset + 1] << 8));
     }
 
+    public static void WriteInt32LE(byte[] buffer, int offset, int value)
+    {
+        if (offset + 4 > buffer.Length)
+        {
+            throw new InvalidDataException("Buffer overflow while writing int32.");
+        }
+
+        buffer[offset] = (byte)(value & 0xFF);
+        buffer[offset + 1] = (byte)((value >> 8) & 0xFF);
+        buffer[offset + 2] = (byte)((value >> 16) & 0xFF);
+        buffer[offset + 3] = (byte)((value >> 24) & 0xFF);
+    }
+
     public static void WriteUInt32LE(byte[] buffer, int offset, uint value)
     {
         if (offset + 4 > buffer.Length)
@@ -212,6 +258,22 @@ public static class BinaryProtocol
     {
         nextOffset = offset + 4;
         return ReadUInt32LE(buffer, offset);
+    }
+
+    public static void WriteUInt64LE(byte[] buffer, int offset, ulong value)
+    {
+        if (offset + 8 > buffer.Length)
+        {
+            throw new InvalidDataException("Buffer overflow while writing uint64.");
+        }
+        buffer[offset] = (byte)(value & 0xFF);
+        buffer[offset + 1] = (byte)((value >> 8) & 0xFF);
+        buffer[offset + 2] = (byte)((value >> 16) & 0xFF);
+        buffer[offset + 3] = (byte)((value >> 24) & 0xFF);
+        buffer[offset + 4] = (byte)((value >> 32) & 0xFF);
+        buffer[offset + 5] = (byte)((value >> 40) & 0xFF);
+        buffer[offset + 6] = (byte)((value >> 48) & 0xFF);
+        buffer[offset + 7] = (byte)((value >> 56) & 0xFF);
     }
 
     public static int WriteStringUInt16(byte[] buffer, int offset, string value)
@@ -317,4 +379,30 @@ public sealed class ChunkData
     public uint ChunkX { get; set; }
     public uint ChunkY { get; set; }
     public byte[] Tiles { get; set; } = Array.Empty<byte>();
+}
+
+public sealed class MoveConfirmData
+{
+    [System.Text.Json.Serialization.JsonPropertyName("x")]
+    public double X { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("y")]
+    public double Y { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("z")]
+    public int Z { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("seq")]
+    public uint Seq { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("success")]
+    public bool Success { get; set; }
+}
+
+public sealed class PlayerUpdateData
+{
+    [System.Text.Json.Serialization.JsonPropertyName("id")]
+    public string PlayerID { get; set; } = string.Empty;
+    [System.Text.Json.Serialization.JsonPropertyName("x")]
+    public double X { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("y")]
+    public double Y { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("z")]
+    public int Z { get; set; }
 }

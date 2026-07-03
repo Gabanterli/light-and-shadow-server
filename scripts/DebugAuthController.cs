@@ -23,6 +23,8 @@ public partial class DebugAuthController : Control
     
     private readonly List<string> _characterNames = new();
 
+    private bool _isTransferringGatewayClientToWorldEntry = false;
+
     public override void _Ready()
     {
         // Get nodes from the scene tree
@@ -49,7 +51,11 @@ public partial class DebugAuthController : Control
 
     public override void _ExitTree()
     {
-        _gatewayClient.Dispose();
+        // Only dispose of the client if we are not handing it off to the next scene.
+        if (!_isTransferringGatewayClientToWorldEntry)
+        {
+            _gatewayClient.Dispose();
+        }
         _authSession.Clear();
     }
 
@@ -182,6 +188,8 @@ public partial class DebugAuthController : Control
                 _authSession.SetSelectedCharacter(response.CharacterName);
                 _statusLabel.Text = $"Status: Character '{response.CharacterName}' selected!";
                 Log($"Successfully selected character. AuthSession updated with '{response.CharacterName}'.");
+                // Mark that we are handing off the client, so _ExitTree doesn't dispose it.
+                _isTransferringGatewayClientToWorldEntry = true;
                 SceneFlow.ToWorldEntry(this, _authSession, _gatewayClient);
             }
             else

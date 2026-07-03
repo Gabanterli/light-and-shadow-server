@@ -24,6 +24,8 @@ public partial class DebugWorldEntryController : Control
     private Label? _accountIdValueLabel;
     private Label? _selectedCharacterNameValueLabel;
     private TextEdit? _packetLogTextEdit;
+    private Button? _sendMoveButton;
+    private Label? _lastMoveResultLabel;
     
     // Snapshot UI Node references
     private Label? _invSyncValueLabel;
@@ -33,6 +35,9 @@ public partial class DebugWorldEntryController : Control
     private Label? _chunksValueLabel;
     private Label? _lastChunkValueLabel;
     private Label? _lastTimestampValueLabel;
+
+    // Local state for debug movement
+    private (int x, int y, int z) _currentConfirmedPos = (103, 102, 0);
 
     public override void _Ready()
     {
@@ -44,6 +49,8 @@ public partial class DebugWorldEntryController : Control
         _accountIdValueLabel = GetNode<Label>("VBoxContainer/GridContainer/AccountIdValueLabel");
         _selectedCharacterNameValueLabel = GetNode<Label>("VBoxContainer/GridContainer/SelectedCharacterNameValueLabel");
         _packetLogTextEdit = GetNode<TextEdit>("VBoxContainer/PacketLogTextEdit");
+        _sendMoveButton = GetNode<Button>("VBoxContainer/SendMoveButton");
+        _lastMoveResultLabel = GetNode<Label>("VBoxContainer/LastMoveResultLabel");
         
         // Get snapshot node references
         _invSyncValueLabel = GetNode<Label>("VBoxContainer/SnapshotGridContainer/InvSyncValueLabel");
@@ -55,6 +62,7 @@ public partial class DebugWorldEntryController : Control
         _lastTimestampValueLabel = GetNode<Label>("VBoxContainer/SnapshotGridContainer/LastTimestampValueLabel");
 
         _backButton.Pressed += OnBackButtonPressed;
+        _sendMoveButton.Pressed += OnSendMoveButtonPressed;
 
         // Populate UI with session data
         if (Session != null)
@@ -68,6 +76,8 @@ public partial class DebugWorldEntryController : Control
             _router = new DebugIncomingPacketRouter();
             _router.RegisterHandler(4001, OnInventorySyncReceived);
             _router.RegisterHandler(2006, OnChunkDataReceived);
+            _router.RegisterHandler(2005, OnMoveConfirmReceived);
+            _router.RegisterHandler(2001, OnPlayerUpdateReceived);
             _router.RegisterFallback(OnUnknownPacketReceived);
 
             StartPacketListenerLoop();
@@ -96,6 +106,50 @@ public partial class DebugWorldEntryController : Control
         _cts?.Cancel();
         // Use the centralized scene flow manager to go back.
         SceneFlow.ToDebugAuth(this);
+    }
+    
+    private async void OnSendMoveButtonPressed()
+    {
+        SetMoveResultText("Last Move Result: button clicked");
+
+        if (GatewayClient == null || !GatewayClient.IsConnected)
+        {
+            LogPacketInfo("Cannot send move: Not connected.");
+            SetMoveResultText("Last Move Result: cannot send - not connected");
+            return;
+        }
+        if (_cts == null || _cts.IsCancellationRequested)
+        {
+            LogPacketInfo("Cannot send move: Packet listener is not active.");
+            SetMoveResultText("Last Move Result: cannot send - listener inactive");
+            return;
+        }
+
+        var targetX = _currentConfirmedPos.x + 1;
+        var targetY = _currentConfirmedPos.y;
+        var targetZ = (sbyte)_currentConfirmedPos.z;
+        var clientTimestamp = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        var logMessage = new StringBuilder();
+        logMessage.AppendLine($"[SEND] Opcode: 2004 (CS_MOVE_REQUEST)");
+        logMessage.AppendLine($"  Target: ({targetX}, {targetY}, {targetZ})");
+        LogPacketInfo(logMessage.ToString());
+        SetMoveResultText($"Last Move Result: sending move request to ({targetX}, {targetY}, {targetZ})");
+
+        try
+        {
+            await GatewayClient.SendMoveRequestAsync(targetX, targetY, targetZ, 0, clientTimestamp, _cts.Token);
+            SetMoveResultText($"Last Move Result: move request sent to ({targetX}, {targetY}, {targetZ}), waiting confirm");
+        }
+        catch (OperationCanceledException)
+        {
+            // This is expected if the scene is closing while a send is in progress.
+            LogPacketInfo("Move request was canceled.");
+        }
+        catch (Exception ex)
+        {
+            LogPacketInfo($"Error sending move request: {ex.Message}");
+        }
     }
 
     private async void StartPacketListenerLoop()
@@ -171,12 +225,58 @@ public partial class DebugWorldEntryController : Control
         CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
     }
 
+    private void OnMoveConfirmReceived(Packet packet)
+    {
+        var logMessage = new StringBuilder();
+        logMessage.AppendLine($"[RECV] Opcode: {packet.Opcode} (SC_MOVE_CONFIRM), Size: {packet.Size}");
+
+        var data = BinaryProtocol.DecodeMoveConfirm(packet.Payload);
+        if (data != null)
+        {
+            logMessage.AppendLine($"  Success: {data.Success}");
+            logMessage.AppendLine($"  Confirmed Pos: ({data.X:F2}, {data.Y:F2}, {data.Z})");
+            logMessage.AppendLine($"  Sequence Echo: {data.Seq}");
+
+            if (data.Success)
+            {
+                // Update local debug position to the server-confirmed position
+                _currentConfirmedPos = ((int)Math.Round(data.X), (int)Math.Round(data.Y), data.Z);
+            }
+        }
+        else
+        {
+            logMessage.AppendLine("  Error: Failed to decode JSON payload.");
+        }
+
+        var resultText = data != null ? $"success={data.Success} confirmed=({data.X:F2}, {data.Y:F2}, {data.Z}) seq={data.Seq}" : "Error: payload decode failed";
+        CallDeferred(nameof(SetMoveResultText), "Last Move Result: " + resultText);
+
+        CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
+    }
+
+    private void OnPlayerUpdateReceived(Packet packet)
+    {
+        var logMessage = new StringBuilder();
+        logMessage.AppendLine($"[RECV] Opcode: {packet.Opcode} (SC_PLAYER_UPDATE), Size: {packet.Size}");
+        var data = BinaryProtocol.DecodePlayerUpdate(packet.Payload);
+        if (data != null)
+        {
+            logMessage.AppendLine($"  Player '{data.PlayerID}' moved to ({data.X:F2}, {data.Y:F2}, {data.Z})");
+        }
+        CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
+    }
+
     private void OnUnknownPacketReceived(Packet packet)
     {
         var logMessage = new StringBuilder();
         logMessage.AppendLine($"[RECV] Opcode: {packet.Opcode}, Size: {packet.Size}");
         logMessage.AppendLine($"  Type: Unknown (Opcode {packet.Opcode})");
         CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
+    }
+
+    private void SetMoveResultText(string text)
+    {
+        _lastMoveResultLabel!.Text = text;
     }
 
     private void LogPacketInfo(string message)
