@@ -18,3 +18,6 @@ obj/
 .vscode/
 *.user
 *.suo
+
+# Local exported builds
+builds/
