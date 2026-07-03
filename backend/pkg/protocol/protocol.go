@@ -268,6 +268,40 @@ func WriteFixed32(buf []byte, val float64, offset *int) {
 	*offset += 4
 }
 
+type LoginRequest struct {
+    Username string
+    Password string
+}
+
+func DecodeLoginRequest(payload []byte) (*LoginRequest, error) {
+    offset := 0
+
+    username, err := ReadString(payload, &offset)
+    if err != nil {
+        return nil, err
+    }
+
+    password, err := ReadString(payload, &offset)
+    if err != nil {
+        return nil, err
+    }
+
+    return &LoginRequest{
+        Username: username,
+        Password: password,
+    }, nil
+}
+
+func EncodeLoginRequest(username, password string) []byte {
+    size := 2 + len(username) + 2 + len(password)
+    buf := make([]byte, size)
+    offset := 0
+
+    WriteString(buf, username, &offset)
+    WriteString(buf, password, &offset)
+
+    return buf
+}
 type AttackRequest struct {
 	TargetID   string
 	WeaponType string
