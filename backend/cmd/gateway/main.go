@@ -1,6 +1,7 @@
-﻿package main
+package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"encoding/json"
@@ -73,6 +74,60 @@ type GatewayServer struct {
 	stopAutosave   chan struct{}
 }
 
+type gatewayAuthRequest struct {
+    Username string `json:"username"`
+    Password string `json:"password"`
+}
+
+type gatewayAuthResponse struct {
+    Success   bool   `json:"success"`
+    Token     string `json:"token,omitempty"`
+    AccountID int    `json:"account_id,omitempty"`
+    Error     string `json:"error,omitempty"`
+}
+
+func (s *GatewayServer) authenticateWithAuthServer(ctx context.Context, username string, password string) (*gatewayAuthResponse, error) {
+    requestBody, err := json.Marshal(gatewayAuthRequest{
+        Username: username,
+        Password: password,
+    })
+    if err != nil {
+        return nil, fmt.Errorf("failed to encode auth request: %w", err)
+    }
+
+    authURL := fmt.Sprintf("http://auth-server:%d/api/v1/auth", s.config.AuthPort)
+
+    req, err := http.NewRequestWithContext(ctx, http.MethodPost, authURL, bytes.NewReader(requestBody))
+    if err != nil {
+        return nil, fmt.Errorf("failed to create auth request: %w", err)
+    }
+
+    req.Header.Set("Content-Type", "application/json")
+
+    httpClient := &http.Client{
+        Timeout: 5 * time.Second,
+    }
+
+    resp, err := httpClient.Do(req)
+    if err != nil {
+        return nil, fmt.Errorf("auth server request failed: %w", err)
+    }
+    defer resp.Body.Close()
+
+    var authResp gatewayAuthResponse
+    if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
+        return nil, fmt.Errorf("failed to decode auth response: %w", err)
+    }
+
+    if resp.StatusCode != http.StatusOK || !authResp.Success || authResp.Token == "" {
+        if authResp.Error == "" {
+            authResp.Error = "auth_failed"
+        }
+        return nil, fmt.Errorf("auth rejected: %s", authResp.Error)
+    }
+
+    return &authResp, nil
+}
 func main() {
 	cfg := config.LoadConfig()
 	logger.InitLogger(cfg.LogLevel)
@@ -447,33 +502,52 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			slog.Debug("Sent Heartbeat Ack", "seq", packet.Sequence)
 
 		case protocol.CS_LOGIN_REQUEST:
-			slog.Info("Routing login request to Auth Server")
-			
-			// Gera session token no login (PATCH 3)
-			sessionToken = fmt.Sprintf("sess_gate_%d_%s", time.Now().UnixNano(), conn.RemoteAddr().String())
-			if s.redisClient != nil {
-				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-				err := s.redisClient.Client.Set(ctx, sessionToken, conn.RemoteAddr().String(), 2*time.Hour).Err()
-				cancel()
-				if err != nil {
-					slog.Error("Failed to register session in Redis", "error", err)
-				} else {
-					slog.Info("Registered session token in Redis", "token", sessionToken)
-					lastRefresh = time.Now()
-				}
-			}
+            slog.Info("Routing login request to Auth Server")
 
-			// Publica evento no Message Bus (PATCH 1)
-			messaging.GetInstance().Publish("gateway.login", sessionToken)
+            loginReq, err := protocol.DecodeLoginRequest(packet.Payload)
+            if err != nil || loginReq.Username == "" || loginReq.Password == "" {
+                slog.Warn("Invalid CS_LOGIN_REQUEST payload", "error", err)
 
-			response := &protocol.Packet{
-				Opcode:   protocol.SC_LOGIN_RESPONSE,
-				Sequence: packet.Sequence,
-				Payload:  []byte(sessionToken), // Retorna o token gerado
-			}
-			conn.Write(response.Serialize())
+                response := &protocol.Packet{
+                    Opcode:   protocol.SC_LOGIN_RESPONSE,
+                    Sequence: packet.Sequence,
+                    Payload:  []byte("ERROR|invalid_login_payload"),
+                }
+                conn.Write(response.Serialize())
+                break
+            }
 
-		case protocol.CS_CHAR_LIST_REQUEST:
+            authCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+            authResp, err := s.authenticateWithAuthServer(authCtx, loginReq.Username, loginReq.Password)
+            cancel()
+
+            if err != nil {
+                slog.Warn("Login rejected by Auth Server", "username", loginReq.Username, "error", err)
+
+                response := &protocol.Packet{
+                    Opcode:   protocol.SC_LOGIN_RESPONSE,
+                    Sequence: packet.Sequence,
+                    Payload:  []byte("ERROR|invalid_credentials"),
+                }
+                conn.Write(response.Serialize())
+                break
+            }
+
+            sessionToken = authResp.Token
+            lastRefresh = time.Now()
+
+            slog.Info("Login accepted by Auth Server", "username", loginReq.Username, "account_id", authResp.AccountID)
+
+            messaging.GetInstance().Publish("gateway.login", sessionToken)
+
+            response := &protocol.Packet{
+                Opcode:   protocol.SC_LOGIN_RESPONSE,
+                Sequence: packet.Sequence,
+                Payload:  []byte(sessionToken),
+            }
+            conn.Write(response.Serialize())
+
+        case protocol.CS_CHAR_LIST_REQUEST:
 	slog.Info("Requesting character list from PostgreSQL")
 
 	// FASE 3.3 Task 2: account_id=1 temporÃ¡rio atÃ© o login TCP validar conta real.
