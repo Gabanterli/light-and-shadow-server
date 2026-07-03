@@ -637,20 +637,22 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
                 break
             }
 
-            playerID = selectedCharacterName // Define o ID ativo para este cliente do jogo
+            characterID := selectedCharacterName // ID validado, mas ainda não ativo até LoadCharacter concluir
 
 			// Carrega dados persistentes do banco PostgreSQL de forma atÃ´mica (PATCH 4)
-			stats, items, savedX, savedY, savedZ, version, exp, gold, err := s.persistenceMgr.LoadCharacter(playerID)
+			stats, items, savedX, savedY, savedZ, version, exp, gold, err := s.persistenceMgr.LoadCharacter(characterID)
 			if err != nil {
-				slog.Error("Failed to load character from PostgreSQL, falling back", "player", playerID, "error", err)
-				defaultInv := inventory.NewPlayerInventory(playerID)
-				stats = &defaultInv.BaseStats
-				items = defaultInv.Items
-				savedX, savedY, savedZ = 100.0, 100.0, 0.0
-				version = 1
-				exp = 0
-				gold = 1000
-			}
+                slog.Error("Failed to load character from PostgreSQL; rejecting character selection", "character", characterID, "account_id", authenticatedAccountID, "error", err)
+                response := &protocol.Packet{
+                    Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
+                    Sequence: packet.Sequence,
+                    Payload:  []byte{0}, // Status: failed
+                }
+                conn.Write(response.Serialize())
+                break
+            }
+
+            playerID = characterID // Ativa o jogador somente após load persistente bem-sucedido
 
 			// Inicializa inventÃ¡rio in-memory do jogador
 			playerInv := inventory.NewPlayerInventory(playerID)
