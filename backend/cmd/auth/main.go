@@ -1,4 +1,4 @@
-﻿package main
+package main
 
 import (
     "context"
@@ -8,6 +8,7 @@ import (
     "fmt"
     "log/slog"
     "net/http"
+    "os"
     "strings"
     "time"
 
@@ -45,12 +46,14 @@ func main() {
 
     pgPool, err := db.NewPostgresPool(cfg.PostgresDSN)
     if err != nil {
-        slog.Warn("PostgreSQL connection failed in Auth Server", "error", err)
+        slog.Error("PostgreSQL connection failed; refusing to start Auth Server", "error", err)
+        os.Exit(1)
     }
 
     redisClient, err := db.NewRedisClient(cfg.RedisAddr, cfg.RedisPassword, cfg.RedisDB)
     if err != nil {
-        slog.Warn("Redis connection failed in Auth Server", "error", err)
+        slog.Error("Redis connection failed; refusing to start Auth Server", "error", err)
+        os.Exit(1)
     }
 
     server := &AuthServer{
@@ -76,8 +79,7 @@ func (s *AuthServer) authenticateAccount(ctx context.Context, username string, p
     }
 
     if s.pgPool == nil || s.pgPool.DB == nil {
-        slog.Warn("PostgreSQL unavailable in Auth Server. Falling back to default account_id=1", "username", username)
-        return 1, nil
+        return 0, fmt.Errorf("postgresql unavailable")
     }
 
     var accountID int

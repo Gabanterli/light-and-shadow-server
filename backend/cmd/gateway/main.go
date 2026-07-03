@@ -136,14 +136,16 @@ func main() {
 
 	// InicializaÃ§Ã£o de bancos de dados (tolerante a fallbacks locais)
 	pgPool, err := db.NewPostgresPool(cfg.PostgresDSN)
-	if err != nil {
-		slog.Warn("PostgreSQL pool initialization failed (running in fallback mode)", "error", err)
-	}
+    if err != nil {
+        slog.Error("PostgreSQL pool initialization failed; refusing to start Gateway", "error", err)
+        os.Exit(1)
+    }
 
 	redisClient, err := db.NewRedisClient(cfg.RedisAddr, cfg.RedisPassword, cfg.RedisDB)
-	if err != nil {
-		slog.Warn("Redis client initialization failed (running in fallback mode)", "error", err)
-	}
+    if err != nil {
+        slog.Error("Redis client initialization failed; refusing to start Gateway", "error", err)
+        os.Exit(1)
+    }
 
 	// Inicializa e configura Sistemas de Movimento e AOI (Sprint 2 Task 4)
 	spatialIndex := movement.NewSpatialIndex()
@@ -179,9 +181,10 @@ func main() {
 
 	// Inicializa e configura PersistenceManager e Esquemas do DB
 	persistenceMgr := persistence.NewPersistenceManager(pgPool)
-	if err := persistenceMgr.InitSchema(); err != nil {
-		slog.Error("Failed to initialize database schema", "error", err)
-	}
+    if err := persistenceMgr.InitSchema(); err != nil {
+        slog.Error("Failed to initialize database schema; refusing to start Gateway", "error", err)
+        os.Exit(1)
+    }
 
 	// Inicializa e configura Gateway
 	server := &GatewayServer{
