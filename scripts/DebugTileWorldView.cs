@@ -5,6 +5,7 @@ public partial class DebugTileWorldView : Control
 {
     public DebugChunkStore? ChunkStore { get; set; }
     public Vector2I? PlayerTilePosition { get; set; }
+    public Vector2I? TargetPosition { get; set; }
 
     private const int TileSize = 4;
     private const int ChunkWidthInTiles = 32;
@@ -13,6 +14,7 @@ public partial class DebugTileWorldView : Control
     private readonly Color _walkableColor = new(0.3f, 0.3f, 0.3f);
     private readonly Color _blockedColor = new(0.8f, 0.2f, 0.2f);
     private readonly Color _playerColor = new(0.9f, 0.9f, 0.2f);
+    private readonly Color _targetColor = new(1.0f, 0.5f, 0.2f, 0.5f);
 
     public override void _Draw()
     {
@@ -69,6 +71,22 @@ public partial class DebugTileWorldView : Control
             if (visibleRect.Intersects(playerRect))
             {
                 DrawRect(playerRect, _playerColor);
+            }
+        }
+
+        // Draw target marker on top
+        if (TargetPosition.HasValue)
+        {
+            var targetGlobalTileX = TargetPosition.Value.X;
+            var targetGlobalTileY = TargetPosition.Value.Y;
+
+            var drawX = (targetGlobalTileX * TileSize) - minPixelX;
+            var drawY = (targetGlobalTileY * TileSize) - minPixelY;
+
+            var targetRect = new Rect2(drawX, drawY, TileSize, TileSize);
+            if (visibleRect.Intersects(targetRect))
+            {
+                DrawRect(targetRect, _targetColor);
             }
         }
     }

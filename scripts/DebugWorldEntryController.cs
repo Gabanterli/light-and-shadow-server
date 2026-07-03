@@ -38,8 +38,16 @@ public partial class DebugWorldEntryController : Control
     private Label? _lastChunkValueLabel;
     private Label? _lastTimestampValueLabel;
 
+    // Move State UI Node references
+    private Label? _confirmedPosValueLabel;
+    private Label? _lastTargetValueLabel;
+    private Label? _movePendingValueLabel;
+
     // Local state for debug movement
     private (int x, int y, int z) _currentConfirmedPos = (103, 102, 0);
+
+    private bool _isMovePending = false;
+    private Vector2I? _lastSentTarget;
 
     public override void _Ready()
     {
@@ -64,6 +72,11 @@ public partial class DebugWorldEntryController : Control
         _lastChunkValueLabel = GetNode<Label>("VBoxContainer/SnapshotGridContainer/LastChunkValueLabel");
         _lastTimestampValueLabel = GetNode<Label>("VBoxContainer/SnapshotGridContainer/LastTimestampValueLabel");
 
+        // Get move state node references
+        _confirmedPosValueLabel = GetNode<Label>("VBoxContainer/MoveStateGridContainer/ConfirmedPosValueLabel");
+        _lastTargetValueLabel = GetNode<Label>("VBoxContainer/MoveStateGridContainer/LastTargetValueLabel");
+        _movePendingValueLabel = GetNode<Label>("VBoxContainer/MoveStateGridContainer/MovePendingValueLabel");
+
         _backButton.Pressed += OnBackButtonPressed;
         _sendMoveButton.Pressed += OnSendMoveButtonPressed;
 
@@ -72,6 +85,9 @@ public partial class DebugWorldEntryController : Control
 
         // Set initial player marker position
         _worldView.PlayerTilePosition = new Vector2I(_currentConfirmedPos.x, _currentConfirmedPos.y);
+
+        // Set initial move state UI
+        _confirmedPosValueLabel!.Text = $"({_currentConfirmedPos.x}, {_currentConfirmedPos.y}, {_currentConfirmedPos.z})";
 
         // Populate UI with session data
         if (Session != null)
@@ -119,6 +135,12 @@ public partial class DebugWorldEntryController : Control
     
     private async void OnSendMoveButtonPressed()
     {
+        if (_isMovePending)
+        {
+            LogPacketInfo("Cannot send move: a move is already pending confirmation.");
+            return;
+        }
+
         SetMoveResultText("Last Move Result: button clicked");
 
         if (GatewayClient == null || !GatewayClient.IsConnected)
@@ -138,13 +160,22 @@ public partial class DebugWorldEntryController : Control
         var targetY = _currentConfirmedPos.y;
         var targetZ = (sbyte)_currentConfirmedPos.z;
         var clientTimestamp = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        _lastSentTarget = new Vector2I(targetX, targetY);
+
+        // Enter pending state
+        _isMovePending = true;
+        _sendMoveButton!.Disabled = true;
+        _movePendingValueLabel!.Text = "Yes";
+        _lastTargetValueLabel!.Text = $"({targetX}, {targetY})";
+        _worldView!.TargetPosition = _lastSentTarget;
+        _worldView.QueueRedraw();
 
         var logMessage = new StringBuilder();
         logMessage.AppendLine($"[SEND] Opcode: 2004 (CS_MOVE_REQUEST)");
         logMessage.AppendLine($"  Target: ({targetX}, {targetY}, {targetZ})");
         LogPacketInfo(logMessage.ToString());
         SetMoveResultText($"Last Move Result: sending move request to ({targetX}, {targetY}, {targetZ})");
-
+        
         try
         {
             await GatewayClient.SendMoveRequestAsync(targetX, targetY, targetZ, 0, clientTimestamp, _cts.Token);
@@ -152,12 +183,15 @@ public partial class DebugWorldEntryController : Control
         }
         catch (OperationCanceledException)
         {
-            // This is expected if the scene is closing while a send is in progress.
             LogPacketInfo("Move request was canceled.");
+            SetMoveResultText("Last Move Result: request canceled");
+            CallDeferred(nameof(ResetMoveState));
         }
         catch (Exception ex)
         {
             LogPacketInfo($"Error sending move request: {ex.Message}");
+            SetMoveResultText($"Last Move Result: send error - {ex.GetType().Name}");
+            CallDeferred(nameof(ResetMoveState));
         }
     }
 
@@ -264,6 +298,9 @@ public partial class DebugWorldEntryController : Control
         var resultText = data != null ? $"success={data.Success} confirmed=({data.X:F2}, {data.Y:F2}, {data.Z}) seq={data.Seq}" : "Error: payload decode failed";
         CallDeferred(nameof(SetMoveResultText), "Last Move Result: " + resultText);
 
+        // Always reset the pending state after receiving a response.
+        CallDeferred(nameof(ResetMoveState));
+
         CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
     }
 
@@ -322,5 +359,15 @@ public partial class DebugWorldEntryController : Control
             _worldView.PlayerTilePosition = new Vector2I(x, y);
             _worldView.QueueRedraw();
         }
+    }
+
+    private void ResetMoveState()
+    {
+        _isMovePending = false;
+        _sendMoveButton!.Disabled = false;
+        _movePendingValueLabel!.Text = "No";
+        _worldView!.TargetPosition = null;
+        _worldView.QueueRedraw();
+        _confirmedPosValueLabel!.Text = $"({_currentConfirmedPos.x}, {_currentConfirmedPos.y}, {_currentConfirmedPos.z})";
     }
 }
