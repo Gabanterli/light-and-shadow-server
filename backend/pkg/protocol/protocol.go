@@ -1747,3 +1747,48 @@ func DecodeCharacterListResponse(payload []byte) (*CharacterListResponse, error)
         Characters: characters,
     }, nil
 }
+
+type CharacterSelectResponse struct {
+    Success       bool
+    CharacterName string
+    ErrorCode     string
+}
+
+func EncodeCharacterSelectResponse(success bool, characterName string, errorCode string) []byte {
+    status := byte(0)
+    if success {
+        status = 1
+    }
+
+    payload := []byte{status}
+    payload = appendLengthPrefixedProtocolString(payload, characterName)
+    payload = appendLengthPrefixedProtocolString(payload, errorCode)
+
+    return payload
+}
+
+func DecodeCharacterSelectResponse(payload []byte) (*CharacterSelectResponse, error) {
+    if len(payload) < 5 {
+        return nil, fmt.Errorf("character select response payload too small: %d", len(payload))
+    }
+
+    status := payload[0]
+    offset := 1
+
+    characterName, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
+    if err != nil {
+        return nil, err
+    }
+    offset = nextOffset
+
+    errorCode, _, err := readLengthPrefixedProtocolString(payload, offset)
+    if err != nil {
+        return nil, err
+    }
+
+    return &CharacterSelectResponse{
+        Success:       status == 1,
+        CharacterName: characterName,
+        ErrorCode:     errorCode,
+    }, nil
+}

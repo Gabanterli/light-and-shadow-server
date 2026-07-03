@@ -598,7 +598,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
                 response := &protocol.Packet{
                     Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
                     Sequence: packet.Sequence,
-                    Payload:  []byte{0},
+                    Payload:  protocol.EncodeCharacterSelectResponse(false, "", "not_authenticated"),
                 }
                 conn.Write(response.Serialize())
                 break
@@ -612,7 +612,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
                 response := &protocol.Packet{
                     Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
                     Sequence: packet.Sequence,
-                    Payload:  []byte{0}, // Status: failed
+                    Payload:  protocol.EncodeCharacterSelectResponse(false, "", "invalid_character_select_payload"), // Status: failed
                 }
                 conn.Write(response.Serialize())
                 break
@@ -625,7 +625,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
                 response := &protocol.Packet{
                     Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
                     Sequence: packet.Sequence,
-                    Payload:  []byte{0}, // Status: failed
+                    Payload:  protocol.EncodeCharacterSelectResponse(false, "", "ownership_validation_failed"), // Status: failed
                 }
                 conn.Write(response.Serialize())
                 break
@@ -636,7 +636,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
                 response := &protocol.Packet{
                     Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
                     Sequence: packet.Sequence,
-                    Payload:  []byte{0}, // Status: failed
+                    Payload:  protocol.EncodeCharacterSelectResponse(false, "", "character_not_owned"), // Status: failed
                 }
                 conn.Write(response.Serialize())
                 break
@@ -651,7 +651,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
                 response := &protocol.Packet{
                     Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
                     Sequence: packet.Sequence,
-                    Payload:  []byte{0}, // Status: failed
+                    Payload:  protocol.EncodeCharacterSelectResponse(false, "", "character_load_failed"), // Status: failed
                 }
                 conn.Write(response.Serialize())
                 break
@@ -711,7 +711,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			response := &protocol.Packet{
 				Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
 				Sequence: packet.Sequence,
-				Payload:  []byte{1}, // Status: ok
+				Payload:  protocol.EncodeCharacterSelectResponse(true, characterID, ""),
 			}
 			conn.Write(response.Serialize())
 
