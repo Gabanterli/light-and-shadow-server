@@ -19,6 +19,8 @@ public partial class DebugAuthController : Control
 
     private GatewayTcpClient _gatewayClient = new("127.0.0.1", 8080);
     
+    private readonly AuthSession _authSession = new();
+    
     private readonly List<string> _characterNames = new();
 
     public override void _Ready()
@@ -48,6 +50,7 @@ public partial class DebugAuthController : Control
     public override void _ExitTree()
     {
         _gatewayClient.Dispose();
+        _authSession.Clear();
     }
 
     private async void OnLoginButtonPressed()
@@ -76,15 +79,17 @@ public partial class DebugAuthController : Control
 
             if (response.Status)
             {
+                _authSession.SetLogin(response.AccountId, response.Token);
                 _statusLabel.Text = $"Status: Logged in! Account ID: {response.AccountId}";
-                Log("Login successful. Session token received but not printed.");
+                Log("Login successful. AuthSession updated.");
                 _requestCharactersButton!.Disabled = false;
             }
             else
             {
                 _statusLabel.Text = "Status: Login failed.";
                 Log($"Login failed. Error: {response.ErrorCode}");
-                _gatewayClient.Disconnect();
+                _authSession.Clear();
+                _gatewayClient.Disconnect(); // Disconnect on failed login
             }
         }
         catch (Exception ex)
@@ -92,6 +97,7 @@ public partial class DebugAuthController : Control
             _statusLabel.Text = "Status: Error.";
             Log($"Exception during login: {ex.Message}");
             _gatewayClient.Disconnect();
+            _authSession.Clear();
         }
         finally
         {
@@ -132,6 +138,7 @@ public partial class DebugAuthController : Control
             _statusLabel.Text = "Status: Error.";
             Log($"Exception during character list request: {ex.Message}");
             _gatewayClient.Disconnect();
+            _authSession.Clear();
             _requestCharactersButton.Disabled = true;
             _selectCharacterButton!.Disabled = true;
         }
@@ -172,8 +179,9 @@ public partial class DebugAuthController : Control
             var response = await _gatewayClient.SelectCharacterAsync(characterName);
             if (response.Status)
             {
+                _authSession.SetSelectedCharacter(response.CharacterName);
                 _statusLabel.Text = $"Status: Character '{response.CharacterName}' selected!";
-                Log($"Successfully selected character: {response.CharacterName}");
+                Log($"Successfully selected character. AuthSession updated with '{response.CharacterName}'.");
             }
             else
             {
@@ -186,6 +194,7 @@ public partial class DebugAuthController : Control
             _statusLabel.Text = "Status: Error.";
             Log($"Exception during character selection: {ex.Message}");
             _gatewayClient.Disconnect();
+            _authSession.Clear();
             _requestCharactersButton!.Disabled = true;
         }
         finally
