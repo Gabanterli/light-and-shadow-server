@@ -1,4 +1,4 @@
-package main
+﻿package main
 
 import (
 	"context"
@@ -79,7 +79,7 @@ func main() {
 
 	slog.Info("Starting Light and Shadow Gateway Server...")
 
-	// Inicialização de bancos de dados (tolerante a fallbacks locais)
+	// InicializaÃ§Ã£o de bancos de dados (tolerante a fallbacks locais)
 	pgPool, err := db.NewPostgresPool(cfg.PostgresDSN)
 	if err != nil {
 		slog.Warn("PostgreSQL pool initialization failed (running in fallback mode)", "error", err)
@@ -99,7 +99,7 @@ func main() {
 	// Inicializa Sistema de Combate Autorizativo (Sprint 2 Task 5)
 	combatManager := combat.NewCombatManager(chunkManager)
 
-	// Configura LevelProvider para checagens de região da Sprint 3 Task 5 (PATCH 1)
+	// Configura LevelProvider para checagens de regiÃ£o da Sprint 3 Task 5 (PATCH 1)
 	movementSystem.LevelProvider = func(playerID string) int {
 	if stats, exists := combatManager.GetEntityStats(playerID); exists {
 		return stats.Level
@@ -110,7 +110,7 @@ func main() {
 	// Inicializa Sistema de Combate Autorizativo (Sprint 2 Task 5)
 	combatManager = combat.NewCombatManager(chunkManager)
 
-	// Configura manipuladores de eventos de combate assíncronos (projéteis)
+	// Configura manipuladores de eventos de combate assÃ­ncronos (projÃ©teis)
 	combatManager.SetEventHandler(combat.CombatEventHandler{
 		OnDamage: func(attackerID, targetID string, damage float64, isCrit, isHit bool, skillName string) {
 			dmgPayload := protocol.EncodeDamageEvent(attackerID, targetID, damage, isCrit, isHit, true, skillName)
@@ -214,7 +214,7 @@ func main() {
 		},
 	)
 
-	// Registra callbacks de atualização de quests por rede
+	// Registra callbacks de atualizaÃ§Ã£o de quests por rede
 	questManager.RegisterQuestUpdateCallback(func(pID string, qID string, state *quest.CharacterQuestState) {
 		if pConn, ok := aoiManager.GetPlayerConn(pID); ok {
 			if state == nil {
@@ -276,7 +276,7 @@ func main() {
 		})
 	})
 
-	// Inicializa os gerenciadores de Bênçãos, Respawn e Penalidades de Morte (Sprint 5)
+	// Inicializa os gerenciadores de BÃªnÃ§Ã£os, Respawn e Penalidades de Morte (Sprint 5)
 	blessingManager := blessing.NewBlessingManager(sqlDB)
 	server.blessingManager = blessingManager
 
@@ -333,7 +333,7 @@ func (s *GatewayServer) startHTTPServer() {
 	})
 
 	s.httpServer = &http.Server{
-		Addr:    fmt.Sprintf(":%d", s.config.GatewayPort+1000), // Ex: 9080 se gateway está na 8080
+		Addr:    fmt.Sprintf(":%d", s.config.GatewayPort+1000), // Ex: 9080 se gateway estÃ¡ na 8080
 		Handler: mux,
 	}
 
@@ -385,7 +385,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 		delete(s.clients, conn)
 		s.clientsMu.Unlock()
 
-		// Disconnect invalida sessão no Redis (PATCH 3)
+		// Disconnect invalida sessÃ£o no Redis (PATCH 3)
 		if sessionToken != "" && s.redisClient != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			_ = s.redisClient.Client.Del(ctx, sessionToken).Err()
@@ -395,7 +395,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 
 		// Desregistra jogador do motor de movimentos e AOI para liberar recursos de rede
 		if playerID != "" {
-			// Salva o personagem antes de remover as referências in-memory (Save on logout/disconnect)
+			// Salva o personagem antes de remover as referÃªncias in-memory (Save on logout/disconnect)
 			slog.Info("Saving player state on disconnect / logout...", "player", playerID)
 			s.saveCharacterState(playerID)
 
@@ -422,7 +422,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 
 		slog.Info("Received packet", "opcode", packet.Opcode, "size", packet.Size, "seq", packet.Sequence)
 
-		// Refresh automático de sessão a cada 60s (Sliding Window) (PATCH 3)
+		// Refresh automÃ¡tico de sessÃ£o a cada 60s (Sliding Window) (PATCH 3)
 		if sessionToken != "" && s.redisClient != nil && time.Since(lastRefresh) >= 60*time.Second {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			err := s.redisClient.Client.Expire(ctx, sessionToken, 2*time.Hour).Err()
@@ -435,10 +435,10 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			}
 		}
 
-		// Lógica do protocolo Gateway
+		// LÃ³gica do protocolo Gateway
 		switch packet.Opcode {
 		case protocol.CS_HEARTBEAT:
-			// Responder Ack de Heartbeat imediatamente para manter conexão viva
+			// Responder Ack de Heartbeat imediatamente para manter conexÃ£o viva
 			ack := &protocol.Packet{
 				Opcode:   protocol.SC_HEARTBEAT_ACK,
 				Sequence: packet.Sequence,
@@ -476,7 +476,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 		case protocol.CS_CHAR_LIST_REQUEST:
 	slog.Info("Requesting character list from PostgreSQL")
 
-	// FASE 3.3 Task 2: account_id=1 temporário até o login TCP validar conta real.
+	// FASE 3.3 Task 2: account_id=1 temporÃ¡rio atÃ© o login TCP validar conta real.
 	characters, err := s.persistenceMgr.ListCharactersByAccount(1)
 	if err != nil {
 		slog.Error("Failed to list characters from PostgreSQL", "error", err)
@@ -506,10 +506,48 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 	conn.Write(response.Serialize())
 
 		case protocol.CS_CHAR_SELECT_REQUEST:
-			slog.Info("Routing character selection to World Server")
-			playerID = "Gabriela" // Define o ID ativo para este cliente do jogo
+            slog.Info("Routing character selection to World Server")
 
-			// Carrega dados persistentes do banco PostgreSQL de forma atômica (PATCH 4)
+            offset := 0
+            selectedCharacterName, err := protocol.ReadString(packet.Payload, &offset)
+            if err != nil || selectedCharacterName == "" {
+                slog.Warn("Invalid CS_CHAR_SELECT_REQUEST payload", "error", err)
+                response := &protocol.Packet{
+                    Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
+                    Sequence: packet.Sequence,
+                    Payload:  []byte{0}, // Status: failed
+                }
+                conn.Write(response.Serialize())
+                break
+            }
+
+            // FASE 3.3 Task 3: account_id=1 temporário até o login TCP validar conta real.
+            ownsCharacter, err := s.persistenceMgr.CharacterBelongsToAccount(1, selectedCharacterName)
+            if err != nil {
+                slog.Error("Failed to validate selected character ownership", "character", selectedCharacterName, "error", err)
+                response := &protocol.Packet{
+                    Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
+                    Sequence: packet.Sequence,
+                    Payload:  []byte{0}, // Status: failed
+                }
+                conn.Write(response.Serialize())
+                break
+            }
+
+            if !ownsCharacter {
+                slog.Warn("Character selection rejected: character does not belong to account", "character", selectedCharacterName, "account_id", 1)
+                response := &protocol.Packet{
+                    Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
+                    Sequence: packet.Sequence,
+                    Payload:  []byte{0}, // Status: failed
+                }
+                conn.Write(response.Serialize())
+                break
+            }
+
+            playerID = selectedCharacterName // Define o ID ativo para este cliente do jogo
+
+			// Carrega dados persistentes do banco PostgreSQL de forma atÃ´mica (PATCH 4)
 			stats, items, savedX, savedY, savedZ, version, exp, gold, err := s.persistenceMgr.LoadCharacter(playerID)
 			if err != nil {
 				slog.Error("Failed to load character from PostgreSQL, falling back", "player", playerID, "error", err)
@@ -522,14 +560,14 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				gold = 1000
 			}
 
-			// Inicializa inventário in-memory do jogador
+			// Inicializa inventÃ¡rio in-memory do jogador
 			playerInv := inventory.NewPlayerInventory(playerID)
 			playerInv.SetItems(items)
-			playerInv.BaseStats = *stats // Configura bônus de stats base antes do recálculo
+			playerInv.BaseStats = *stats // Configura bÃ´nus de stats base antes do recÃ¡lculo
 			playerInv.SetVersion(version) // (PATCH 4)
 			playerInv.SetDirty(false)     // (PATCH 2)
-			playerInv.SetGold(gold)       // Define o gold do inventário
-			pve.SetPlayerXp(playerID, exp) // Inicializa o XP do jogador para o PvE e Progressão de Nível
+			playerInv.SetGold(gold)       // Define o gold do inventÃ¡rio
+			pve.SetPlayerXp(playerID, exp) // Inicializa o XP do jogador para o PvE e ProgressÃ£o de NÃ­vel
 
 			// Recalcula stats baseado nos equipamentos equipados de verdade no banco!
 			playerInv.RecalculateStats(stats)
@@ -541,11 +579,11 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			s.aoiManager.RegisterPlayer(playerID, conn)
 			s.movementSystem.InitPlayerState(playerID, savedX, savedY, int(savedZ))
 
-			// Carrega e sincroniza estado de quests e diálogos de NPCs (Sprint 3 Task 3)
+			// Carrega e sincroniza estado de quests e diÃ¡logos de NPCs (Sprint 3 Task 3)
 			_ = s.questManager.GetPlayerState(playerID)
 			s.questManager.SyncAllActiveQuests(playerID)
 
-			// Registra o jogador no CombatManager (com seus bônus de atributos)
+			// Registra o jogador no CombatManager (com seus bÃ´nus de atributos)
 			s.combatManager.RegisterEntity(stats, savedX, savedY)
 
 			// Registra o NPC Orc Elite inimigo para simular combate PvE
@@ -578,7 +616,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			}
 			conn.Write(response.Serialize())
 
-			// Envia sincronização binária inicial de inventário e atributos recalculados
+			// Envia sincronizaÃ§Ã£o binÃ¡ria inicial de inventÃ¡rio e atributos recalculados
 			s.sendInventorySync(conn, playerID, stats, playerInv)
 
 			// Streaming inicial de chunks (janela deslizante 3x3 ao redor de sua Spawn Zone salva)
@@ -630,14 +668,14 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 
 			if !ok || playerInv == nil {
 				slog.Warn("Inventory not found for player on equip", "player", playerID)
-				respPayload := protocol.EncodeEquipItemResponse(false, "Inventário não encontrado")
+				respPayload := protocol.EncodeEquipItemResponse(false, "InventÃ¡rio nÃ£o encontrado")
 				conn.Write((&protocol.Packet{Opcode: protocol.SC_EQUIP_RESPONSE, Sequence: packet.Sequence, Payload: respPayload}).Serialize())
 				break
 			}
 
 			stats, exists := s.combatManager.GetEntityStats(playerID)
 			if !exists || stats == nil {
-				respPayload := protocol.EncodeEquipItemResponse(false, "Jogador não registrado no motor de combate")
+				respPayload := protocol.EncodeEquipItemResponse(false, "Jogador nÃ£o registrado no motor de combate")
 				conn.Write((&protocol.Packet{Opcode: protocol.SC_EQUIP_RESPONSE, Sequence: packet.Sequence, Payload: respPayload}).Serialize())
 				break
 			}
@@ -671,14 +709,14 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			s.inventoriesMu.RUnlock()
 
 			if !ok || playerInv == nil {
-				respPayload := protocol.EncodeUnequipItemResponse(false, "Inventário não encontrado")
+				respPayload := protocol.EncodeUnequipItemResponse(false, "InventÃ¡rio nÃ£o encontrado")
 				conn.Write((&protocol.Packet{Opcode: protocol.SC_UNEQUIP_RESPONSE, Sequence: packet.Sequence, Payload: respPayload}).Serialize())
 				break
 			}
 
 			stats, exists := s.combatManager.GetEntityStats(playerID)
 			if !exists || stats == nil {
-				respPayload := protocol.EncodeUnequipItemResponse(false, "Jogador não registrado")
+				respPayload := protocol.EncodeUnequipItemResponse(false, "Jogador nÃ£o registrado")
 				conn.Write((&protocol.Packet{Opcode: protocol.SC_UNEQUIP_RESPONSE, Sequence: packet.Sequence, Payload: respPayload}).Serialize())
 				break
 			}
@@ -712,7 +750,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			s.inventoriesMu.RUnlock()
 
 			if !ok || playerInv == nil {
-				respPayload := protocol.EncodeSwapSlotsResponse(false, "Inventário não encontrado")
+				respPayload := protocol.EncodeSwapSlotsResponse(false, "InventÃ¡rio nÃ£o encontrado")
 				conn.Write((&protocol.Packet{Opcode: protocol.SC_SWAP_RESPONSE, Sequence: packet.Sequence, Payload: respPayload}).Serialize())
 				break
 			}
@@ -742,13 +780,13 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 
-			// Validar distância
+			// Validar distÃ¢ncia
 			if err := s.npcManager.ValidateInteractionDistance(playerID, req.NPCID, s.spatialIndex); err != nil {
 				slog.Warn("NPC interaction rejected due to distance/floor check", "player", playerID, "npc", req.NPCID, "error", err)
 				break
 			}
 
-			// Carrega nó inicial
+			// Carrega nÃ³ inicial
 			node, err := s.npcManager.GetVisibleNode(playerID, req.NPCID, "start", s.questManager)
 			if err != nil {
 				slog.Error("Failed to load initial dialogue node", "player", playerID, "npc", req.NPCID, "error", err)
@@ -758,7 +796,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			// Define estado de conversa atual no jogador
 			s.questManager.SetDialogueFlag(playerID, req.NPCID, node.NodeID)
 
-			// Envia diálogo aberto
+			// Envia diÃ¡logo aberto
 			choices := make([]protocol.DialogueOpenChoice, 0, len(node.Responses))
 			for _, r := range node.Responses {
 				choices = append(choices, protocol.DialogueOpenChoice{
@@ -796,26 +834,26 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 
-			// Validar distância
+			// Validar distÃ¢ncia
 			if err := s.npcManager.ValidateInteractionDistance(playerID, req.NPCID, s.spatialIndex); err != nil {
 				slog.Warn("Dialogue response rejected due to distance/floor check", "player", playerID, "npc", req.NPCID, "error", err)
 				break
 			}
 
-			// Se next node for "end", encerra o diálogo e limpa ou atualiza a flag
+			// Se next node for "end", encerra o diÃ¡logo e limpa ou atualiza a flag
 			if req.NextNodeID == "end" || req.NextNodeID == "" {
 				s.questManager.SetDialogueFlag(playerID, req.NPCID, "completed_conversation")
 				break
 			}
 
-			// Obtém nó de diálogo selecionado
+			// ObtÃ©m nÃ³ de diÃ¡logo selecionado
 			node, err := s.npcManager.GetVisibleNode(playerID, req.NPCID, req.NextNodeID, s.questManager)
 			if err != nil {
 				slog.Error("Failed to load dialogue node", "player", playerID, "npc", req.NPCID, "node", req.NextNodeID, "error", err)
 				break
 			}
 
-			// Processa gatilhos de quest ANTES de avançar para novo diálogo, garantindo transações atômicas (PATCH 2)
+			// Processa gatilhos de quest ANTES de avanÃ§ar para novo diÃ¡logo, garantindo transaÃ§Ãµes atÃ´micas (PATCH 2)
 			if node.QuestTrigger != nil {
 				if node.QuestTrigger.Action == "accept" {
 					if err := s.questManager.AcceptQuest(playerID, node.QuestTrigger.QuestID); err != nil {
@@ -831,7 +869,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			// Define estado de conversa atual no jogador
 			s.questManager.SetDialogueFlag(playerID, req.NPCID, node.NodeID)
 
-			// Envia diálogo aberto
+			// Envia diÃ¡logo aberto
 			choices := make([]protocol.DialogueOpenChoice, 0, len(node.Responses))
 			for _, r := range node.Responses {
 				choices = append(choices, protocol.DialogueOpenChoice{
@@ -1168,10 +1206,10 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			_ = direction
 			_ = clientTimestamp
 
-			// Validação de movimento física e temporal autoritativa (Sprint 2 Task 4)
+			// ValidaÃ§Ã£o de movimento fÃ­sica e temporal autoritativa (Sprint 2 Task 4)
 			success, confX, confY, confZ := s.movementSystem.ValidateAndMove(playerID, float64(targetX), float64(targetY), int(targetZ), packet.Sequence)
 
-			// Envia confirmação de volta ao cliente (SC_MOVE_CONFIRM)
+			// Envia confirmaÃ§Ã£o de volta ao cliente (SC_MOVE_CONFIRM)
 			confirm := struct {
 				X       float64 `json:"x"`
 				Y       float64 `json:"y"`
@@ -1195,17 +1233,17 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			conn.Write(confirmPacket.Serialize())
 
 			if success {
-				// Atualiza a posição no CombatManager para validação autoritativa de combate (Sprint 2 Task 5)
+				// Atualiza a posiÃ§Ã£o no CombatManager para validaÃ§Ã£o autoritativa de combate (Sprint 2 Task 5)
 				s.combatManager.UpdateEntityPosition(playerID, confX, confY)
 
-				// Marca o estado do jogador como alterado na persistência (PATCH 2)
+				// Marca o estado do jogador como alterado na persistÃªncia (PATCH 2)
 				s.inventoriesMu.RLock()
 				if playerInv, ok := s.inventories[playerID]; ok && playerInv != nil {
 					playerInv.SetDirty(true)
 				}
 				s.inventoriesMu.RUnlock()
 
-				// Broadcast da nova posição para jogadores vizinhos na AOI
+				// Broadcast da nova posiÃ§Ã£o para jogadores vizinhos na AOI
 				updatePayload, _ := json.Marshal(struct {
 					PlayerID string  `json:"id"`
 					X        float64 `json:"x"`
@@ -1219,7 +1257,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				})
 				s.aoiManager.BroadcastMove(playerID, confX, confY, confZ, updatePayload)
 
-				// Aciona hook de alcance de localizações de quest via MessageBus (PATCH 5)
+				// Aciona hook de alcance de localizaÃ§Ãµes de quest via MessageBus (PATCH 5)
 				messaging.GetInstance().Publish("location_reached", messaging.LocationReachedPayload{
 					PlayerID: playerID,
 					X:        confX,
@@ -1278,13 +1316,13 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			s.inventoriesMu.RUnlock()
 
 			if isProj {
-				// Projétil agendado. Broadcast visual do efeito de tiro via BroadcastEffects
+				// ProjÃ©til agendado. Broadcast visual do efeito de tiro via BroadcastEffects
 				spawnPayload := protocol.EncodeDamageEvent(playerID, req.TargetID, 0, false, false, true, req.WeaponType)
 				s.aoiManager.BroadcastEffects(playerID, protocol.SC_DAMAGE_EVENT, spawnPayload)
 				break
 			}
 
-			// Retorna evento de dano com sucesso para melee instantâneo
+			// Retorna evento de dano com sucesso para melee instantÃ¢neo
 			dmgPayload := protocol.EncodeDamageEvent(playerID, req.TargetID, damage, isCrit, damage > 0, true, "")
 			dmgPacket := &protocol.Packet{
 				Opcode:   protocol.SC_DAMAGE_EVENT,
@@ -1293,7 +1331,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			}
 			conn.Write(dmgPacket.Serialize())
 
-			// Broadcast do evento de dano para a área de interesse (AOI) via BroadcastCombat
+			// Broadcast do evento de dano para a Ã¡rea de interesse (AOI) via BroadcastCombat
 			s.aoiManager.BroadcastCombat(playerID, protocol.SC_DAMAGE_EVENT, dmgPayload)
 
 			// Verifica se o alvo morreu
@@ -1347,13 +1385,13 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			s.inventoriesMu.RUnlock()
 
 			if res.IsProjectile {
-				// Habilidade de projétil agendada. Broadcast de efeito visual via BroadcastEffects
+				// Habilidade de projÃ©til agendada. Broadcast de efeito visual via BroadcastEffects
 				spawnPayload := protocol.EncodeDamageEvent(playerID, req.TargetID, 0, false, false, true, res.Skill.Name)
 				s.aoiManager.BroadcastEffects(playerID, protocol.SC_DAMAGE_EVENT, spawnPayload)
 				break
 			}
 
-			// Retorna cada hit da habilidade instantânea como evento de dano
+			// Retorna cada hit da habilidade instantÃ¢nea como evento de dano
 			for _, hit := range res.TargetsHit {
 				dmgPayload := protocol.EncodeDamageEvent(playerID, hit.TargetID, hit.Damage, hit.IsCrit, hit.IsHit, true, res.Skill.Name)
 				dmgPacket := &protocol.Packet{
@@ -1409,7 +1447,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 			if req.Accepted == 1 {
-				// Procura o jogador mais próximo para iniciar a troca (ou o primeiro online nas redondezas)
+				// Procura o jogador mais prÃ³ximo para iniciar a troca (ou o primeiro online nas redondezas)
 				var partner string
 				px, py, _, _ := s.movementSystem.GetPlayerPos(playerID)
 				s.inventoriesMu.RLock()
@@ -1529,7 +1567,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			}
 
 			if committed {
-				// Envia confirmação de trade finalizado para ambos
+				// Envia confirmaÃ§Ã£o de trade finalizado para ambos
 				closedPkt := &protocol.Packet{Opcode: protocol.SC_TRADE_CLOSED, Payload: protocol.EncodeTradeClosed("Trade committed successfully")}
 				serializedClosed := closedPkt.Serialize()
 				if connA, ok := s.aoiManager.GetPlayerConn(session.PlayerA); ok {
@@ -1538,7 +1576,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				if connB, ok := s.aoiManager.GetPlayerConn(session.PlayerB); ok {
 					connB.Write(serializedClosed)
 				}
-				// Sincroniza inventários para ambos verem as mudanças imediatas
+				// Sincroniza inventÃ¡rios para ambos verem as mudanÃ§as imediatas
 				s.inventoriesMu.RLock()
 				statsA, existsA := s.combatManager.GetEntityStats(session.PlayerA)
 				statsB, existsB := s.combatManager.GetEntityStats(session.PlayerB)
@@ -1552,7 +1590,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 					}
 				}
 			} else {
-				// Sincroniza estado intermediário
+				// Sincroniza estado intermediÃ¡rio
 				s.broadcastTradeUpdate(playerID)
 				conn.Write((&protocol.Packet{Opcode: protocol.SC_NPC_SHOP_RESPONSE, Payload: protocol.EncodeNPCShopResponse(1, msg)}).Serialize())
 			}
@@ -1596,7 +1634,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				conn.Write((&protocol.Packet{Opcode: protocol.SC_NPC_SHOP_RESPONSE, Payload: protocol.EncodeNPCShopResponse(0, err.Error())}).Serialize())
 			} else {
 				conn.Write((&protocol.Packet{Opcode: protocol.SC_NPC_SHOP_RESPONSE, Payload: protocol.EncodeNPCShopResponse(1, msg)}).Serialize())
-				// Envia atualização de inventário imediata
+				// Envia atualizaÃ§Ã£o de inventÃ¡rio imediata
 				stats, _ := s.combatManager.GetEntityStats(playerID)
 				s.sendInventorySync(conn, playerID, stats, playerInv)
 			}
@@ -1747,7 +1785,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 
-			// Converte ordens para codec binário
+			// Converte ordens para codec binÃ¡rio
 			codecs := make([]protocol.MarketOrderCodec, 0, len(orders))
 			for _, o := range orders {
 				codecs = append(codecs, protocol.MarketOrderCodec{
@@ -1842,7 +1880,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 
 				currentConn.Write((&protocol.Packet{
 					Opcode:  protocol.SC_CHAT_MESSAGE,
-					Payload: protocol.EncodeChatMessage(0, "System", fmt.Sprintf("Você coletou 1x %s e ganhou %d XP de Profissão!", itemID, xp)),
+					Payload: protocol.EncodeChatMessage(0, "System", fmt.Sprintf("VocÃª coletou 1x %s e ganhou %d XP de ProfissÃ£o!", itemID, xp)),
 				}).Serialize())
 			}(playerID, nodeID, duration, conn, playerInv)
 
@@ -1877,7 +1915,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				}).Serialize())
 				conn.Write((&protocol.Packet{
 					Opcode:  protocol.SC_CHAT_MESSAGE,
-					Payload: protocol.EncodeChatMessage(0, "System", "Criação falhou: "+err.Error()),
+					Payload: protocol.EncodeChatMessage(0, "System", "CriaÃ§Ã£o falhou: "+err.Error()),
 				}).Serialize())
 				break
 			}
@@ -1899,12 +1937,12 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			if success {
 				conn.Write((&protocol.Packet{
 					Opcode:  protocol.SC_CHAT_MESSAGE,
-					Payload: protocol.EncodeChatMessage(0, "System", fmt.Sprintf("Você criou com sucesso 1x %s e ganhou %d XP!", outputItemID, xp)),
+					Payload: protocol.EncodeChatMessage(0, "System", fmt.Sprintf("VocÃª criou com sucesso 1x %s e ganhou %d XP!", outputItemID, xp)),
 				}).Serialize())
 			} else {
 				conn.Write((&protocol.Packet{
 					Opcode:  protocol.SC_CHAT_MESSAGE,
-					Payload: protocol.EncodeChatMessage(0, "System", fmt.Sprintf("Criação falhou! Os materiais foram consumidos, mas ganhou %d XP de consolação.", xp)),
+					Payload: protocol.EncodeChatMessage(0, "System", fmt.Sprintf("CriaÃ§Ã£o falhou! Os materiais foram consumidos, mas ganhou %d XP de consolaÃ§Ã£o.", xp)),
 				}).Serialize())
 			}
 
@@ -2027,21 +2065,21 @@ func (s *GatewayServer) Shutdown(ctx context.Context) error {
 		close(s.stopAutosave)
 	}
 
-	// Salva todos os personagens de forma síncrona/atômica antes do desligamento do servidor (crash shutdown)
+	// Salva todos os personagens de forma sÃ­ncrona/atÃ´mica antes do desligamento do servidor (crash shutdown)
 	slog.Info("Saving all active character states to PostgreSQL on shutdown...")
 	s.saveAllActiveCharacters()
 
-	// 1. Fecha o TCP Listener para novas conexões
+	// 1. Fecha o TCP Listener para novas conexÃµes
 	if s.tcpListener != nil {
 		s.tcpListener.Close()
 	}
 
-	// 2. Fecha conexões HTTP do health check
+	// 2. Fecha conexÃµes HTTP do health check
 	if s.httpServer != nil {
 		s.httpServer.Shutdown(ctx)
 	}
 
-	// 3. Fecha conexões de clientes ativos graciosamente
+	// 3. Fecha conexÃµes de clientes ativos graciosamente
 	s.clientsMu.Lock()
 	for conn := range s.clients {
 		conn.Close()
@@ -2092,7 +2130,7 @@ func (s *GatewayServer) startAutosaveLoop() {
 	}()
 }
 
-// Varre todos os inventários ativos cadastrados e os persiste no PostgreSQL
+// Varre todos os inventÃ¡rios ativos cadastrados e os persiste no PostgreSQL
 func (s *GatewayServer) saveAllActiveCharacters() {
 	s.inventoriesMu.RLock()
 	playerIDs := make([]string, 0, len(s.inventories))
@@ -2106,7 +2144,7 @@ func (s *GatewayServer) saveAllActiveCharacters() {
 	}
 }
 
-// Salva de forma transacional e atômica o estado de combate, inventário e posições físicas do jogador (PATCH 1, 2, 3, 4)
+// Salva de forma transacional e atÃ´mica o estado de combate, inventÃ¡rio e posiÃ§Ãµes fÃ­sicas do jogador (PATCH 1, 2, 3, 4)
 func (s *GatewayServer) saveCharacterState(playerID string) {
 	s.inventoriesMu.RLock()
 	playerInv, ok := s.inventories[playerID]
@@ -2116,7 +2154,7 @@ func (s *GatewayServer) saveCharacterState(playerID string) {
 		return
 	}
 
-	// 1. Obter cópia thread-safe dos atributos de combate (evita race conditions)
+	// 1. Obter cÃ³pia thread-safe dos atributos de combate (evita race conditions)
 	stats, exists := s.combatManager.GetEntityStatsCopy(playerID)
 	if !exists {
 		slog.Warn("Attempted to save player stats, but they are not registered in combatManager", "playerID", playerID)
@@ -2126,16 +2164,16 @@ func (s *GatewayServer) saveCharacterState(playerID string) {
 	posX, posY, _ := s.combatManager.GetEntityPosition(playerID)
 	posZ := 0.0
 
-	// 2. Criar snapshot atômico e imutável (PATCH 1)
+	// 2. Criar snapshot atÃ´mico e imutÃ¡vel (PATCH 1)
 	snapshot := playerInv.CreateSnapshot(stats, posX, posY, posZ)
 
-	// 3. Política de dirty-flag: Se não estiver marcado como modificado, ignorar gravação (PATCH 2)
+	// 3. PolÃ­tica de dirty-flag: Se nÃ£o estiver marcado como modificado, ignorar gravaÃ§Ã£o (PATCH 2)
 	if !snapshot.IsDirty {
 		slog.Debug("Skipping character state save: state is not dirty", "player", playerID)
 		return
 	}
 
-	// 4. Salvar usando o snapshot imutável, o isolamento transacional estrito e o optimistic locking (PATCH 3 & 4)
+	// 4. Salvar usando o snapshot imutÃ¡vel, o isolamento transacional estrito e o optimistic locking (PATCH 3 & 4)
 	err := s.persistenceMgr.SaveCharacter(
 		snapshot.PlayerID,
 		&snapshot.Stats,
@@ -2151,19 +2189,19 @@ func (s *GatewayServer) saveCharacterState(playerID string) {
 	if err != nil {
 		slog.Error("Failed to save character state", "player", playerID, "error", err)
 	} else {
-		// 5. Após sucesso no banco de dados, limpa a flag dirty e incrementa a versão local (PATCH 2 & 4)
+		// 5. ApÃ³s sucesso no banco de dados, limpa a flag dirty e incrementa a versÃ£o local (PATCH 2 & 4)
 		playerInv.SetDirty(false)
 		playerInv.SetVersion(snapshot.Version + 1)
 		slog.Info("Successfully saved character state on database", "player", playerID, "new_version", snapshot.Version+1)
 	}
 
-	// Salva estado de quests e diálogos do jogador (PATCH 1 - Dirty Flag Writes)
+	// Salva estado de quests e diÃ¡logos do jogador (PATCH 1 - Dirty Flag Writes)
 	if err := s.questManager.SaveDirtyQuests(playerID); err != nil {
 		slog.Error("Failed to save dirty quest and dialogue states on autosave", "player", playerID, "error", err)
 	}
 }
 
-// Sincroniza de forma segura o inventário e bônus de atributos por rede via protocolo binário compacto
+// Sincroniza de forma segura o inventÃ¡rio e bÃ´nus de atributos por rede via protocolo binÃ¡rio compacto
 func (s *GatewayServer) sendInventorySync(conn net.Conn, playerID string, stats *combat.EntityStats, playerInv *inventory.PlayerInventory) {
 	items := playerInv.GetItems()
 	syncItems := make([]protocol.SyncItem, 0, len(items))
@@ -2235,7 +2273,7 @@ func (s *GatewayServer) cancelGatheringIfActive(playerID string) {
 	}
 }
 
-// broadcastTradeUpdate transmite o estado atual da proposta comercial em binário para ambos participantes (Dual Confirm)
+// broadcastTradeUpdate transmite o estado atual da proposta comercial em binÃ¡rio para ambos participantes (Dual Confirm)
 func (s *GatewayServer) broadcastTradeUpdate(playerID string) {
 	session, exists := s.economyManager.GetTradeSession(playerID)
 	if !exists {

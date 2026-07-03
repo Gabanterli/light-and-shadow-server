@@ -473,6 +473,34 @@ func (pm *PersistenceManager) InitSchema() error {
 	return nil
 }
 
+func (pm *PersistenceManager) CharacterBelongsToAccount(accountID int, characterName string) (bool, error) {
+    if characterName == "" {
+        return false, nil
+    }
+
+    if pm.pgPool == nil || pm.pgPool.DB == nil {
+        slog.Warn("PostgreSQL in fallback mode. Allowing character selection", "accountID", accountID, "character", characterName)
+        return true, nil
+    }
+
+    dbConn := pm.pgPool.DB
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    var exists bool
+    err := dbConn.QueryRowContext(ctx, `
+        SELECT EXISTS (
+            SELECT 1
+            FROM characters
+            WHERE account_id = $1 AND name = $2
+        )
+    `, accountID, characterName).Scan(&exists)
+    if err != nil {
+        return false, fmt.Errorf("failed to validate character ownership for account %d and character %s: %w", accountID, characterName, err)
+    }
+
+    return exists, nil
+}
 // LoadCharacter carrega os atributos autoritativos de um personagem, versÃ£o e inventÃ¡rio correspondente do PostgreSQL (PATCH 4)
 func (pm *PersistenceManager) LoadCharacter(playerID string) (*combat.EntityStats, map[int]*inventory.InventoryItem, float64, float64, float64, int, int64, int64, error) {
 	if pm.pgPool == nil || pm.pgPool.DB == nil {
