@@ -1,4 +1,4 @@
-package persistence
+﻿package persistence
 
 import (
 	"context"
@@ -14,16 +14,61 @@ import (
 )
 
 type PersistenceManager struct {
-	pgPool *db.PostgresPool
+    pgPool *db.PostgresPool
+}
+
+type CharacterSummary struct {
+    ID      int
+    Name    string
+    Class   string
+    Level   int
+    Account int
 }
 
 func NewPersistenceManager(pgPool *db.PostgresPool) *PersistenceManager {
-	return &PersistenceManager{
-		pgPool: pgPool,
-	}
+    return &PersistenceManager{
+        pgPool: pgPool,
+    }
 }
 
-// InitSchema cria tabelas e garante colunas necessárias para atributos de combate no PostgreSQL
+func (pm *PersistenceManager) ListCharactersByAccount(accountID int) ([]CharacterSummary, error) {
+    if pm.pgPool == nil || pm.pgPool.DB == nil {
+        slog.Warn("PostgreSQL in fallback mode. Returning empty character list", "accountID", accountID)
+        return []CharacterSummary{}, nil
+    }
+
+    dbConn := pm.pgPool.DB
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    rows, err := dbConn.QueryContext(ctx, `
+        SELECT id, name, class, level, account_id
+        FROM characters
+        WHERE account_id = $1
+        ORDER BY id ASC
+    `, accountID)
+    if err != nil {
+        return nil, fmt.Errorf("failed to list characters for account %d: %w", accountID, err)
+    }
+    defer rows.Close()
+
+    characters := make([]CharacterSummary, 0)
+
+    for rows.Next() {
+        var ch CharacterSummary
+        if err := rows.Scan(&ch.ID, &ch.Name, &ch.Class, &ch.Level, &ch.Account); err != nil {
+            return nil, fmt.Errorf("failed to scan character summary: %w", err)
+        }
+        characters = append(characters, ch)
+    }
+
+    if err := rows.Err(); err != nil {
+        return nil, fmt.Errorf("failed while iterating character summaries: %w", err)
+    }
+
+    return characters, nil
+}
+// InitSchema cria tabelas e garante colunas necessÃ¡rias para atributos de combate no PostgreSQL
 func (pm *PersistenceManager) InitSchema() error {
 	if pm.pgPool == nil || pm.pgPool.DB == nil {
 		slog.Warn("PostgreSQL is running in fallback mode, skipping schema initialization")
@@ -52,7 +97,7 @@ func (pm *PersistenceManager) InitSchema() error {
 		return fmt.Errorf("failed to create accounts table: %w", err)
 	}
 
-	// 2. Garante conta padrão para testes
+	// 2. Garante conta padrÃ£o para testes
 	_, err = dbConn.ExecContext(ctx, `
 		INSERT INTO accounts (id, username, email, password_hash)
 		VALUES (1, 'default_user', 'default@example.com', '$2a$10$xyz')
@@ -84,7 +129,7 @@ func (pm *PersistenceManager) InitSchema() error {
 		return fmt.Errorf("failed to create characters table: %w", err)
 	}
 
-	// 4. Garante colunas de atributos extras autoritativos de combate, facção e versão
+	// 4. Garante colunas de atributos extras autoritativos de combate, facÃ§Ã£o e versÃ£o
 	columnsToAdd := []struct {
 		Name    string
 		Type    string
@@ -107,7 +152,7 @@ func (pm *PersistenceManager) InitSchema() error {
 		{"element_attack_bonus", "DOUBLE PRECISION", "0.10"},
 		{"element_def_bonus", "DOUBLE PRECISION", "0.05"},
 		{"faction", "VARCHAR(32)", "'Alliance'"},
-		{"version", "INT", "1"}, // Controle de versão para optimistic locking (PATCH 4)
+		{"version", "INT", "1"}, // Controle de versÃ£o para optimistic locking (PATCH 4)
 		{"gold", "INT", "1000"}, // Gold do jogador (PATCH 1)
 		{"subclass", "VARCHAR(50)", "''"}, // Subclasse do jogador (Sprint 3 Task 5)
 		{"affinity_fire", "INT", "0"}, // Afinidade de Fogo
@@ -125,7 +170,7 @@ func (pm *PersistenceManager) InitSchema() error {
 		}
 	}
 
-	// 5. Cria tabela de inventários
+	// 5. Cria tabela de inventÃ¡rios
 	_, err = dbConn.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS inventories (
 			id SERIAL PRIMARY KEY,
@@ -144,7 +189,7 @@ func (pm *PersistenceManager) InitSchema() error {
 		return fmt.Errorf("failed to create inventories table: %w", err)
 	}
 
-	// 6. Cria tabelas do Sistema de Quests e Diálogos (Sprint 3 Task 3)
+	// 6. Cria tabelas do Sistema de Quests e DiÃ¡logos (Sprint 3 Task 3)
 	_, err = dbConn.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS character_quests (
 			character_id INT NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
@@ -170,7 +215,7 @@ func (pm *PersistenceManager) InitSchema() error {
 		CREATE TABLE IF NOT EXISTS npc_states (
 			character_id INT NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
 			npc_id VARCHAR(64) NOT NULL,
-			dialogue_flags TEXT NOT NULL DEFAULT '', -- Flags guardadas ou histórico em string
+			dialogue_flags TEXT NOT NULL DEFAULT '', -- Flags guardadas ou histÃ³rico em string
 			updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY(character_id, npc_id)
 		);
@@ -428,7 +473,7 @@ func (pm *PersistenceManager) InitSchema() error {
 	return nil
 }
 
-// LoadCharacter carrega os atributos autoritativos de um personagem, versão e inventário correspondente do PostgreSQL (PATCH 4)
+// LoadCharacter carrega os atributos autoritativos de um personagem, versÃ£o e inventÃ¡rio correspondente do PostgreSQL (PATCH 4)
 func (pm *PersistenceManager) LoadCharacter(playerID string) (*combat.EntityStats, map[int]*inventory.InventoryItem, float64, float64, float64, int, int64, int64, error) {
 	if pm.pgPool == nil || pm.pgPool.DB == nil {
 		slog.Warn("PostgreSQL in fallback mode. Loading default state in-memory", "playerID", playerID)
@@ -474,7 +519,7 @@ func (pm *PersistenceManager) LoadCharacter(playerID string) (*combat.EntityStat
 	if errors.Is(err, sql.ErrNoRows) {
 		slog.Info("Character not found in database. Creating a new persistent character row", "playerID", playerID)
 
-		// Insere novo personagem padrão com gold inicial no estado Novice (Level 1)
+		// Insere novo personagem padrÃ£o com gold inicial no estado Novice (Level 1)
 		err = dbConn.QueryRowContext(ctx, `
 			INSERT INTO characters (account_id, name, class, level, experience, posX, posY, posZ,
 				health, max_health, mana, max_mana, base_attack, weapon_damage, defense, resistance,
@@ -497,7 +542,7 @@ func (pm *PersistenceManager) LoadCharacter(playerID string) (*combat.EntityStat
 			return nil, nil, 0, 0, 0, 1, 0, 1000, fmt.Errorf("failed to create default character row: %w", err)
 		}
 
-		// Cria inventário padrão inicial na tabela inventories
+		// Cria inventÃ¡rio padrÃ£o inicial na tabela inventories
 		defaultInv := inventory.NewPlayerInventory(playerID)
 		tx, err := dbConn.BeginTx(ctx, nil)
 		if err != nil {
@@ -534,7 +579,7 @@ func (pm *PersistenceManager) LoadCharacter(playerID string) (*combat.EntityStat
 		return nil, nil, 0, 0, 0, 1, 0, 1000, fmt.Errorf("failed to query character: %w", err)
 	}
 
-	// Carrega itens de inventário
+	// Carrega itens de inventÃ¡rio
 	items := make(map[int]*inventory.InventoryItem)
 	rows, err := dbConn.QueryContext(ctx, `
 		SELECT slot_index, item_id, quantity, durability, item_uuid 
@@ -597,7 +642,7 @@ func (pm *PersistenceManager) LoadCharacter(playerID string) (*combat.EntityStat
 	return stats, items, posX, posY, posZ, version, experience, gold, nil
 }
 
-// SaveCharacter salva de forma atômica, transacional e segura o estado do personagem e seu inventário no PostgreSQL (PATCH 1, 3, 4)
+// SaveCharacter salva de forma atÃ´mica, transacional e segura o estado do personagem e seu inventÃ¡rio no PostgreSQL (PATCH 1, 3, 4)
 func (pm *PersistenceManager) SaveCharacter(playerID string, stats *combat.EntityStats, items map[int]inventory.InventoryItem, posX, posY, posZ float64, currentVersion int, experience int64, gold int64) (err error) {
 	if pm.pgPool == nil || pm.pgPool.DB == nil {
 		slog.Warn("PostgreSQL in fallback mode. Skipping save to DB", "playerID", playerID)
@@ -608,13 +653,13 @@ func (pm *PersistenceManager) SaveCharacter(playerID string, stats *combat.Entit
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Enforça Isolation Level estrito de forma segura (PATCH 3)
+	// EnforÃ§a Isolation Level estrito de forma segura (PATCH 3)
 	tx, err := dbConn.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
 	if err != nil {
 		return fmt.Errorf("failed to begin save transaction: %w", err)
 	}
 
-	// Garante Rollback automático em caso de pânico ou erro de execução (PATCH 3)
+	// Garante Rollback automÃ¡tico em caso de pÃ¢nico ou erro de execuÃ§Ã£o (PATCH 3)
 	defer func() {
 		if p := recover(); p != nil {
 			tx.Rollback()
@@ -684,18 +729,18 @@ func (pm *PersistenceManager) SaveCharacter(playerID string, stats *combat.Entit
 		return fmt.Errorf("failed to check rows affected: %w", err)
 	}
 
-	// Se RowsAffected for 0, ocorreu um conflito de concorrência ou tentativa de exploit de duplicação (PATCH 4)
+	// Se RowsAffected for 0, ocorreu um conflito de concorrÃªncia ou tentativa de exploit de duplicaÃ§Ã£o (PATCH 4)
 	if rowsAffected == 0 {
 		return fmt.Errorf("optimistic locking conflict: character %s has been modified by another transaction or version mismatch (expected version %d)", playerID, currentVersion)
 	}
 
-	// 3. Deleta inventário atual para salvar os novos slots limpos
+	// 3. Deleta inventÃ¡rio atual para salvar os novos slots limpos
 	_, err = tx.ExecContext(ctx, "DELETE FROM inventories WHERE character_id = $1", charID)
 	if err != nil {
 		return fmt.Errorf("failed to clean inventory before save: %w", err)
 	}
 
-	// 4. Insere todos os itens do inventário a partir do snapshot de forma segura
+	// 4. Insere todos os itens do inventÃ¡rio a partir do snapshot de forma segura
 	for _, item := range items {
 		_, err = tx.ExecContext(ctx, `
 			INSERT INTO inventories (character_id, slot_index, item_id, quantity, durability, item_uuid)

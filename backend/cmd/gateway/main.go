@@ -474,13 +474,36 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			conn.Write(response.Serialize())
 
 		case protocol.CS_CHAR_LIST_REQUEST:
-			slog.Info("Requesting character list from databases")
-			response := &protocol.Packet{
-				Opcode:   protocol.SC_CHAR_LIST_RESPONSE,
-				Sequence: packet.Sequence,
-				Payload:  []byte("Gabriela_Paladin|Lvl_99|Mage_Artisan|Lvl_45"),
-			}
-			conn.Write(response.Serialize())
+	slog.Info("Requesting character list from PostgreSQL")
+
+	// FASE 3.3 Task 2: account_id=1 temporário até o login TCP validar conta real.
+	characters, err := s.persistenceMgr.ListCharactersByAccount(1)
+	if err != nil {
+		slog.Error("Failed to list characters from PostgreSQL", "error", err)
+		errPayload := []byte("ERROR|failed_to_list_characters")
+		response := &protocol.Packet{
+			Opcode:   protocol.SC_CHAR_LIST_RESPONSE,
+			Sequence: packet.Sequence,
+			Payload:  errPayload,
+		}
+		conn.Write(response.Serialize())
+		break
+	}
+
+	payloadText := ""
+	for i, ch := range characters {
+		if i > 0 {
+			payloadText += ";"
+		}
+		payloadText += fmt.Sprintf("%s|%s|%d", ch.Name, ch.Class, ch.Level)
+	}
+
+	response := &protocol.Packet{
+		Opcode:   protocol.SC_CHAR_LIST_RESPONSE,
+		Sequence: packet.Sequence,
+		Payload:  []byte(payloadText),
+	}
+	conn.Write(response.Serialize())
 
 		case protocol.CS_CHAR_SELECT_REQUEST:
 			slog.Info("Routing character selection to World Server")
