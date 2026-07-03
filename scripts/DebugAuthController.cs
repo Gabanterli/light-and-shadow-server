@@ -182,6 +182,7 @@ public partial class DebugAuthController : Control
                 _authSession.SetSelectedCharacter(response.CharacterName);
                 _statusLabel.Text = $"Status: Character '{response.CharacterName}' selected!";
                 Log($"Successfully selected character. AuthSession updated with '{response.CharacterName}'.");
+                TransitionToWorldEntryScene();
             }
             else
             {
@@ -204,6 +205,26 @@ public partial class DebugAuthController : Control
                 _selectCharacterButton.Disabled = false;
             }
         }
+    }
+
+    private void TransitionToWorldEntryScene()
+    {
+        var nextScene = (PackedScene)ResourceLoader.Load("res://scenes/DebugWorldEntryScene.tscn");
+        var instance = nextScene.Instantiate();
+
+        if (instance is DebugWorldEntryController worldEntryController)
+        {
+            // Pass the current session object to the next scene's controller.
+            worldEntryController.Session = _authSession;
+        }
+        else
+        {
+            Log("Error: Could not instantiate or find controller in DebugWorldEntryScene.");
+            return;
+        }
+
+        GetTree().Root.AddChild(instance);
+        this.QueueFree(); // Remove the current auth scene from the tree.
     }
 
     private void Log(string message)
