@@ -24,8 +24,15 @@ public partial class DebugWorldEntryController : Control
     private Label? _accountIdValueLabel;
     private Label? _selectedCharacterNameValueLabel;
     private TextEdit? _packetLogTextEdit;
-
-    private int _chunksReceived = 0;
+    
+    // Snapshot UI Node references
+    private Label? _invSyncValueLabel;
+    private Label? _levelValueLabel;
+    private Label? _hpValueLabel;
+    private Label? _manaValueLabel;
+    private Label? _chunksValueLabel;
+    private Label? _lastChunkValueLabel;
+    private Label? _lastTimestampValueLabel;
 
     public override void _Ready()
     {
@@ -37,6 +44,15 @@ public partial class DebugWorldEntryController : Control
         _accountIdValueLabel = GetNode<Label>("VBoxContainer/GridContainer/AccountIdValueLabel");
         _selectedCharacterNameValueLabel = GetNode<Label>("VBoxContainer/GridContainer/SelectedCharacterNameValueLabel");
         _packetLogTextEdit = GetNode<TextEdit>("VBoxContainer/PacketLogTextEdit");
+        
+        // Get snapshot node references
+        _invSyncValueLabel = GetNode<Label>("VBoxContainer/SnapshotGridContainer/InvSyncValueLabel");
+        _levelValueLabel = GetNode<Label>("VBoxContainer/SnapshotGridContainer/LevelValueLabel");
+        _hpValueLabel = GetNode<Label>("VBoxContainer/SnapshotGridContainer/HPValueLabel");
+        _manaValueLabel = GetNode<Label>("VBoxContainer/SnapshotGridContainer/ManaValueLabel");
+        _chunksValueLabel = GetNode<Label>("VBoxContainer/SnapshotGridContainer/ChunksValueLabel");
+        _lastChunkValueLabel = GetNode<Label>("VBoxContainer/SnapshotGridContainer/LastChunkValueLabel");
+        _lastTimestampValueLabel = GetNode<Label>("VBoxContainer/SnapshotGridContainer/LastTimestampValueLabel");
 
         _backButton.Pressed += OnBackButtonPressed;
 
@@ -134,6 +150,7 @@ public partial class DebugWorldEntryController : Control
         logMessage.AppendLine($"  HP: {inventoryData.Health:F2} / {inventoryData.MaxHealth:F2}");
         logMessage.AppendLine($"  Mana: {inventoryData.Mana:F2} / {inventoryData.MaxMana:F2}");
         logMessage.AppendLine("  > Snapshot updated.");
+        CallDeferred(nameof(UpdateSnapshotDisplay));
         CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
     }
 
@@ -150,6 +167,7 @@ public partial class DebugWorldEntryController : Control
         logMessage.AppendLine($"  Tiles: {chunkData.Tiles.Length} bytes");
         logMessage.AppendLine($"  Total Chunks Received: {_snapshot.TotalChunksReceived}");
         logMessage.AppendLine("  > Snapshot updated.");
+        CallDeferred(nameof(UpdateSnapshotDisplay));
         CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
     }
 
@@ -164,5 +182,18 @@ public partial class DebugWorldEntryController : Control
     private void LogPacketInfo(string message)
     {
         _packetLogTextEdit!.Text += message + "\n";
+    }
+
+    private void UpdateSnapshotDisplay()
+    {
+        if (!IsNodeReady()) return;
+
+        _invSyncValueLabel!.Text = _snapshot.HasReceivedInventorySync.ToString();
+        _levelValueLabel!.Text = _snapshot.Level.ToString();
+        _hpValueLabel!.Text = $"{_snapshot.CurrentHealth:F2} / {_snapshot.MaxHealth:F2}";
+        _manaValueLabel!.Text = $"{_snapshot.CurrentMana:F2} / {_snapshot.MaxMana:F2}";
+        _chunksValueLabel!.Text = _snapshot.TotalChunksReceived.ToString();
+        _lastChunkValueLabel!.Text = $"({_snapshot.LastChunkX}, {_snapshot.LastChunkY})";
+        _lastTimestampValueLabel!.Text = _snapshot.LastPacketTimestamp.ToString("HH:mm:ss.fff");
     }
 }

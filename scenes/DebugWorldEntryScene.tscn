@@ -20,8 +20,8 @@ anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -250.0
 offset_top = -100.0
-offset_right = 250.0
-offset_bottom = 250.0
+offset_right = 280.0
+offset_bottom = 280.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 10
@@ -72,6 +72,66 @@ text = "..."
 
 [node name="HSeparator2" type="HSeparator" parent="VBoxContainer"]
 layout_mode = 2
+
+[node name="SnapshotGridContainer" type="GridContainer" parent="VBoxContainer"]
+layout_mode = 2
+columns = 2
+
+[node name="InvSyncLabel" type="Label" parent="VBoxContainer/SnapshotGridContainer"]
+layout_mode = 2
+text = "Inv. Sync Received:"
+
+[node name="InvSyncValueLabel" type="Label" parent="VBoxContainer/SnapshotGridContainer"]
+layout_mode = 2
+text = "False"
+
+[node name="LevelLabel" type="Label" parent="VBoxContainer/SnapshotGridContainer"]
+layout_mode = 2
+text = "Level:"
+
+[node name="LevelValueLabel" type="Label" parent="VBoxContainer/SnapshotGridContainer"]
+layout_mode = 2
+text = "0"
+
+[node name="HPLabel" type="Label" parent="VBoxContainer/SnapshotGridContainer"]
+layout_mode = 2
+text = "HP:"
+
+[node name="HPValueLabel" type="Label" parent="VBoxContainer/SnapshotGridContainer"]
+layout_mode = 2
+text = "0 / 0"
+
+[node name="ManaLabel" type="Label" parent="VBoxContainer/SnapshotGridContainer"]
+layout_mode = 2
+text = "Mana:"
+
+[node name="ManaValueLabel" type="Label" parent="VBoxContainer/SnapshotGridContainer"]
+layout_mode = 2
+text = "0 / 0"
+
+[node name="ChunksLabel" type="Label" parent="VBoxContainer/SnapshotGridContainer"]
+layout_mode = 2
+text = "Chunks Received:"
+
+[node name="ChunksValueLabel" type="Label" parent="VBoxContainer/SnapshotGridContainer"]
+layout_mode = 2
+text = "0"
+
+[node name="LastChunkLabel" type="Label" parent="VBoxContainer/SnapshotGridContainer"]
+layout_mode = 2
+text = "Last Chunk Coords:"
+
+[node name="LastChunkValueLabel" type="Label" parent="VBoxContainer/SnapshotGridContainer"]
+layout_mode = 2
+text = "(0, 0)"
+
+[node name="LastTimestampLabel" type="Label" parent="VBoxContainer/SnapshotGridContainer"]
+layout_mode = 2
+text = "Last Packet Time:"
+
+[node name="LastTimestampValueLabel" type="Label" parent="VBoxContainer/SnapshotGridContainer"]
+layout_mode = 2
+text = "N/A"
 
 [node name="StatusLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
