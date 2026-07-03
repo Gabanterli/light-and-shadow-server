@@ -20,20 +20,62 @@ anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -250.0
 offset_top = -100.0
-offset_right = 250.0
-offset_bottom = 100.0
+offset_right = 251.0
+offset_bottom = 150.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 10
 
 [node name="TitleLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
 text = "Debug World Entry"
 horizontal_alignment = 1
 
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="GridContainer" type="GridContainer" parent="VBoxContainer"]
+layout_mode = 2
+columns = 2
+
+[node name="IsAuthenticatedLabel" type="Label" parent="VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "IsAuthenticated:"
+
+[node name="IsAuthenticatedValueLabel" type="Label" parent="VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "..."
+
+[node name="IsCharacterSelectedLabel" type="Label" parent="VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "IsCharacterSelected:"
+
+[node name="IsCharacterSelectedValueLabel" type="Label" parent="VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "..."
+
+[node name="AccountIdLabel" type="Label" parent="VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "AccountId:"
+
+[node name="AccountIdValueLabel" type="Label" parent="VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "..."
+
+[node name="SelectedCharacterNameLabel" type="Label" parent="VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "SelectedCharacterName:"
+
+[node name="SelectedCharacterNameValueLabel" type="Label" parent="VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "..."
+
+[node name="HSeparator2" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
 [node name="StatusLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
-text = "Status: Loading..."
+text = "Status: Ready for future world connection"
 horizontal_alignment = 1
 
 [node name="BackButton" type="Button" parent="VBoxContainer"]
