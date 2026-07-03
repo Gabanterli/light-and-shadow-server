@@ -549,46 +549,48 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
             }
             conn.Write(response.Serialize())
 
-        case protocol.CS_CHAR_LIST_REQUEST:
+                case protocol.CS_CHAR_LIST_REQUEST:
             if authenticatedAccountID <= 0 {
                 slog.Warn("Character list rejected: client is not authenticated")
                 response := &protocol.Packet{
                     Opcode:   protocol.SC_CHAR_LIST_RESPONSE,
                     Sequence: packet.Sequence,
-                    Payload:  []byte("ERROR|not_authenticated"),
+                    Payload:  protocol.EncodeCharacterListResponse(false, "not_authenticated", nil),
                 }
                 conn.Write(response.Serialize())
                 break
             }
-	slog.Info("Requesting character list from PostgreSQL")
-		// FASE 3.3 Task 4D: usa account_id autenticado retornado pelo Auth Server.
-	characters, err := s.persistenceMgr.ListCharactersByAccount(authenticatedAccountID)
-	if err != nil {
-		slog.Error("Failed to list characters from PostgreSQL", "error", err)
-		errPayload := []byte("ERROR|failed_to_list_characters")
-		response := &protocol.Packet{
-			Opcode:   protocol.SC_CHAR_LIST_RESPONSE,
-			Sequence: packet.Sequence,
-			Payload:  errPayload,
-		}
-		conn.Write(response.Serialize())
-		break
-	}
 
-	payloadText := ""
-	for i, ch := range characters {
-		if i > 0 {
-			payloadText += ";"
-		}
-		payloadText += fmt.Sprintf("%s|%s|%d", ch.Name, ch.Class, ch.Level)
-	}
+            slog.Info("Requesting character list from PostgreSQL")
+            // FASE 3.3 Task 4D: usa account_id autenticado retornado pelo Auth Server.
+            characters, err := s.persistenceMgr.ListCharactersByAccount(authenticatedAccountID)
+            if err != nil {
+                slog.Error("Failed to list characters from PostgreSQL", "error", err)
+                response := &protocol.Packet{
+                    Opcode:   protocol.SC_CHAR_LIST_RESPONSE,
+                    Sequence: packet.Sequence,
+                    Payload:  protocol.EncodeCharacterListResponse(false, "failed_to_list_characters", nil),
+                }
+                conn.Write(response.Serialize())
+                break
+            }
 
-	response := &protocol.Packet{
-		Opcode:   protocol.SC_CHAR_LIST_RESPONSE,
-		Sequence: packet.Sequence,
-		Payload:  []byte(payloadText),
-	}
-	conn.Write(response.Serialize())
+            entries := make([]protocol.CharacterListEntry, 0, len(characters))
+            for _, ch := range characters {
+                entries = append(entries, protocol.CharacterListEntry{
+                    Name:  ch.Name,
+                    Class: ch.Class,
+                    Level: uint32(ch.Level),
+                })
+            }
+
+            response := &protocol.Packet{
+                Opcode:   protocol.SC_CHAR_LIST_RESPONSE,
+                Sequence: packet.Sequence,
+                Payload:  protocol.EncodeCharacterListResponse(true, "", entries),
+            }
+            conn.Write(response.Serialize())
+
 
 		case protocol.CS_CHAR_SELECT_REQUEST:
             if authenticatedAccountID <= 0 {

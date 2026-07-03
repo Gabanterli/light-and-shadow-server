@@ -1649,3 +1649,101 @@ func readLengthPrefixedProtocolString(payload []byte, offset int) (string, int, 
 
     return value, offset, nil
 }
+
+type CharacterListEntry struct {
+    Name  string
+    Class string
+    Level uint32
+}
+
+type CharacterListResponse struct {
+    Success    bool
+    ErrorCode  string
+    Characters []CharacterListEntry
+}
+
+func EncodeCharacterListResponse(success bool, errorCode string, characters []CharacterListEntry) []byte {
+    status := byte(0)
+    if success {
+        status = 1
+    }
+
+    payload := []byte{status}
+    payload = appendLengthPrefixedProtocolString(payload, errorCode)
+
+    if len(characters) > 65535 {
+        characters = characters[:65535]
+    }
+
+    var countBuf [2]byte
+    binary.LittleEndian.PutUint16(countBuf[:], uint16(len(characters)))
+    payload = append(payload, countBuf[:]...)
+
+    for _, ch := range characters {
+        payload = appendLengthPrefixedProtocolString(payload, ch.Name)
+        payload = appendLengthPrefixedProtocolString(payload, ch.Class)
+
+        var levelBuf [4]byte
+        binary.LittleEndian.PutUint32(levelBuf[:], ch.Level)
+        payload = append(payload, levelBuf[:]...)
+    }
+
+    return payload
+}
+
+func DecodeCharacterListResponse(payload []byte) (*CharacterListResponse, error) {
+    if len(payload) < 3 {
+        return nil, fmt.Errorf("character list response payload too small: %d", len(payload))
+    }
+
+    status := payload[0]
+    offset := 1
+
+    errorCode, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
+    if err != nil {
+        return nil, err
+    }
+    offset = nextOffset
+
+    if offset+2 > len(payload) {
+        return nil, fmt.Errorf("not enough bytes to read character count")
+    }
+
+    count := int(binary.LittleEndian.Uint16(payload[offset : offset+2]))
+    offset += 2
+
+    characters := make([]CharacterListEntry, 0, count)
+
+    for i := 0; i < count; i++ {
+        name, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
+        if err != nil {
+            return nil, err
+        }
+        offset = nextOffset
+
+        className, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
+        if err != nil {
+            return nil, err
+        }
+        offset = nextOffset
+
+        if offset+4 > len(payload) {
+            return nil, fmt.Errorf("not enough bytes to read character level")
+        }
+
+        level := binary.LittleEndian.Uint32(payload[offset : offset+4])
+        offset += 4
+
+        characters = append(characters, CharacterListEntry{
+            Name:  name,
+            Class: className,
+            Level: level,
+        })
+    }
+
+    return &CharacterListResponse{
+        Success:    status == 1,
+        ErrorCode:  errorCode,
+        Characters: characters,
+    }, nil
+}
