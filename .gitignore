@@ -6,3 +6,15 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Godot local cache
+.godot/
+
+# C# / .NET build outputs
+bin/
+obj/
+
+# Local editor files
+.vscode/
+*.user
+*.suo
