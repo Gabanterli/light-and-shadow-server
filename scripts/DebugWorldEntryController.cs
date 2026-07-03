@@ -15,6 +15,7 @@ public partial class DebugWorldEntryController : Control
     private CancellationTokenSource? _cts;
     private DebugIncomingPacketRouter? _router;
     private readonly DebugWorldBootstrapSnapshot _snapshot = new();
+    private readonly DebugChunkStore _chunkStore = new();
 
     // UI Node references
     private Label? _statusLabel;
@@ -26,6 +27,7 @@ public partial class DebugWorldEntryController : Control
     private TextEdit? _packetLogTextEdit;
     private Button? _sendMoveButton;
     private Label? _lastMoveResultLabel;
+    private DebugTileWorldView? _worldView;
     
     // Snapshot UI Node references
     private Label? _invSyncValueLabel;
@@ -51,6 +53,7 @@ public partial class DebugWorldEntryController : Control
         _packetLogTextEdit = GetNode<TextEdit>("VBoxContainer/PacketLogTextEdit");
         _sendMoveButton = GetNode<Button>("VBoxContainer/SendMoveButton");
         _lastMoveResultLabel = GetNode<Label>("VBoxContainer/LastMoveResultLabel");
+        _worldView = GetNode<DebugTileWorldView>("VBoxContainer/DebugTileWorldView");
         
         // Get snapshot node references
         _invSyncValueLabel = GetNode<Label>("VBoxContainer/SnapshotGridContainer/InvSyncValueLabel");
@@ -63,6 +66,9 @@ public partial class DebugWorldEntryController : Control
 
         _backButton.Pressed += OnBackButtonPressed;
         _sendMoveButton.Pressed += OnSendMoveButtonPressed;
+
+        // Pass the chunk store to the view
+        _worldView.ChunkStore = _chunkStore;
 
         // Populate UI with session data
         if (Session != null)
@@ -214,6 +220,7 @@ public partial class DebugWorldEntryController : Control
         logMessage.AppendLine($"[RECV] Opcode: {packet.Opcode}, Size: {packet.Size}");
 
         var chunkData = BinaryProtocol.DecodeChunkData(packet.Payload);
+        _chunkStore.AddChunk(chunkData.ChunkX, chunkData.ChunkY, chunkData.Tiles);
         _snapshot.UpdateFromChunkData(chunkData);
 
         logMessage.AppendLine("  Type: Chunk Data");
@@ -221,6 +228,7 @@ public partial class DebugWorldEntryController : Control
         logMessage.AppendLine($"  Tiles: {chunkData.Tiles.Length} bytes");
         logMessage.AppendLine($"  Total Chunks Received: {_snapshot.TotalChunksReceived}");
         logMessage.AppendLine("  > Snapshot updated.");
+        CallDeferred(nameof(RequestWorldViewRedraw));
         CallDeferred(nameof(UpdateSnapshotDisplay));
         CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
     }
@@ -295,5 +303,10 @@ public partial class DebugWorldEntryController : Control
         _chunksValueLabel!.Text = _snapshot.TotalChunksReceived.ToString();
         _lastChunkValueLabel!.Text = $"({_snapshot.LastChunkX}, {_snapshot.LastChunkY})";
         _lastTimestampValueLabel!.Text = _snapshot.LastPacketTimestamp.ToString("HH:mm:ss.fff");
+    }
+
+    private void RequestWorldViewRedraw()
+    {
+        _worldView?.QueueRedraw();
     }
 }
