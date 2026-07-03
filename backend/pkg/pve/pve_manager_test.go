@@ -164,12 +164,15 @@ func TestMonsterStateMachineChaseToLeash(t *testing.T) {
 	if instance.State != "Chase" {
 		t.Errorf("Expected state to transition to Chase, got %s", instance.State)
 	}
+	// Afasta o monstro para além da LeashDistance.
+	// O leash correto é baseado na distância do monstro até a Home, não na distância do player.
+	// Home = 10,10. Monster = 25,10. Dist = 15 > Leash = 10.0.
+	instance.X = 25.0
+	instance.Y = 10.0
+	cm.UpdateEntityPosition("mob_1", 25.0, 10.0)
+	si.UpdateEntityPosition("mob_1", 25.0, 10.0, 0)
 
-	// Afasta o jogador para além da LeashDistance ( Home = 10,10. Player = 30,30. Dist = 28.28 > Leash = 10.0)
-	cm.UpdateEntityPosition("player_1", 30.0, 30.0)
-	si.UpdateEntityPosition("player_1", 30.0, 30.0, 0)
-
-	// 3. Processa IA: Deve detectar o distanciamento da Home e retornar para o estado ReturnHome
+	// 3. Processa IA: Deve detectar o distanciamento do monstro da Home e retornar para o estado ReturnHome
 	pm.processMonsterAI(instance)
 
 	if instance.State != "ReturnHome" {
