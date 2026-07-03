@@ -70,6 +70,9 @@ public partial class DebugWorldEntryController : Control
         // Pass the chunk store to the view
         _worldView.ChunkStore = _chunkStore;
 
+        // Set initial player marker position
+        _worldView.PlayerTilePosition = new Vector2I(_currentConfirmedPos.x, _currentConfirmedPos.y);
+
         // Populate UI with session data
         if (Session != null)
         {
@@ -249,6 +252,8 @@ public partial class DebugWorldEntryController : Control
             {
                 // Update local debug position to the server-confirmed position
                 _currentConfirmedPos = ((int)Math.Round(data.X), (int)Math.Round(data.Y), data.Z);
+                // Safely schedule the visual update for the player marker
+                CallDeferred(nameof(SetDebugPlayerMarkerAndRedraw), _currentConfirmedPos.x, _currentConfirmedPos.y);
             }
         }
         else
@@ -308,5 +313,14 @@ public partial class DebugWorldEntryController : Control
     private void RequestWorldViewRedraw()
     {
         _worldView?.QueueRedraw();
+    }
+
+    private void SetDebugPlayerMarkerAndRedraw(int x, int y)
+    {
+        if (_worldView != null)
+        {
+            _worldView.PlayerTilePosition = new Vector2I(x, y);
+            _worldView.QueueRedraw();
+        }
     }
 }

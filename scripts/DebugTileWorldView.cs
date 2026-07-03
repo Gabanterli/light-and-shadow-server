@@ -4,6 +4,7 @@ using LightAndShadow.Client;
 public partial class DebugTileWorldView : Control
 {
     public DebugChunkStore? ChunkStore { get; set; }
+    public Vector2I? PlayerTilePosition { get; set; }
 
     private const int TileSize = 4;
     private const int ChunkWidthInTiles = 32;
@@ -11,6 +12,7 @@ public partial class DebugTileWorldView : Control
 
     private readonly Color _walkableColor = new(0.3f, 0.3f, 0.3f);
     private readonly Color _blockedColor = new(0.8f, 0.2f, 0.2f);
+    private readonly Color _playerColor = new(0.9f, 0.9f, 0.2f);
 
     public override void _Draw()
     {
@@ -51,6 +53,22 @@ public partial class DebugTileWorldView : Control
                         DrawRect(tileRect, color);
                     }
                 }
+            }
+        }
+
+        // Draw player marker on top
+        if (PlayerTilePosition.HasValue)
+        {
+            var playerGlobalTileX = PlayerTilePosition.Value.X;
+            var playerGlobalTileY = PlayerTilePosition.Value.Y;
+
+            var drawX = (playerGlobalTileX * TileSize) - minPixelX;
+            var drawY = (playerGlobalTileY * TileSize) - minPixelY;
+
+            var playerRect = new Rect2(drawX, drawY, TileSize, TileSize);
+            if (visibleRect.Intersects(playerRect))
+            {
+                DrawRect(playerRect, _playerColor);
             }
         }
     }
