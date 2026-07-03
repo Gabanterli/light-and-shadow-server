@@ -492,7 +492,7 @@ func (dm *DungeonManager) processBossAI(inst *DungeonInstance, boss *BossState) 
 		boss.IsEnraged = true
 		boss.Stats.BaseAttack *= 5.0 // Dano massivo contra stall
 		slog.Warn("BOSS ENRAGED! Damage increased by 500% to prevent stalls", "boss", boss.ID)
-		dm.broadcastInstanceMessage(inst, fmt.Sprintf("%s enfureceu! O dano dele aumentou em 500%!", boss.Stats.Name))
+		dm.broadcastInstanceMessage(inst, fmt.Sprintf("%s enfureceu! O dano dele aumentou em 500%%!", boss.Stats.Name))
 	}
 
 	// Ataque anti-stalling periódico do enrage

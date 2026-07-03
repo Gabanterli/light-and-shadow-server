@@ -1,8 +1,6 @@
 package quest
 
 import (
-	"context"
-	"database/sql"
 	"testing"
 	"time"
 
@@ -102,6 +100,16 @@ func TestEventBusQuestIntegration(t *testing.T) {
 
 	playerID := "Hero"
 	invs[playerID] = inventory.NewPlayerInventory(playerID)
+	cm.RegisterEntity(&combat.EntityStats{
+		ID:        playerID,
+		Name:      playerID,
+		IsPlayer:  true,
+		Level:     1,
+		Health:    100,
+		MaxHealth: 100,
+		Mana:      100,
+		MaxMana:   100,
+	}, 0, 0)
 
 	// Accept Quest
 	err := qm.AcceptQuest(playerID, "slay_goblin")

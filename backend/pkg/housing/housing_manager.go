@@ -17,17 +17,17 @@ import (
 
 // HouseConfig representa os metadados de uma moradia (carregados do JSON)
 type HouseConfig struct {
-	ID                  string  `json:"id"`
-	Type                string  `json:"type"` // "player" ou "guild"
-	Name                string  `json:"name"`
-	Continent           string  `json:"continent"`
-	X                   float64 `json:"x"`
-	Y                   float64 `json:"y"`
-	Z                   int     `json:"z"`
-	Size                string  `json:"size"` // "small", "medium", "large"
-	PurchaseCostBronze  int64   `json:"purchase_cost_bronze"`
-	RentCostBronze      int64   `json:"rent_cost_bronze"`
-	StorageCapacity     int     `json:"storage_capacity"`
+	ID                 string  `json:"id"`
+	Type               string  `json:"type"` // "player" ou "guild"
+	Name               string  `json:"name"`
+	Continent          string  `json:"continent"`
+	X                  float64 `json:"x"`
+	Y                  float64 `json:"y"`
+	Z                  int     `json:"z"`
+	Size               string  `json:"size"` // "small", "medium", "large"
+	PurchaseCostBronze int64   `json:"purchase_cost_bronze"`
+	RentCostBronze     int64   `json:"rent_cost_bronze"`
+	StorageCapacity    int     `json:"storage_capacity"`
 }
 
 // FurnitureConfig representa os metadados de uma mobília (carregados do JSON) (PATCH 8)
@@ -54,18 +54,18 @@ type PlacedDecoration struct {
 // HouseState representa o estado em memória ativo e dinâmico de uma moradia (PATCH 7)
 type HouseState struct {
 	HouseID        string
-	OwnerID        int       // ID do personagem dono (0 se guild ou nenhum)
-	OwnerName      string    // Nome do personagem dono
-	GuildID        int       // ID da guilda dona (0 se player ou nenhum)
-	GuildName      string    // Nome da guilda dona
+	OwnerID        int    // ID do personagem dono (0 se guild ou nenhum)
+	OwnerName      string // Nome do personagem dono
+	GuildID        int    // ID da guilda dona (0 se player ou nenhum)
+	GuildName      string // Nome da guilda dona
 	PurchasedAt    time.Time
 	LastRentPaidAt time.Time
-	RentStatus     string    // "active", "warning", "evicted"
+	RentStatus     string // "active", "warning", "evicted"
 	WarningSentAt  time.Time
 	Storage        map[int]*inventory.InventoryItem // slotIndex -> item seguro
 	Decorations    []PlacedDecoration
-	Permissions    string    // ACL for player houses: "private", "friends", "guild", "public"
-	MinRank        string    // Rank requirement for guild houses: "leader", "vice", "member", "recruit"
+	Permissions    string // ACL for player houses: "private", "friends", "guild", "public"
+	MinRank        string // Rank requirement for guild houses: "leader", "vice", "member", "recruit"
 }
 
 // HousingConfigWrapper é usado para carregar o arquivo JSON de moradias
@@ -96,7 +96,7 @@ func NewHousingManager(db *sql.DB) *HousingManager {
 		houses:          make(map[string]HouseConfig),
 		furniture:       make(map[string]FurnitureConfig),
 		states:          make(map[string]*HouseState),
-		gracePeriod:     7 * 24 * time.Hour, // 7 dias de tolerância após warning
+		gracePeriod:     7 * 24 * time.Hour,  // 7 dias de tolerância após warning
 		warningInterval: 30 * 24 * time.Hour, // Rent vence a cada 30 dias
 	}
 
@@ -115,7 +115,7 @@ func (hm *HousingManager) LoadConfigs() {
 	defer hm.mu.Unlock()
 
 	paths := []string{"backend/config/", "config/", "../config/", "../../config/"}
-	
+
 	// 1. Carrega houses.json
 	var housesData []byte
 	var err error
@@ -474,7 +474,6 @@ func (hm *HousingManager) PurchaseHouse(playerID string, houseID string, playerI
 	}
 
 	playerInv.Lock()
-	defer playerInv.Unlock()
 
 	if playerInv.GetGold() < cost {
 		return fmt.Errorf("insufficient funds in tiered currency: need %d copper/bronze, but have %d", cost, playerInv.GetGold())
@@ -536,6 +535,7 @@ func (hm *HousingManager) PurchaseHouse(playerID string, houseID string, playerI
 
 	// 5. Dedução em memória e atualização de estado local
 	playerInv.RemoveGold(cost)
+	playerInv.Unlock()
 	playerInv.SetDirty(true)
 
 	if config.Type == "player" {
@@ -610,7 +610,6 @@ func (hm *HousingManager) PayRent(playerID string, houseID string, playerInv *in
 	}
 
 	playerInv.Lock()
-	defer playerInv.Unlock()
 
 	if playerInv.GetGold() < cost {
 		return fmt.Errorf("insufficient funds for rent: need %d bronze, have %d", cost, playerInv.GetGold())
@@ -655,6 +654,7 @@ func (hm *HousingManager) PayRent(playerID string, houseID string, playerInv *in
 	}
 
 	playerInv.RemoveGold(cost)
+	playerInv.Unlock()
 	playerInv.SetDirty(true)
 
 	state.LastRentPaidAt = time.Now()
@@ -713,7 +713,6 @@ func (hm *HousingManager) DepositStorage(playerID string, houseID string, slotIn
 	}
 
 	playerInv.Lock()
-	defer playerInv.Unlock()
 
 	// Valida se o jogador possui o item e quantidade suficientes
 	inventoryItem, hasSlotItem := playerInv.Items[slotIndex]
@@ -813,6 +812,7 @@ func (hm *HousingManager) DepositStorage(playerID string, houseID string, slotIn
 	} else {
 		inventoryItem.Quantity -= qty
 	}
+	playerInv.Unlock()
 	playerInv.SetDirty(true)
 
 	// Adição ao baú seguro
@@ -891,7 +891,6 @@ func (hm *HousingManager) WithdrawStorage(playerID string, houseID string, slotI
 	}
 
 	playerInv.Lock()
-	defer playerInv.Unlock()
 
 	// Verifica se há espaço no inventário do jogador (simplificado por adicionar em qualquer slot)
 	// Vamos colocar no mesmo slotIndex no inventário se estiver vazio, ou buscar um slot vazio
@@ -994,6 +993,7 @@ func (hm *HousingManager) WithdrawStorage(playerID string, houseID string, slotI
 	} else {
 		piItem.Quantity += qty
 	}
+	playerInv.Unlock()
 	playerInv.SetDirty(true)
 
 	slog.Info("Item successfully withdrawn from secure house storage", "player", playerID, "house_id", houseID, "item_id", itemID, "quantity", qty)
@@ -1055,7 +1055,6 @@ func (hm *HousingManager) PlaceFurniture(playerID string, houseID string, furnit
 	}
 
 	playerInv.Lock()
-	defer playerInv.Unlock()
 
 	// Valida se o jogador possui o item de mobília na mochila
 	foundSlot := -1
@@ -1066,6 +1065,7 @@ func (hm *HousingManager) PlaceFurniture(playerID string, houseID string, furnit
 		}
 	}
 	if foundSlot == -1 {
+		playerInv.Unlock()
 		return fmt.Errorf("you do not have %s in your inventory to decorate", fConfig.Name)
 	}
 
@@ -1075,6 +1075,7 @@ func (hm *HousingManager) PlaceFurniture(playerID string, houseID string, furnit
 	} else {
 		playerInv.Items[foundSlot].Quantity--
 	}
+	playerInv.Unlock()
 	playerInv.SetDirty(true)
 
 	// Persiste no banco de dados se conectado
@@ -1169,7 +1170,6 @@ func (hm *HousingManager) RemoveFurniture(playerID string, houseID string, decor
 	}
 
 	playerInv.Lock()
-	defer playerInv.Unlock()
 
 	// Encontra slot livre no inventário (slots 4 a 30)
 	freeSlot := -1
@@ -1221,6 +1221,7 @@ func (hm *HousingManager) RemoveFurniture(playerID string, houseID string, decor
 		Durability: 100,
 		SlotIndex:  freeSlot,
 	}
+	playerInv.Unlock()
 	playerInv.SetDirty(true)
 
 	slog.Info("Furniture successfully removed from house", "player", playerID, "house_id", houseID, "furniture_id", dec.FurnitureID, "decoration_id", decorationID)
@@ -1339,7 +1340,6 @@ func (hm *HousingManager) ReclaimStoredItems(playerID string, playerInv *invento
 	}
 
 	playerInv.Lock()
-	defer playerInv.Unlock()
 
 	// 1. Busca itens sob custódia
 	type ReclaimItem struct {
@@ -1422,6 +1422,7 @@ func (hm *HousingManager) ReclaimStoredItems(playerID string, playerInv *invento
 			Durability: rItem.Durability,
 			SlotIndex:  freeSlot,
 		}
+		playerInv.Unlock()
 		playerInv.SetDirty(true)
 		reclaimedCount++
 	}
@@ -1459,7 +1460,7 @@ func (hm *HousingManager) GetPlayerActiveHouseLocation(playerID string) (float64
 					cat := strings.ToLower(fConfig.Category)
 					id := strings.ToLower(fConfig.ID)
 					name := strings.ToLower(fConfig.Name)
-					
+
 					if cat == "beds" ||
 						strings.Contains(id, "bed") || strings.Contains(id, "soul_anchor") || strings.Contains(id, "hearth_sigil") ||
 						strings.Contains(name, "bed") || strings.Contains(name, "soul_anchor") || strings.Contains(name, "hearth_sigil") {

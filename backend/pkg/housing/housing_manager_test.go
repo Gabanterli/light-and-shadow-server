@@ -3,6 +3,7 @@ package housing
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/light-and-shadow/backend/pkg/inventory"
 )
@@ -12,7 +13,7 @@ type MockMarketHook struct {
 	Auctions map[string]*PropertyListing
 }
 
-func (m *MockMarketHook) RegisterPropertyForAuction(ctx context.Context, houseID string, startingBid int64, duration interface{}) error {
+func (m *MockMarketHook) RegisterPropertyForAuction(ctx context.Context, houseID string, startingBid int64, duration time.Duration) error {
 	return nil
 }
 
@@ -91,12 +92,12 @@ func TestRespawnActivationAndFurnitureChecks(t *testing.T) {
 	}
 
 	if x != hm.houses[houseID].X ||
-	y != hm.houses[houseID].Y ||
-	z != hm.houses[houseID].Z ||
-	name != hm.houses[houseID].Name {
+		y != hm.houses[houseID].Y ||
+		z != hm.houses[houseID].Z ||
+		name != hm.houses[houseID].Name {
 
-	t.Errorf("Expected respawn coordinates to match house configs, got (%f, %f, %d, %s)", x, y, z, name)
-}
+		t.Errorf("Expected respawn coordinates to match house configs, got (%f, %f, %d, %s)", x, y, z, name)
+	}
 }
 
 func TestDecorationBudgetLimits(t *testing.T) {

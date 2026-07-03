@@ -3,6 +3,7 @@ package messaging
 import (
 	"context"
 	"errors"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -60,7 +61,7 @@ func (mb *MessageBus) Publish(topic string, message any) {
 // RequestReply executa um padrão síncrono de pergunta e resposta usando canais temporários.
 func (mb *MessageBus) RequestReply(topic string, request any, timeout time.Duration) (any, error) {
 	// Cria um ID de resposta único para este request
-	replyTopic := topic + ".reply." + string(time.Now().UnixNano())
+	replyTopic := topic + ".reply." + strconv.FormatInt(time.Now().UnixNano(), 10)
 
 	replyChan := mb.Subscribe(replyTopic)
 	defer mb.Unsubscribe(replyTopic, replyChan)
