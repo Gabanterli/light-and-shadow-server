@@ -13,6 +13,7 @@ public partial class DebugWorldEntryController : Control
     public GatewayTcpClient? GatewayClient { get; set; }
 
     private CancellationTokenSource? _cts;
+    private DebugIncomingPacketRouter? _router;
 
     // UI Node references
     private Label? _statusLabel;
@@ -45,6 +46,12 @@ public partial class DebugWorldEntryController : Control
             _isCharacterSelectedValueLabel.Text = Session.IsCharacterSelected.ToString();
             _accountIdValueLabel.Text = Session.AccountId.ToString();
             _selectedCharacterNameValueLabel.Text = Session.SelectedCharacterName;
+
+            // Setup the packet router
+            _router = new DebugIncomingPacketRouter();
+            _router.RegisterHandler(4001, OnInventorySyncReceived);
+            _router.RegisterHandler(2006, OnChunkDataReceived);
+            _router.RegisterFallback(OnUnknownPacketReceived);
 
             StartPacketListenerLoop();
         }
@@ -90,7 +97,7 @@ public partial class DebugWorldEntryController : Control
             while (!_cts.Token.IsCancellationRequested)
             {
                 var packet = await GatewayClient.ReceivePacketAsync(_cts.Token);
-                HandlePacket(packet);
+                _router?.Dispatch(packet);
             }
         }
         catch (OperationCanceledException)
@@ -112,36 +119,37 @@ public partial class DebugWorldEntryController : Control
         }
     }
 
-    private void HandlePacket(Packet packet)
+    private void OnInventorySyncReceived(Packet packet)
     {
         var logMessage = new StringBuilder();
         logMessage.AppendLine($"[RECV] Opcode: {packet.Opcode}, Size: {packet.Size}");
+        var inventoryData = BinaryProtocol.DecodeInventorySync(packet.Payload);
+        logMessage.AppendLine("  Type: Inventory Sync");
+        logMessage.AppendLine($"  Item Count: {inventoryData.Items.Count}");
+        logMessage.AppendLine($"  Level: {inventoryData.Level}");
+        logMessage.AppendLine($"  HP: {inventoryData.Health:F2} / {inventoryData.MaxHealth:F2}");
+        logMessage.AppendLine($"  Mana: {inventoryData.Mana:F2} / {inventoryData.MaxMana:F2}");
+        CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
+    }
 
-        switch (packet.Opcode)
-        {
-            case 4001: // SC_INVENTORY_SYNC
-                var inventoryData = BinaryProtocol.DecodeInventorySync(packet.Payload);
-                logMessage.AppendLine("  Type: Inventory Sync");
-                logMessage.AppendLine($"  Item Count: {inventoryData.Items.Count}");
-                logMessage.AppendLine($"  Level: {inventoryData.Level}");
-                logMessage.AppendLine($"  HP: {inventoryData.Health:F2} / {inventoryData.MaxHealth:F2}");
-                logMessage.AppendLine($"  Mana: {inventoryData.Mana:F2} / {inventoryData.MaxMana:F2}");
-                break;
+    private void OnChunkDataReceived(Packet packet)
+    {
+        var logMessage = new StringBuilder();
+        logMessage.AppendLine($"[RECV] Opcode: {packet.Opcode}, Size: {packet.Size}");
+        var chunkData = BinaryProtocol.DecodeChunkData(packet.Payload);
+        _chunksReceived++;
+        logMessage.AppendLine("  Type: Chunk Data");
+        logMessage.AppendLine($"  Chunk Coords: ({chunkData.ChunkX}, {chunkData.ChunkY})");
+        logMessage.AppendLine($"  Tiles: {chunkData.Tiles.Length} bytes");
+        logMessage.AppendLine($"  Total Chunks Received: {_chunksReceived}");
+        CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
+    }
 
-            case 2006: // SC_CHUNK_DATA
-                var chunkData = BinaryProtocol.DecodeChunkData(packet.Payload);
-                _chunksReceived++;
-                logMessage.AppendLine("  Type: Chunk Data");
-                logMessage.AppendLine($"  Chunk Coords: ({chunkData.ChunkX}, {chunkData.ChunkY})");
-                logMessage.AppendLine($"  Tiles: {chunkData.Tiles.Length} bytes");
-                logMessage.AppendLine($"  Total Chunks Received: {_chunksReceived}");
-                break;
-
-            default:
-                logMessage.AppendLine($"  Type: Unknown (Opcode {packet.Opcode})");
-                break;
-        }
-
+    private void OnUnknownPacketReceived(Packet packet)
+    {
+        var logMessage = new StringBuilder();
+        logMessage.AppendLine($"[RECV] Opcode: {packet.Opcode}, Size: {packet.Size}");
+        logMessage.AppendLine($"  Type: Unknown (Opcode {packet.Opcode})");
         CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
     }
 
