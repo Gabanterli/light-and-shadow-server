@@ -1,4 +1,4 @@
-﻿package persistence
+package persistence
 
 import (
 	"context"
@@ -100,7 +100,7 @@ func (pm *PersistenceManager) InitSchema() error {
 	// 2. Garante conta padrÃ£o para testes
 	_, err = dbConn.ExecContext(ctx, `
 		INSERT INTO accounts (id, username, email, password_hash)
-		VALUES (1, 'default_user', 'default@example.com', '$2a$10$xyz')
+		VALUES (1, 'default_user', 'default@example.com', '$2a$10$/XE4ObyJ5H7yQn.ybMKfY.K7sGTu9xVjBUt6cR0pch3tJl9yBzAca')
 		ON CONFLICT (id) DO NOTHING;
 	`)
 	if err != nil {

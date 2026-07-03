@@ -17,6 +17,8 @@ import (
     "github.com/light-and-shadow/backend/pkg/lifecycle"
     "github.com/light-and-shadow/backend/pkg/logger"
     "github.com/light-and-shadow/backend/pkg/messaging"
+
+    "golang.org/x/crypto/bcrypt"
 )
 
 type AuthServer struct {
@@ -99,9 +101,9 @@ func (s *AuthServer) authenticateAccount(ctx context.Context, username string, p
         return 0, fmt.Errorf("failed to query account: %w", err)
     }
 
-    // TODO FASE 3.3+: validar passwordHash com bcrypt.
-    // Por enquanto, a senha precisa apenas estar preenchida e a conta precisa existir.
-    _ = passwordHash
+    if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password)); err != nil {
+        return 0, fmt.Errorf("invalid credentials")
+    }
 
     return accountID, nil
 }
