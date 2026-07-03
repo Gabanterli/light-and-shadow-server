@@ -109,6 +109,61 @@ public static class BinaryProtocol
         };
     }
 
+    public static InventorySyncData DecodeInventorySync(byte[] payload)
+    {
+        var offset = 0;
+        var itemCount = ReadUInt16LE(payload, offset);
+        offset += 2;
+
+        var items = new List<InventoryItemData>();
+        for (var i = 0; i < itemCount; i++)
+        {
+            var itemId = ReadStringUInt16(payload, offset, out offset);
+            var quantity = ReadUInt32LE(payload, offset);
+            offset += 4;
+            var durability = ReadUInt32LE(payload, offset);
+            offset += 4;
+            var slotIndex = ReadUInt16LE(payload, offset);
+            offset += 2;
+            items.Add(new InventoryItemData { ItemId = itemId, Quantity = quantity, Durability = durability, SlotIndex = slotIndex });
+        }
+
+        return new InventorySyncData
+        {
+            Items = items,
+            Level = ReadUInt32LE(payload, offset, out offset),
+            MaxHealth = ReadFloat64LE(payload, offset, out offset),
+            Health = ReadFloat64LE(payload, offset, out offset),
+            MaxMana = ReadFloat64LE(payload, offset, out offset),
+            Mana = ReadFloat64LE(payload, offset, out offset),
+            BaseAttack = ReadFloat64LE(payload, offset, out offset),
+            WeaponDamage = ReadFloat64LE(payload, offset, out offset),
+            Defense = ReadFloat64LE(payload, offset, out offset),
+            Resistance = ReadFloat64LE(payload, offset, out offset),
+            CritChance = ReadFloat64LE(payload, offset, out offset)
+        };
+    }
+
+    public static ChunkData DecodeChunkData(byte[] payload)
+    {
+        var offset = 0;
+        var chunkX = ReadUInt32LE(payload, offset);
+        offset += 4;
+        var chunkY = ReadUInt32LE(payload, offset);
+        offset += 4;
+
+        var tiles = new byte[1024];
+        Buffer.BlockCopy(payload, offset, tiles, 0, 1024);
+
+        return new ChunkData
+        {
+            ChunkX = chunkX,
+            ChunkY = chunkY,
+            Tiles = tiles
+        };
+    }
+
+
     public static void WriteUInt16LE(byte[] buffer, int offset, ushort value)
     {
         if (offset + 2 > buffer.Length)
@@ -153,6 +208,12 @@ public static class BinaryProtocol
         return (uint)(buffer[offset] | (buffer[offset + 1] << 8) | (buffer[offset + 2] << 16) | (buffer[offset + 3] << 24));
     }
 
+    public static uint ReadUInt32LE(byte[] buffer, int offset, out int nextOffset)
+    {
+        nextOffset = offset + 4;
+        return ReadUInt32LE(buffer, offset);
+    }
+
     public static int WriteStringUInt16(byte[] buffer, int offset, string value)
     {
         var bytes = Encoding.UTF8.GetBytes(value ?? string.Empty);
@@ -183,6 +244,20 @@ public static class BinaryProtocol
         nextOffset = offset + length;
         return Encoding.UTF8.GetString(buffer, offset, length);
     }
+
+    public static double ReadFloat64LE(byte[] buffer, int offset, out int nextOffset)
+    {
+        if (offset + 8 > buffer.Length)
+        {
+            throw new InvalidDataException("Buffer overflow while reading float64.");
+        }
+
+        nextOffset = offset + 8;
+        // BitConverter.ToDouble can be sensitive to endianness.
+        // We assume the system running the client is Little Endian, like the server.
+        // For cross-platform safety, manual conversion would be better, but this is fine for now.
+        return BitConverter.ToDouble(buffer, offset);
+    }
 }
 
 public sealed class LoginResponseData
@@ -212,4 +287,34 @@ public sealed class CharacterSelectResponseData
     public bool Status { get; set; }
     public string CharacterName { get; set; } = string.Empty;
     public string ErrorCode { get; set; } = string.Empty;
+}
+
+public sealed class InventoryItemData
+{
+    public string ItemId { get; set; } = string.Empty;
+    public uint Quantity { get; set; }
+    public uint Durability { get; set; }
+    public ushort SlotIndex { get; set; }
+}
+
+public sealed class InventorySyncData
+{
+    public List<InventoryItemData> Items { get; set; } = new();
+    public uint Level { get; set; }
+    public double MaxHealth { get; set; }
+    public double Health { get; set; }
+    public double MaxMana { get; set; }
+    public double Mana { get; set; }
+    public double BaseAttack { get; set; }
+    public double WeaponDamage { get; set; }
+    public double Defense { get; set; }
+    public double Resistance { get; set; }
+    public double CritChance { get; set; }
+}
+
+public sealed class ChunkData
+{
+    public uint ChunkX { get; set; }
+    public uint ChunkY { get; set; }
+    public byte[] Tiles { get; set; } = Array.Empty<byte>();
 }

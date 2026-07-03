@@ -103,8 +103,15 @@ public sealed class GatewayTcpClient : IDisposable
 
     public void Disconnect()
     {
-        _stream?.Dispose();
-        _tcpClient?.Dispose();
+        try
+        {
+            _stream?.Dispose();
+            _tcpClient?.Dispose();
+        }
+        catch
+        {
+            // Suppress exceptions during disconnection as it's a cleanup operation.
+        }
         _stream = null;
         _tcpClient = null;
     }
@@ -138,7 +145,7 @@ public sealed class GatewayTcpClient : IDisposable
         }
     }
 
-    private async Task<Packet> ReceivePacketAsync(CancellationToken cancellationToken)
+    public async Task<Packet> ReceivePacketAsync(CancellationToken cancellationToken)
     {
         EnsureConnected();
         var header = await ReadExactlyAsync(Packet.HeaderSize, cancellationToken);

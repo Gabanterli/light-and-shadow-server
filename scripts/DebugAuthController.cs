@@ -182,7 +182,7 @@ public partial class DebugAuthController : Control
                 _authSession.SetSelectedCharacter(response.CharacterName);
                 _statusLabel.Text = $"Status: Character '{response.CharacterName}' selected!";
                 Log($"Successfully selected character. AuthSession updated with '{response.CharacterName}'.");
-                SceneFlow.ToWorldEntry(this, _authSession);
+                SceneFlow.ToWorldEntry(this, _authSession, _gatewayClient);
             }
             else
             {
