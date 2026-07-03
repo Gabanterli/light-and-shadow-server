@@ -432,6 +432,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 	s.clientsMu.Unlock()
 
 	var sessionToken string
+	var authenticatedAccountID int
 	var playerID string
 	var lastRefresh time.Time
 
@@ -534,6 +535,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
             }
 
             sessionToken = authResp.Token
+            authenticatedAccountID = authResp.AccountID
             lastRefresh = time.Now()
 
             slog.Info("Login accepted by Auth Server", "username", loginReq.Username, "account_id", authResp.AccountID)
@@ -548,10 +550,20 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
             conn.Write(response.Serialize())
 
         case protocol.CS_CHAR_LIST_REQUEST:
+            if authenticatedAccountID <= 0 {
+                slog.Warn("Character list rejected: client is not authenticated")
+                response := &protocol.Packet{
+                    Opcode:   protocol.SC_CHAR_LIST_RESPONSE,
+                    Sequence: packet.Sequence,
+                    Payload:  []byte("ERROR|not_authenticated"),
+                }
+                conn.Write(response.Serialize())
+                break
+            }
 	slog.Info("Requesting character list from PostgreSQL")
 
 	// FASE 3.3 Task 2: account_id=1 temporÃ¡rio atÃ© o login TCP validar conta real.
-	characters, err := s.persistenceMgr.ListCharactersByAccount(1)
+	characters, err := s.persistenceMgr.ListCharactersByAccount(authenticatedAccountID)
 	if err != nil {
 		slog.Error("Failed to list characters from PostgreSQL", "error", err)
 		errPayload := []byte("ERROR|failed_to_list_characters")
@@ -580,6 +592,16 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 	conn.Write(response.Serialize())
 
 		case protocol.CS_CHAR_SELECT_REQUEST:
+            if authenticatedAccountID <= 0 {
+                slog.Warn("Character selection rejected: client is not authenticated")
+                response := &protocol.Packet{
+                    Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
+                    Sequence: packet.Sequence,
+                    Payload:  []byte{0},
+                }
+                conn.Write(response.Serialize())
+                break
+            }
             slog.Info("Routing character selection to World Server")
 
             offset := 0
@@ -595,8 +617,8 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
                 break
             }
 
-            // FASE 3.3 Task 3: account_id=1 temporário até o login TCP validar conta real.
-            ownsCharacter, err := s.persistenceMgr.CharacterBelongsToAccount(1, selectedCharacterName)
+            // FASE 3.3 Task 4D: valida ownership usando account_id autenticado.
+            ownsCharacter, err := s.persistenceMgr.CharacterBelongsToAccount(authenticatedAccountID, selectedCharacterName)
             if err != nil {
                 slog.Error("Failed to validate selected character ownership", "character", selectedCharacterName, "error", err)
                 response := &protocol.Packet{
@@ -609,7 +631,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
             }
 
             if !ownsCharacter {
-                slog.Warn("Character selection rejected: character does not belong to account", "character", selectedCharacterName, "account_id", 1)
+                slog.Warn("Character selection rejected: character does not belong to account", "character", selectedCharacterName, "account_id", authenticatedAccountID)
                 response := &protocol.Packet{
                     Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
                     Sequence: packet.Sequence,
