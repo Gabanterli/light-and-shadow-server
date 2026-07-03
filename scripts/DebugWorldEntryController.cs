@@ -14,6 +14,7 @@ public partial class DebugWorldEntryController : Control
 
     private CancellationTokenSource? _cts;
     private DebugIncomingPacketRouter? _router;
+    private readonly DebugWorldBootstrapSnapshot _snapshot = new();
 
     // UI Node references
     private Label? _statusLabel;
@@ -123,12 +124,16 @@ public partial class DebugWorldEntryController : Control
     {
         var logMessage = new StringBuilder();
         logMessage.AppendLine($"[RECV] Opcode: {packet.Opcode}, Size: {packet.Size}");
+
         var inventoryData = BinaryProtocol.DecodeInventorySync(packet.Payload);
+        _snapshot.UpdateFromInventorySync(inventoryData);
+
         logMessage.AppendLine("  Type: Inventory Sync");
         logMessage.AppendLine($"  Item Count: {inventoryData.Items.Count}");
         logMessage.AppendLine($"  Level: {inventoryData.Level}");
         logMessage.AppendLine($"  HP: {inventoryData.Health:F2} / {inventoryData.MaxHealth:F2}");
         logMessage.AppendLine($"  Mana: {inventoryData.Mana:F2} / {inventoryData.MaxMana:F2}");
+        logMessage.AppendLine("  > Snapshot updated.");
         CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
     }
 
@@ -136,12 +141,15 @@ public partial class DebugWorldEntryController : Control
     {
         var logMessage = new StringBuilder();
         logMessage.AppendLine($"[RECV] Opcode: {packet.Opcode}, Size: {packet.Size}");
+
         var chunkData = BinaryProtocol.DecodeChunkData(packet.Payload);
-        _chunksReceived++;
+        _snapshot.UpdateFromChunkData(chunkData);
+
         logMessage.AppendLine("  Type: Chunk Data");
         logMessage.AppendLine($"  Chunk Coords: ({chunkData.ChunkX}, {chunkData.ChunkY})");
         logMessage.AppendLine($"  Tiles: {chunkData.Tiles.Length} bytes");
-        logMessage.AppendLine($"  Total Chunks Received: {_chunksReceived}");
+        logMessage.AppendLine($"  Total Chunks Received: {_snapshot.TotalChunksReceived}");
+        logMessage.AppendLine("  > Snapshot updated.");
         CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
     }
 
