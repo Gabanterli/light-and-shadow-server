@@ -123,6 +123,14 @@ public sealed class GatewayTcpClient : IDisposable
         await SendPacketAsync(packet, cancellationToken);
     }
 
+    public async Task SendAttackRequestAsync(string targetId, string weaponType, CancellationToken cancellationToken = default)
+    {
+        EnsureConnected();
+        var payload = BinaryProtocol.EncodeAttackRequest(targetId, weaponType);
+        var packet = new Packet(3000, NextSequence(), payload);
+        await SendPacketAsync(packet, cancellationToken);
+    }
+
     public void Disconnect()
     {
         try
