@@ -246,6 +246,71 @@ public static class BinaryProtocol
         };
     }
 
+    public static byte[] EncodeAttackRequest(string targetId, string weaponType)
+    {
+        var safeTargetId = targetId ?? string.Empty;
+        var safeWeaponType = weaponType ?? string.Empty;
+
+        var payload = new byte[2 + Encoding.UTF8.GetByteCount(safeTargetId) + 2 + Encoding.UTF8.GetByteCount(safeWeaponType)];
+        var offset = 0;
+        offset = WriteStringUInt16(payload, offset, safeTargetId);
+        offset = WriteStringUInt16(payload, offset, safeWeaponType);
+        return payload;
+    }
+
+    public static byte[] EncodeCastSkillRequest(uint skillId, string targetId, double targetX, double targetY)
+    {
+        var safeTargetId = targetId ?? string.Empty;
+        var targetIdByteCount = Encoding.UTF8.GetByteCount(safeTargetId);
+
+        // 4 (skillId) + 2 (str len) + N (str bytes) + 4 (targetX) + 4 (targetY)
+        var payload = new byte[4 + 2 + targetIdByteCount + 4 + 4];
+        var offset = 0;
+
+        WriteUInt32LE(payload, offset, skillId);
+        offset += 4;
+
+        offset = WriteStringUInt16(payload, offset, safeTargetId);
+
+        WriteFixed32LE(payload, offset, targetX);
+        offset += 4;
+
+        WriteFixed32LE(payload, offset, targetY);
+
+        return payload;
+    }
+
+    public static DamageEventData DecodeDamageEvent(byte[] payload)
+    {
+        var offset = 0;
+        var attackerId = ReadStringUInt16(payload, offset, out offset);
+        var targetId = ReadStringUInt16(payload, offset, out offset);
+        var damage = ReadFixed32LE(payload, offset, out offset);
+        if (offset + 3 > payload.Length)
+        {
+            throw new InvalidDataException("Buffer overflow while reading damage event booleans.");
+        }
+        var isCrit = payload[offset++] != 0;
+        var isHit = payload[offset++] != 0;
+        var success = payload[offset++] != 0;
+        var skillName = ReadStringUInt16(payload, offset, out _);
+
+        return new DamageEventData
+        {
+            AttackerID = attackerId,
+            TargetID = targetId,
+            Damage = damage,
+            IsCrit = isCrit,
+            IsHit = isHit,
+            Success = success,
+            SkillName = skillName
+        };
+    }
+
+    public static TargetDeadEventData DecodeTargetDeadEvent(byte[] payload)
+    {
+        return new TargetDeadEventData { TargetID = ReadStringUInt16(payload, 0, out _) };
+    }
 
     public static void WriteUInt16LE(byte[] buffer, int offset, ushort value)
     {
@@ -370,6 +435,27 @@ public static class BinaryProtocol
         // For cross-platform safety, manual conversion would be better, but this is fine for now.
         return BitConverter.ToDouble(buffer, offset);
     }
+
+    public static void WriteFixed32LE(byte[] buffer, int offset, double value)
+    {
+        if (offset + 4 > buffer.Length)
+        {
+            throw new InvalidDataException("Buffer overflow while writing fixed32.");
+        }
+        var fixedValue = (int)Math.Round(value * 1000.0);
+        WriteInt32LE(buffer, offset, fixedValue);
+    }
+
+    public static double ReadFixed32LE(byte[] buffer, int offset, out int nextOffset)
+    {
+        if (offset + 4 > buffer.Length)
+        {
+            throw new InvalidDataException("Buffer overflow while reading fixed32.");
+        }
+        var intValue = buffer[offset] | (buffer[offset + 1] << 8) | (buffer[offset + 2] << 16) | (buffer[offset + 3] << 24);
+        nextOffset = offset + 4;
+        return intValue / 1000.0;
+    }
 }
 
 public sealed class LoginResponseData
@@ -452,6 +538,23 @@ public sealed class MoveConfirmData
     [System.Text.Json.Serialization.JsonPropertyName("success")]
     public bool Success { get; set; }
 }
+
+public sealed class DamageEventData
+{
+    public string AttackerID { get; set; } = string.Empty;
+    public string TargetID { get; set; } = string.Empty;
+    public double Damage { get; set; }
+    public bool IsCrit { get; set; }
+    public bool IsHit { get; set; }
+    public bool Success { get; set; }
+    public string SkillName { get; set; } = string.Empty;
+}
+
+public sealed class TargetDeadEventData
+{
+    public string TargetID { get; set; } = string.Empty;
+}
+
 
 public sealed class PlayerUpdateData
 {
