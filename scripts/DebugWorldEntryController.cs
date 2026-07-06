@@ -103,6 +103,8 @@ public partial class DebugWorldEntryController : Control
             _router.RegisterHandler(2006, OnChunkDataReceived);
             _router.RegisterHandler(2005, OnMoveConfirmReceived);
             _router.RegisterHandler(2001, OnPlayerUpdateReceived);
+            _router.RegisterHandler(3002, OnDamageEventReceived);
+            _router.RegisterHandler(3003, OnTargetDeadEventReceived);
             _router.RegisterFallback(OnUnknownPacketReceived);
 
             StartPacketListenerLoop();
@@ -353,6 +355,46 @@ public partial class DebugWorldEntryController : Control
                 CallDeferred(nameof(UpdateConfirmedPositionLabel));
             }
         }
+        CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
+    }
+
+    private void OnDamageEventReceived(Packet packet)
+    {
+        var logMessage = new StringBuilder();
+        logMessage.AppendLine($"[RECV] Opcode: {packet.Opcode} (SC_DAMAGE_EVENT), Size: {packet.Size}");
+
+        try
+        {
+            var data = BinaryProtocol.DecodeDamageEvent(packet.Payload);
+            logMessage.AppendLine($"  Attacker: {data.AttackerID}, Target: {data.TargetID}");
+            logMessage.AppendLine($"  Damage: {data.Damage:F2}, Crit: {data.IsCrit}, Hit: {data.IsHit}, Success: {data.Success}");
+            logMessage.AppendLine($"  Skill: '{data.SkillName}'");
+        }
+        catch (Exception ex)
+        {
+            logMessage.AppendLine($"  Error decoding DamageEvent: {ex.Message}");
+        }
+
+        CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
+    }
+
+    private void OnTargetDeadEventReceived(Packet packet)
+    {
+        var logMessage = new StringBuilder();
+        logMessage.AppendLine($"[RECV] Opcode: {packet.Opcode} (SC_TARGET_DEAD), Size: {packet.Size}");
+
+        try
+        {
+            var data = BinaryProtocol.DecodeTargetDeadEvent(packet.Payload);
+            logMessage.AppendLine($"  Target Dead: {data.TargetID}");
+
+            // Future idea: Find the entity with this ID in the world view and mark it as dead.
+        }
+        catch (Exception ex)
+        {
+            logMessage.AppendLine($"  Error decoding TargetDeadEvent: {ex.Message}");
+        }
+
         CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
     }
 
