@@ -22,6 +22,7 @@ type CharacterSummary struct {
 	Name    string
 	Class   string
 	Level   int
+	RaceID  string // (R1-I-B)
 	Account int
 }
 
@@ -42,7 +43,7 @@ func (pm *PersistenceManager) ListCharactersByAccount(accountID int) ([]Characte
 	defer cancel()
 
 	rows, err := dbConn.QueryContext(ctx, `
-        SELECT id, name, class, level, account_id
+        SELECT id, name, class, level, account_id, race_id
         FROM characters
         WHERE account_id = $1
         ORDER BY id ASC
@@ -56,7 +57,7 @@ func (pm *PersistenceManager) ListCharactersByAccount(accountID int) ([]Characte
 
 	for rows.Next() {
 		var ch CharacterSummary
-		if err := rows.Scan(&ch.ID, &ch.Name, &ch.Class, &ch.Level, &ch.Account); err != nil {
+		if err := rows.Scan(&ch.ID, &ch.Name, &ch.Class, &ch.Level, &ch.Account, &ch.RaceID); err != nil {
 			return nil, fmt.Errorf("failed to scan character summary: %w", err)
 		}
 		characters = append(characters, ch)

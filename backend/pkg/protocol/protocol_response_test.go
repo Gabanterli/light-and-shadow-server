@@ -54,8 +54,8 @@ func TestLoginResponseRoundTripFailure(t *testing.T) {
 
 func TestCharacterListResponseRoundTripSuccess(t *testing.T) {
 	entries := []CharacterListEntry{
-		{Name: "Gabriela", Class: "Novice", Level: 1},
-		{Name: "TankTest", Class: "Knight", Level: 10},
+		{Name: "Gabriela", Class: "Novice", Level: 1, RaceID: "human"},
+		{Name: "TankTest", Class: "Knight", Level: 10, RaceID: "dwarf"},
 	}
 
 	payload := EncodeCharacterListResponse(true, "", entries)
@@ -77,11 +77,11 @@ func TestCharacterListResponseRoundTripSuccess(t *testing.T) {
 		t.Fatalf("expected 2 characters, got %d", len(resp.Characters))
 	}
 
-	if resp.Characters[0].Name != "Gabriela" || resp.Characters[0].Class != "Novice" || resp.Characters[0].Level != 1 {
+	if resp.Characters[0].Name != "Gabriela" || resp.Characters[0].Class != "Novice" || resp.Characters[0].Level != 1 || resp.Characters[0].RaceID != "human" {
 		t.Fatalf("unexpected first character: %+v", resp.Characters[0])
 	}
 
-	if resp.Characters[1].Name != "TankTest" || resp.Characters[1].Class != "Knight" || resp.Characters[1].Level != 10 {
+	if resp.Characters[1].Name != "TankTest" || resp.Characters[1].Class != "Knight" || resp.Characters[1].Level != 10 || resp.Characters[1].RaceID != "dwarf" {
 		t.Fatalf("unexpected second character: %+v", resp.Characters[1])
 	}
 }

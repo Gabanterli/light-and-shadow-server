@@ -134,7 +134,7 @@ public partial class DebugAuthController : Control
                 foreach (var character in response.Characters)
                 {
                     _characterNames.Add(character.Name);
-                    _characterList.AddItem($"{character.Name} (Lvl {character.Level} {character.Class})");
+                    _characterList.AddItem($"{character.Name} (Lvl {character.Level} {character.Class} / {character.RaceId})"); // (R1-I-B)
                 }
                 _selectCharacterButton!.Disabled = response.Characters.Count == 0;
             }

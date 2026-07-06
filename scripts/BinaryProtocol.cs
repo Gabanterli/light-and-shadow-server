@@ -65,12 +65,14 @@ public static class BinaryProtocol
             var className = ReadStringUInt16(payload, offset, out offset);
             var level = ReadUInt32LE(payload, offset);
             offset += 4;
+            var raceId = ReadStringUInt16(payload, offset, out offset); // (R1-I-B)
 
             characters.Add(new CharacterListEntryData
             {
                 Name = name,
                 Class = className,
-                Level = level
+                Level = level,
+                RaceId = raceId, // (R1-I-B)
             });
         }
 
@@ -342,6 +344,7 @@ public sealed class CharacterListEntryData
     public string Name { get; set; } = string.Empty;
     public string Class { get; set; } = string.Empty;
     public uint Level { get; set; }
+    public string RaceId { get; set; } = string.Empty; // (R1-I-B)
 }
 
 public sealed class CharacterSelectResponseData

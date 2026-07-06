@@ -1,4 +1,4 @@
-# Light and Shadow — Protocolo Binário Auth/Personagem
+﻿# Light and Shadow — Protocolo Binário Auth/Personagem
 
 
 
@@ -405,4 +405,36 @@ pkg/protocol/protocol\_response\_test.go
 docs/protocol/protocolo-binario-auth-personagem.md
 
 client Godot C#
+
+
+---
+
+## Atualização R1-I-B - Race ID na lista de personagens
+
+A partir da Task R1-I-B, o pacote SC_CHAR_LIST_RESPONSE inclui o campo race_id para cada personagem retornado na lista.
+
+Esta é uma breaking change controlada local/debug, pois o client Godot também deve ser atualizado na mesma task para ler o novo campo.
+
+### Opcode afetado
+
+- 1005 SC_CHAR_LIST_RESPONSE
+
+### Formato por personagem
+
+Cada entrada de personagem dentro de SC_CHAR_LIST_RESPONSE deve ser serializada exatamente nesta ordem:
+
+1. string name
+2. string class
+3. uint32 level
+4. string race_id
+
+### Observações
+
+- CS_CHAR_LIST_REQUEST permanece inalterado.
+- CS_CHAR_SELECT_REQUEST permanece inalterado.
+- SC_CHAR_SELECT_RESPONSE permanece inalterado.
+- Nenhum opcode novo foi criado nesta task.
+- Esta alteração não implementa criação de personagem.
+- race_id representa a raça oficial persistida no banco, por exemplo human.
+- Backend e Godot devem manter a mesma ordem de escrita/leitura: name, class, level, race_id.
 

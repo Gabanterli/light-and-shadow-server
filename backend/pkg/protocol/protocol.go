@@ -9,13 +9,13 @@ import (
 
 // Opcodes correspondentes ao cliente C#
 const (
-	CS_HEARTBEAT           uint16 = 1000
-	SC_HEARTBEAT_ACK       uint16 = 1001
-	CS_LOGIN_REQUEST       uint16 = 1002
-	SC_LOGIN_RESPONSE      uint16 = 1003
-	CS_CHAR_LIST_REQUEST   uint16 = 1004
-	SC_CHAR_LIST_RESPONSE  uint16 = 1005
-	CS_CHAR_SELECT_REQUEST uint16 = 1006
+	CS_HEARTBEAT            uint16 = 1000
+	SC_HEARTBEAT_ACK        uint16 = 1001
+	CS_LOGIN_REQUEST        uint16 = 1002
+	SC_LOGIN_RESPONSE       uint16 = 1003
+	CS_CHAR_LIST_REQUEST    uint16 = 1004
+	SC_CHAR_LIST_RESPONSE   uint16 = 1005
+	CS_CHAR_SELECT_REQUEST  uint16 = 1006
 	SC_CHAR_SELECT_RESPONSE uint16 = 1007
 
 	CS_PLAYER_MOVE    uint16 = 2000
@@ -23,9 +23,9 @@ const (
 	SC_SPAWN_ENTITY   uint16 = 2002
 	SC_DESPAWN_ENTITY uint16 = 2003
 
-	CS_MOVE_REQUEST   uint16 = 2004
-	SC_MOVE_CONFIRM   uint16 = 2005
-	SC_CHUNK_DATA     uint16 = 2006
+	CS_MOVE_REQUEST uint16 = 2004
+	SC_MOVE_CONFIRM uint16 = 2005
+	SC_CHUNK_DATA   uint16 = 2006
 
 	// Combat System Opcodes (Sprint 2 Task 5)
 	CS_ATTACK_REQUEST uint16 = 3000
@@ -44,68 +44,68 @@ const (
 	SC_SWAP_RESPONSE     uint16 = 4007
 
 	// NPC & Quest System Opcodes (Sprint 3 Task 3)
-	CS_NPC_INTERACT       uint16 = 5000
-	SC_DIALOGUE_OPEN      uint16 = 5001
-	CS_DIALOGUE_RESPONSE  uint16 = 5002
-	CS_ACCEPT_QUEST       uint16 = 5003
-	CS_COMPLETE_QUEST     uint16 = 5004
-	SC_QUEST_UPDATE       uint16 = 5005
-	SC_QUEST_COMPLETE     uint16 = 5006
+	CS_NPC_INTERACT      uint16 = 5000
+	SC_DIALOGUE_OPEN     uint16 = 5001
+	CS_DIALOGUE_RESPONSE uint16 = 5002
+	CS_ACCEPT_QUEST      uint16 = 5003
+	CS_COMPLETE_QUEST    uint16 = 5004
+	SC_QUEST_UPDATE      uint16 = 5005
+	SC_QUEST_COMPLETE    uint16 = 5006
 
 	// Social, Party & Guild System Opcodes (Sprint 3 Task 3 - Party, Guild & Social)
-	CS_PARTY_CREATE        uint16 = 6000
-	SC_PARTY_INFO          uint16 = 6001
-	CS_PARTY_INVITE        uint16 = 6002
-	SC_PARTY_INVITE_REQ    uint16 = 6003
-	CS_PARTY_INVITE_RESP   uint16 = 6004
-	CS_PARTY_LEAVE         uint16 = 6005
-	CS_PARTY_KICK          uint16 = 6006
-	CS_PARTY_TRANSFER      uint16 = 6007
-	CS_PARTY_LOOT_MODE     uint16 = 6008
+	CS_PARTY_CREATE      uint16 = 6000
+	SC_PARTY_INFO        uint16 = 6001
+	CS_PARTY_INVITE      uint16 = 6002
+	SC_PARTY_INVITE_REQ  uint16 = 6003
+	CS_PARTY_INVITE_RESP uint16 = 6004
+	CS_PARTY_LEAVE       uint16 = 6005
+	CS_PARTY_KICK        uint16 = 6006
+	CS_PARTY_TRANSFER    uint16 = 6007
+	CS_PARTY_LOOT_MODE   uint16 = 6008
 
-	CS_GUILD_CREATE        uint16 = 6100
-	SC_GUILD_INFO          uint16 = 6101
-	CS_GUILD_INVITE        uint16 = 6102
-	SC_GUILD_INVITE_REQ    uint16 = 6103
-	CS_GUILD_INVITE_RESP   uint16 = 6104
-	CS_GUILD_LEAVE         uint16 = 6105
-	CS_GUILD_KICK          uint16 = 6106
-	CS_GUILD_PROMOTE       uint16 = 6107
-	CS_GUILD_DEMOTE        uint16 = 6108
-	CS_GUILD_MOTD          uint16 = 6109
-	SC_GUILD_AUDIT_LOG     uint16 = 6110
+	CS_GUILD_CREATE      uint16 = 6100
+	SC_GUILD_INFO        uint16 = 6101
+	CS_GUILD_INVITE      uint16 = 6102
+	SC_GUILD_INVITE_REQ  uint16 = 6103
+	CS_GUILD_INVITE_RESP uint16 = 6104
+	CS_GUILD_LEAVE       uint16 = 6105
+	CS_GUILD_KICK        uint16 = 6106
+	CS_GUILD_PROMOTE     uint16 = 6107
+	CS_GUILD_DEMOTE      uint16 = 6108
+	CS_GUILD_MOTD        uint16 = 6109
+	SC_GUILD_AUDIT_LOG   uint16 = 6110
 
-	CS_SOCIAL_ADD_FRIEND   uint16 = 6200
+	CS_SOCIAL_ADD_FRIEND    uint16 = 6200
 	CS_SOCIAL_REMOVE_FRIEND uint16 = 6201
-	CS_SOCIAL_ADD_IGNORE   uint16 = 6202
+	CS_SOCIAL_ADD_IGNORE    uint16 = 6202
 	CS_SOCIAL_REMOVE_IGNORE uint16 = 6203
-	SC_SOCIAL_LISTS        uint16 = 6204
-	SC_ONLINE_STATUS       uint16 = 6205
+	SC_SOCIAL_LISTS         uint16 = 6204
+	SC_ONLINE_STATUS        uint16 = 6205
 
-	CS_CHAT_SEND           uint16 = 6300
-	SC_CHAT_MESSAGE        uint16 = 6301
+	CS_CHAT_SEND    uint16 = 6300
+	SC_CHAT_MESSAGE uint16 = 6301
 
 	// Economy, Trading & Marketplace System Opcodes (Sprint 3 Task 4)
-	CS_TRADE_REQUEST       uint16 = 7000
-	SC_TRADE_PROPOSAL      uint16 = 7001
-	CS_TRADE_RESPOND       uint16 = 7002
-	CS_TRADE_OFFER_ITEM    uint16 = 7003
-	CS_TRADE_OFFER_GOLD    uint16 = 7004
-	CS_TRADE_LOCK          uint16 = 7005
-	CS_TRADE_CONFIRM       uint16 = 7006
-	SC_TRADE_UPDATE        uint16 = 7007
-	CS_TRADE_CANCEL        uint16 = 7008
-	SC_TRADE_CLOSED        uint16 = 7009
+	CS_TRADE_REQUEST    uint16 = 7000
+	SC_TRADE_PROPOSAL   uint16 = 7001
+	CS_TRADE_RESPOND    uint16 = 7002
+	CS_TRADE_OFFER_ITEM uint16 = 7003
+	CS_TRADE_OFFER_GOLD uint16 = 7004
+	CS_TRADE_LOCK       uint16 = 7005
+	CS_TRADE_CONFIRM    uint16 = 7006
+	SC_TRADE_UPDATE     uint16 = 7007
+	CS_TRADE_CANCEL     uint16 = 7008
+	SC_TRADE_CLOSED     uint16 = 7009
 
-	CS_NPC_SHOP_BUY        uint16 = 7100
-	CS_NPC_SHOP_SELL       uint16 = 7101
-	CS_NPC_SHOP_REPAIR     uint16 = 7102
-	SC_NPC_SHOP_RESPONSE   uint16 = 7103
+	CS_NPC_SHOP_BUY      uint16 = 7100
+	CS_NPC_SHOP_SELL     uint16 = 7101
+	CS_NPC_SHOP_REPAIR   uint16 = 7102
+	SC_NPC_SHOP_RESPONSE uint16 = 7103
 
-	CS_MARKET_CREATE_ORDER uint16 = 7200
-	CS_MARKET_BUY_ITEM     uint16 = 7201
-	CS_MARKET_CANCEL_ORDER uint16 = 7202
-	CS_MARKET_SEARCH       uint16 = 7203
+	CS_MARKET_CREATE_ORDER  uint16 = 7200
+	CS_MARKET_BUY_ITEM      uint16 = 7201
+	CS_MARKET_CANCEL_ORDER  uint16 = 7202
+	CS_MARKET_SEARCH        uint16 = 7203
 	SC_MARKET_SEARCH_RESULT uint16 = 7204
 
 	// Crafting & Gathering System Opcodes (Sprint 4 Task 1)
@@ -118,20 +118,20 @@ const (
 	CS_GATHER_CANCEL        uint16 = 8006
 
 	// Dungeon, Raid & World Boss Opcodes (Sprint 4 Task 2)
-	CS_DUNGEON_ENTER         uint16 = 9000
-	SC_DUNGEON_STATE         uint16 = 9001
-	SC_BOSS_AI_TELEGRAPH     uint16 = 9002
-	SC_BOSS_AI_PHASE         uint16 = 9003
-	CS_DUNGEON_CLAIM_LOOT    uint16 = 9004
-	SC_LOOT_NOTIFICATION     uint16 = 9005
-	CS_DUNGEON_LEAVE         uint16 = 9006
-	CS_WORLD_BOSS_SPAWN_REQ  uint16 = 9007
+	CS_DUNGEON_ENTER        uint16 = 9000
+	SC_DUNGEON_STATE        uint16 = 9001
+	SC_BOSS_AI_TELEGRAPH    uint16 = 9002
+	SC_BOSS_AI_PHASE        uint16 = 9003
+	CS_DUNGEON_CLAIM_LOOT   uint16 = 9004
+	SC_LOOT_NOTIFICATION    uint16 = 9005
+	CS_DUNGEON_LEAVE        uint16 = 9006
+	CS_WORLD_BOSS_SPAWN_REQ uint16 = 9007
 
 	// Progression & Class/Subclass Opcodes (Sprint 3 Task 5)
-	CS_CHOOSE_VOCATION       uint16 = 9100
-	SC_CHOOSE_VOCATION_RESP  uint16 = 9101
-	CS_UNLOCK_SUBCLASS       uint16 = 9102
-	SC_UNLOCK_SUBCLASS_RESP  uint16 = 9103
+	CS_CHOOSE_VOCATION      uint16 = 9100
+	SC_CHOOSE_VOCATION_RESP uint16 = 9101
+	CS_UNLOCK_SUBCLASS      uint16 = 9102
+	SC_UNLOCK_SUBCLASS_RESP uint16 = 9103
 )
 
 const HeaderSize = 8
@@ -196,12 +196,12 @@ func (p *Packet) Serialize() []byte {
 
 // Helper to read a length-prefixed string (uint16) from a buffer
 func ReadString(buf []byte, offset *int) (string, error) {
-	if *offset + 2 > len(buf) {
+	if *offset+2 > len(buf) {
 		return "", fmt.Errorf("buffer overflow reading string length")
 	}
 	strLen := int(binary.LittleEndian.Uint16(buf[*offset : *offset+2]))
 	*offset += 2
-	if *offset + strLen > len(buf) {
+	if *offset+strLen > len(buf) {
 		return "", fmt.Errorf("buffer overflow reading string payload")
 	}
 	val := string(buf[*offset : *offset+strLen])
@@ -212,15 +212,15 @@ func ReadString(buf []byte, offset *int) (string, error) {
 // Helper to write a length-prefixed string to a buffer
 func WriteString(buf []byte, val string, offset *int) {
 	strLen := len(val)
-	binary.LittleEndian.PutUint16(buf[*offset : *offset+2], uint16(strLen))
+	binary.LittleEndian.PutUint16(buf[*offset:*offset+2], uint16(strLen))
 	*offset += 2
-	copy(buf[*offset : *offset+strLen], []byte(val))
+	copy(buf[*offset:*offset+strLen], []byte(val))
 	*offset += strLen
 }
 
 // Helper to read uint32
 func ReadUint32(buf []byte, offset *int) (uint32, error) {
-	if *offset + 4 > len(buf) {
+	if *offset+4 > len(buf) {
 		return 0, fmt.Errorf("buffer overflow reading uint32")
 	}
 	val := binary.LittleEndian.Uint32(buf[*offset : *offset+4])
@@ -230,13 +230,13 @@ func ReadUint32(buf []byte, offset *int) (uint32, error) {
 
 // Helper to write uint32
 func WriteUint32(buf []byte, val uint32, offset *int) {
-	binary.LittleEndian.PutUint32(buf[*offset : *offset+4], val)
+	binary.LittleEndian.PutUint32(buf[*offset:*offset+4], val)
 	*offset += 4
 }
 
 // Helper to read float64
 func ReadFloat64(buf []byte, offset *int) (float64, error) {
-	if *offset + 8 > len(buf) {
+	if *offset+8 > len(buf) {
 		return 0, fmt.Errorf("buffer overflow reading float64")
 	}
 	bits := binary.LittleEndian.Uint64(buf[*offset : *offset+8])
@@ -247,13 +247,13 @@ func ReadFloat64(buf []byte, offset *int) (float64, error) {
 // Helper to write float64
 func WriteFloat64(buf []byte, val float64, offset *int) {
 	bits := math.Float64bits(val)
-	binary.LittleEndian.PutUint64(buf[*offset : *offset+8], bits)
+	binary.LittleEndian.PutUint64(buf[*offset:*offset+8], bits)
 	*offset += 8
 }
 
 // Helper to read fixed-point 32-bit float (scaled by 1000)
 func ReadFixed32(buf []byte, offset *int) (float64, error) {
-	if *offset + 4 > len(buf) {
+	if *offset+4 > len(buf) {
 		return 0, fmt.Errorf("buffer overflow reading fixed32")
 	}
 	val := int32(binary.LittleEndian.Uint32(buf[*offset : *offset+4]))
@@ -264,44 +264,45 @@ func ReadFixed32(buf []byte, offset *int) (float64, error) {
 // Helper to write fixed-point 32-bit float (scaled by 1000)
 func WriteFixed32(buf []byte, val float64, offset *int) {
 	fixed := int32(math.Round(val * 1000.0))
-	binary.LittleEndian.PutUint32(buf[*offset : *offset+4], uint32(fixed))
+	binary.LittleEndian.PutUint32(buf[*offset:*offset+4], uint32(fixed))
 	*offset += 4
 }
 
 type LoginRequest struct {
-    Username string
-    Password string
+	Username string
+	Password string
 }
 
 func DecodeLoginRequest(payload []byte) (*LoginRequest, error) {
-    offset := 0
+	offset := 0
 
-    username, err := ReadString(payload, &offset)
-    if err != nil {
-        return nil, err
-    }
+	username, err := ReadString(payload, &offset)
+	if err != nil {
+		return nil, err
+	}
 
-    password, err := ReadString(payload, &offset)
-    if err != nil {
-        return nil, err
-    }
+	password, err := ReadString(payload, &offset)
+	if err != nil {
+		return nil, err
+	}
 
-    return &LoginRequest{
-        Username: username,
-        Password: password,
-    }, nil
+	return &LoginRequest{
+		Username: username,
+		Password: password,
+	}, nil
 }
 
 func EncodeLoginRequest(username, password string) []byte {
-    size := 2 + len(username) + 2 + len(password)
-    buf := make([]byte, size)
-    offset := 0
+	size := 2 + len(username) + 2 + len(password)
+	buf := make([]byte, size)
+	offset := 0
 
-    WriteString(buf, username, &offset)
-    WriteString(buf, password, &offset)
+	WriteString(buf, username, &offset)
+	WriteString(buf, password, &offset)
 
-    return buf
+	return buf
 }
+
 type AttackRequest struct {
 	TargetID   string
 	WeaponType string
@@ -1146,14 +1147,14 @@ type TradeItemCodec struct {
 
 // TradeUpdateEvent carrega o estado de sincronização da tela de troca (Dual Confirm)
 type TradeUpdateEvent struct {
-	GoldA      uint32
-	GoldB      uint32
-	LockedA    uint8
-	LockedB    uint8
-	AcceptedA  uint8
-	AcceptedB  uint8
-	ItemsA     []TradeItemCodec
-	ItemsB     []TradeItemCodec
+	GoldA     uint32
+	GoldB     uint32
+	LockedA   uint8
+	LockedB   uint8
+	AcceptedA uint8
+	AcceptedB uint8
+	ItemsA    []TradeItemCodec
+	ItemsB    []TradeItemCodec
 }
 
 func EncodeTradeUpdate(event *TradeUpdateEvent) []byte {
@@ -1334,12 +1335,12 @@ func DecodeMarketSearch(payload []byte) (*MarketSearch, error) {
 
 // MarketOrderCodec para serialização de ordens
 type MarketOrderCodec struct {
-	OrderID       uint32
-	SellerName    string
-	ItemID        string
-	Quantity      uint32
-	PriceGold     uint32
-	ExpiresEpoch  uint32
+	OrderID      uint32
+	SellerName   string
+	ItemID       string
+	Quantity     uint32
+	PriceGold    uint32
+	ExpiresEpoch uint32
 }
 
 func EncodeMarketSearchResult(orders []MarketOrderCodec) []byte {
@@ -1522,7 +1523,7 @@ func EncodeChooseVocationResponse(success bool, errorMessage string, class strin
 	} else {
 		payload[0] = 0
 	}
-	
+
 	errBytes := []byte(errorMessage)
 	binary.BigEndian.PutUint16(payload[1:3], uint16(len(errBytes)))
 	payload = append(payload, errBytes...)
@@ -1565,230 +1566,239 @@ func EncodeUnlockSubclassResponse(success bool, errorMessage string, subclass st
 }
 
 type LoginResponse struct {
-    Success   bool
-    AccountID uint32
-    Token     string
-    ErrorCode string
+	Success   bool
+	AccountID uint32
+	Token     string
+	ErrorCode string
 }
 
 func EncodeLoginResponse(success bool, accountID uint32, token string, errorCode string) []byte {
-    status := byte(0)
-    if success {
-        status = 1
-    }
+	status := byte(0)
+	if success {
+		status = 1
+	}
 
-    payload := []byte{status}
+	payload := []byte{status}
 
-    var accountBuf [4]byte
-    binary.LittleEndian.PutUint32(accountBuf[:], accountID)
-    payload = append(payload, accountBuf[:]...)
+	var accountBuf [4]byte
+	binary.LittleEndian.PutUint32(accountBuf[:], accountID)
+	payload = append(payload, accountBuf[:]...)
 
-    payload = appendLengthPrefixedProtocolString(payload, token)
-    payload = appendLengthPrefixedProtocolString(payload, errorCode)
+	payload = appendLengthPrefixedProtocolString(payload, token)
+	payload = appendLengthPrefixedProtocolString(payload, errorCode)
 
-    return payload
+	return payload
 }
 
 func DecodeLoginResponse(payload []byte) (*LoginResponse, error) {
-    if len(payload) < 5 {
-        return nil, fmt.Errorf("login response payload too small: %d", len(payload))
-    }
+	if len(payload) < 5 {
+		return nil, fmt.Errorf("login response payload too small: %d", len(payload))
+	}
 
-    status := payload[0]
-    accountID := binary.LittleEndian.Uint32(payload[1:5])
-    offset := 5
+	status := payload[0]
+	accountID := binary.LittleEndian.Uint32(payload[1:5])
+	offset := 5
 
-    token, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
-    if err != nil {
-        return nil, err
-    }
-    offset = nextOffset
+	token, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
+	if err != nil {
+		return nil, err
+	}
+	offset = nextOffset
 
-    errorCode, _, err := readLengthPrefixedProtocolString(payload, offset)
-    if err != nil {
-        return nil, err
-    }
+	errorCode, _, err := readLengthPrefixedProtocolString(payload, offset)
+	if err != nil {
+		return nil, err
+	}
 
-    return &LoginResponse{
-        Success:   status == 1,
-        AccountID: accountID,
-        Token:     token,
-        ErrorCode: errorCode,
-    }, nil
+	return &LoginResponse{
+		Success:   status == 1,
+		AccountID: accountID,
+		Token:     token,
+		ErrorCode: errorCode,
+	}, nil
 }
 
 func appendLengthPrefixedProtocolString(payload []byte, value string) []byte {
-    raw := []byte(value)
-    if len(raw) > 65535 {
-        raw = raw[:65535]
-    }
+	raw := []byte(value)
+	if len(raw) > 65535 {
+		raw = raw[:65535]
+	}
 
-    var lenBuf [2]byte
-    binary.LittleEndian.PutUint16(lenBuf[:], uint16(len(raw)))
+	var lenBuf [2]byte
+	binary.LittleEndian.PutUint16(lenBuf[:], uint16(len(raw)))
 
-    payload = append(payload, lenBuf[:]...)
-    payload = append(payload, raw...)
+	payload = append(payload, lenBuf[:]...)
+	payload = append(payload, raw...)
 
-    return payload
+	return payload
 }
 
 func readLengthPrefixedProtocolString(payload []byte, offset int) (string, int, error) {
-    if offset+2 > len(payload) {
-        return "", offset, fmt.Errorf("not enough bytes to read string length")
-    }
+	if offset+2 > len(payload) {
+		return "", offset, fmt.Errorf("not enough bytes to read string length")
+	}
 
-    length := int(binary.LittleEndian.Uint16(payload[offset : offset+2]))
-    offset += 2
+	length := int(binary.LittleEndian.Uint16(payload[offset : offset+2]))
+	offset += 2
 
-    if offset+length > len(payload) {
-        return "", offset, fmt.Errorf("not enough bytes to read string payload")
-    }
+	if offset+length > len(payload) {
+		return "", offset, fmt.Errorf("not enough bytes to read string payload")
+	}
 
-    value := string(payload[offset : offset+length])
-    offset += length
+	value := string(payload[offset : offset+length])
+	offset += length
 
-    return value, offset, nil
+	return value, offset, nil
 }
 
 type CharacterListEntry struct {
-    Name  string
-    Class string
-    Level uint32
+	Name   string
+	Class  string
+	Level  uint32
+	RaceID string // (R1-I-B)
 }
 
 type CharacterListResponse struct {
-    Success    bool
-    ErrorCode  string
-    Characters []CharacterListEntry
+	Success    bool
+	ErrorCode  string
+	Characters []CharacterListEntry
 }
 
 func EncodeCharacterListResponse(success bool, errorCode string, characters []CharacterListEntry) []byte {
-    status := byte(0)
-    if success {
-        status = 1
-    }
+	status := byte(0)
+	if success {
+		status = 1
+	}
 
-    payload := []byte{status}
-    payload = appendLengthPrefixedProtocolString(payload, errorCode)
+	payload := []byte{status}
+	payload = appendLengthPrefixedProtocolString(payload, errorCode)
 
-    if len(characters) > 65535 {
-        characters = characters[:65535]
-    }
+	if len(characters) > 65535 {
+		characters = characters[:65535]
+	}
 
-    var countBuf [2]byte
-    binary.LittleEndian.PutUint16(countBuf[:], uint16(len(characters)))
-    payload = append(payload, countBuf[:]...)
+	var countBuf [2]byte
+	binary.LittleEndian.PutUint16(countBuf[:], uint16(len(characters)))
+	payload = append(payload, countBuf[:]...)
 
-    for _, ch := range characters {
-        payload = appendLengthPrefixedProtocolString(payload, ch.Name)
-        payload = appendLengthPrefixedProtocolString(payload, ch.Class)
+	for _, ch := range characters {
+		payload = appendLengthPrefixedProtocolString(payload, ch.Name)
+		payload = appendLengthPrefixedProtocolString(payload, ch.Class)
 
-        var levelBuf [4]byte
-        binary.LittleEndian.PutUint32(levelBuf[:], ch.Level)
-        payload = append(payload, levelBuf[:]...)
-    }
+		var levelBuf [4]byte
+		binary.LittleEndian.PutUint32(levelBuf[:], ch.Level)
+		payload = append(payload, levelBuf[:]...)
+		payload = appendLengthPrefixedProtocolString(payload, ch.RaceID) // (R1-I-B)
+	}
 
-    return payload
+	return payload
 }
 
 func DecodeCharacterListResponse(payload []byte) (*CharacterListResponse, error) {
-    if len(payload) < 3 {
-        return nil, fmt.Errorf("character list response payload too small: %d", len(payload))
-    }
+	if len(payload) < 3 {
+		return nil, fmt.Errorf("character list response payload too small: %d", len(payload))
+	}
 
-    status := payload[0]
-    offset := 1
+	status := payload[0]
+	offset := 1
 
-    errorCode, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
-    if err != nil {
-        return nil, err
-    }
-    offset = nextOffset
+	errorCode, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
+	if err != nil {
+		return nil, err
+	}
+	offset = nextOffset
 
-    if offset+2 > len(payload) {
-        return nil, fmt.Errorf("not enough bytes to read character count")
-    }
+	if offset+2 > len(payload) {
+		return nil, fmt.Errorf("not enough bytes to read character count")
+	}
 
-    count := int(binary.LittleEndian.Uint16(payload[offset : offset+2]))
-    offset += 2
+	count := int(binary.LittleEndian.Uint16(payload[offset : offset+2]))
+	offset += 2
 
-    characters := make([]CharacterListEntry, 0, count)
+	characters := make([]CharacterListEntry, 0, count)
 
-    for i := 0; i < count; i++ {
-        name, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
-        if err != nil {
-            return nil, err
-        }
-        offset = nextOffset
+	for i := 0; i < count; i++ {
+		name, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
+		if err != nil {
+			return nil, err
+		}
+		offset = nextOffset
 
-        className, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
-        if err != nil {
-            return nil, err
-        }
-        offset = nextOffset
+		className, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
+		if err != nil {
+			return nil, err
+		}
+		offset = nextOffset
 
-        if offset+4 > len(payload) {
-            return nil, fmt.Errorf("not enough bytes to read character level")
-        }
+		if offset+4 > len(payload) {
+			return nil, fmt.Errorf("not enough bytes to read character level")
+		}
 
-        level := binary.LittleEndian.Uint32(payload[offset : offset+4])
-        offset += 4
+		level := binary.LittleEndian.Uint32(payload[offset : offset+4])
+		offset += 4
 
-        characters = append(characters, CharacterListEntry{
-            Name:  name,
-            Class: className,
-            Level: level,
-        })
-    }
+		raceID, nextOffset, err := readLengthPrefixedProtocolString(payload, offset) // (R1-I-B)
+		if err != nil {
+			return nil, err
+		}
+		offset = nextOffset
 
-    return &CharacterListResponse{
-        Success:    status == 1,
-        ErrorCode:  errorCode,
-        Characters: characters,
-    }, nil
+		characters = append(characters, CharacterListEntry{
+			Name:   name,
+			Class:  className,
+			Level:  level,
+			RaceID: raceID, // (R1-I-B)
+		})
+	}
+
+	return &CharacterListResponse{
+		Success:    status == 1,
+		ErrorCode:  errorCode,
+		Characters: characters,
+	}, nil
 }
 
 type CharacterSelectResponse struct {
-    Success       bool
-    CharacterName string
-    ErrorCode     string
+	Success       bool
+	CharacterName string
+	ErrorCode     string
 }
 
 func EncodeCharacterSelectResponse(success bool, characterName string, errorCode string) []byte {
-    status := byte(0)
-    if success {
-        status = 1
-    }
+	status := byte(0)
+	if success {
+		status = 1
+	}
 
-    payload := []byte{status}
-    payload = appendLengthPrefixedProtocolString(payload, characterName)
-    payload = appendLengthPrefixedProtocolString(payload, errorCode)
+	payload := []byte{status}
+	payload = appendLengthPrefixedProtocolString(payload, characterName)
+	payload = appendLengthPrefixedProtocolString(payload, errorCode)
 
-    return payload
+	return payload
 }
 
 func DecodeCharacterSelectResponse(payload []byte) (*CharacterSelectResponse, error) {
-    if len(payload) < 5 {
-        return nil, fmt.Errorf("character select response payload too small: %d", len(payload))
-    }
+	if len(payload) < 5 {
+		return nil, fmt.Errorf("character select response payload too small: %d", len(payload))
+	}
 
-    status := payload[0]
-    offset := 1
+	status := payload[0]
+	offset := 1
 
-    characterName, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
-    if err != nil {
-        return nil, err
-    }
-    offset = nextOffset
+	characterName, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
+	if err != nil {
+		return nil, err
+	}
+	offset = nextOffset
 
-    errorCode, _, err := readLengthPrefixedProtocolString(payload, offset)
-    if err != nil {
-        return nil, err
-    }
+	errorCode, _, err := readLengthPrefixedProtocolString(payload, offset)
+	if err != nil {
+		return nil, err
+	}
 
-    return &CharacterSelectResponse{
-        Success:       status == 1,
-        CharacterName: characterName,
-        ErrorCode:     errorCode,
-    }, nil
+	return &CharacterSelectResponse{
+		Success:       status == 1,
+		CharacterName: characterName,
+		ErrorCode:     errorCode,
+	}, nil
 }

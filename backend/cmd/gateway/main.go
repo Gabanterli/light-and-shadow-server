@@ -7,16 +7,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"math"
 	"net"
 	"net/http"
 	"os"
 	"sync"
 	"time"
-	"math"
 
 	"github.com/light-and-shadow/backend/config"
+	"github.com/light-and-shadow/backend/pkg/blessing"
 	"github.com/light-and-shadow/backend/pkg/combat"
 	"github.com/light-and-shadow/backend/pkg/db"
+	"github.com/light-and-shadow/backend/pkg/dungeon"
+	"github.com/light-and-shadow/backend/pkg/economy"
+	"github.com/light-and-shadow/backend/pkg/housing"
 	"github.com/light-and-shadow/backend/pkg/inventory"
 	"github.com/light-and-shadow/backend/pkg/lifecycle"
 	"github.com/light-and-shadow/backend/pkg/logger"
@@ -24,109 +28,105 @@ import (
 	"github.com/light-and-shadow/backend/pkg/movement"
 	"github.com/light-and-shadow/backend/pkg/npc"
 	"github.com/light-and-shadow/backend/pkg/persistence"
+	"github.com/light-and-shadow/backend/pkg/professions"
+	"github.com/light-and-shadow/backend/pkg/progression"
 	"github.com/light-and-shadow/backend/pkg/protocol"
 	"github.com/light-and-shadow/backend/pkg/pve"
+	"github.com/light-and-shadow/backend/pkg/pvp"
 	"github.com/light-and-shadow/backend/pkg/quest"
 	"github.com/light-and-shadow/backend/pkg/social"
-	"github.com/light-and-shadow/backend/pkg/economy"
-	"github.com/light-and-shadow/backend/pkg/professions"
-	"github.com/light-and-shadow/backend/pkg/dungeon"
-	"github.com/light-and-shadow/backend/pkg/progression"
-	"github.com/light-and-shadow/backend/pkg/blessing"
-	"github.com/light-and-shadow/backend/pkg/housing"
-	"github.com/light-and-shadow/backend/pkg/pvp"
 
 	"database/sql"
 )
 
 type GatewayServer struct {
-	config         *config.Config
-	tcpListener    net.Listener
-	httpServer     *http.Server
-	pgPool         *db.PostgresPool
-	redisClient    *db.RedisClient
-	clientsMu      sync.Mutex
-	clients        map[net.Conn]bool
-	wg             sync.WaitGroup
-	spatialIndex   *movement.SpatialIndex
-	chunkManager   *movement.ChunkManager
-	aoiManager     *movement.AOIManager
-	movementSystem *movement.MovementSystem
-	combatManager  *combat.CombatManager
-	persistenceMgr *persistence.PersistenceManager
-	pveManager     *pve.PveManager
-	questManager   *quest.QuestManager
-	npcManager     *npc.NPCManager
-	socialManager  *social.SocialManager
-	economyManager *economy.EconomyManager
-	professionsManager *professions.ProfessionsManager
-	dungeonManager *dungeon.DungeonManager
-	progressionManager *progression.ProgressionManager
-	blessingManager *blessing.BlessingManager
-	respawnManager *lifecycle.RespawnManager
+	config              *config.Config
+	tcpListener         net.Listener
+	httpServer          *http.Server
+	pgPool              *db.PostgresPool
+	redisClient         *db.RedisClient
+	clientsMu           sync.Mutex
+	clients             map[net.Conn]bool
+	wg                  sync.WaitGroup
+	spatialIndex        *movement.SpatialIndex
+	chunkManager        *movement.ChunkManager
+	aoiManager          *movement.AOIManager
+	movementSystem      *movement.MovementSystem
+	combatManager       *combat.CombatManager
+	persistenceMgr      *persistence.PersistenceManager
+	pveManager          *pve.PveManager
+	questManager        *quest.QuestManager
+	npcManager          *npc.NPCManager
+	socialManager       *social.SocialManager
+	economyManager      *economy.EconomyManager
+	professionsManager  *professions.ProfessionsManager
+	dungeonManager      *dungeon.DungeonManager
+	progressionManager  *progression.ProgressionManager
+	blessingManager     *blessing.BlessingManager
+	respawnManager      *lifecycle.RespawnManager
 	deathPenaltyManager *lifecycle.DeathPenaltyManager
-	housingManager *housing.HousingManager
-	pvpManager     *pvp.PvPManager
-	activeGatheringsMu sync.Mutex
-	activeGatherings   map[string]string // playerID -> nodeID
-	inventoriesMu  sync.RWMutex
-	inventories    map[string]*inventory.PlayerInventory
-	stopAutosave   chan struct{}
+	housingManager      *housing.HousingManager
+	pvpManager          *pvp.PvPManager
+	activeGatheringsMu  sync.Mutex
+	activeGatherings    map[string]string // playerID -> nodeID
+	inventoriesMu       sync.RWMutex
+	inventories         map[string]*inventory.PlayerInventory
+	stopAutosave        chan struct{}
 }
 
 type gatewayAuthRequest struct {
-    Username string `json:"username"`
-    Password string `json:"password"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 type gatewayAuthResponse struct {
-    Success   bool   `json:"success"`
-    Token     string `json:"token,omitempty"`
-    AccountID int    `json:"account_id,omitempty"`
-    Error     string `json:"error,omitempty"`
+	Success   bool   `json:"success"`
+	Token     string `json:"token,omitempty"`
+	AccountID int    `json:"account_id,omitempty"`
+	Error     string `json:"error,omitempty"`
 }
 
 func (s *GatewayServer) authenticateWithAuthServer(ctx context.Context, username string, password string) (*gatewayAuthResponse, error) {
-    requestBody, err := json.Marshal(gatewayAuthRequest{
-        Username: username,
-        Password: password,
-    })
-    if err != nil {
-        return nil, fmt.Errorf("failed to encode auth request: %w", err)
-    }
+	requestBody, err := json.Marshal(gatewayAuthRequest{
+		Username: username,
+		Password: password,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode auth request: %w", err)
+	}
 
-    authURL := fmt.Sprintf("http://auth-server:%d/api/v1/auth", s.config.AuthPort)
+	authURL := fmt.Sprintf("http://auth-server:%d/api/v1/auth", s.config.AuthPort)
 
-    req, err := http.NewRequestWithContext(ctx, http.MethodPost, authURL, bytes.NewReader(requestBody))
-    if err != nil {
-        return nil, fmt.Errorf("failed to create auth request: %w", err)
-    }
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, authURL, bytes.NewReader(requestBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create auth request: %w", err)
+	}
 
-    req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 
-    httpClient := &http.Client{
-        Timeout: 5 * time.Second,
-    }
+	httpClient := &http.Client{
+		Timeout: 5 * time.Second,
+	}
 
-    resp, err := httpClient.Do(req)
-    if err != nil {
-        return nil, fmt.Errorf("auth server request failed: %w", err)
-    }
-    defer resp.Body.Close()
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("auth server request failed: %w", err)
+	}
+	defer resp.Body.Close()
 
-    var authResp gatewayAuthResponse
-    if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
-        return nil, fmt.Errorf("failed to decode auth response: %w", err)
-    }
+	var authResp gatewayAuthResponse
+	if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
+		return nil, fmt.Errorf("failed to decode auth response: %w", err)
+	}
 
-    if resp.StatusCode != http.StatusOK || !authResp.Success || authResp.Token == "" {
-        if authResp.Error == "" {
-            authResp.Error = "auth_failed"
-        }
-        return nil, fmt.Errorf("auth rejected: %s", authResp.Error)
-    }
+	if resp.StatusCode != http.StatusOK || !authResp.Success || authResp.Token == "" {
+		if authResp.Error == "" {
+			authResp.Error = "auth_failed"
+		}
+		return nil, fmt.Errorf("auth rejected: %s", authResp.Error)
+	}
 
-    return &authResp, nil
+	return &authResp, nil
 }
 func main() {
 	cfg := config.LoadConfig()
@@ -136,16 +136,16 @@ func main() {
 
 	// InicializaÃ§Ã£o de bancos de dados (tolerante a fallbacks locais)
 	pgPool, err := db.NewPostgresPool(cfg.PostgresDSN)
-    if err != nil {
-        slog.Error("PostgreSQL pool initialization failed; refusing to start Gateway", "error", err)
-        os.Exit(1)
-    }
+	if err != nil {
+		slog.Error("PostgreSQL pool initialization failed; refusing to start Gateway", "error", err)
+		os.Exit(1)
+	}
 
 	redisClient, err := db.NewRedisClient(cfg.RedisAddr, cfg.RedisPassword, cfg.RedisDB)
-    if err != nil {
-        slog.Error("Redis client initialization failed; refusing to start Gateway", "error", err)
-        os.Exit(1)
-    }
+	if err != nil {
+		slog.Error("Redis client initialization failed; refusing to start Gateway", "error", err)
+		os.Exit(1)
+	}
 
 	// Inicializa e configura Sistemas de Movimento e AOI (Sprint 2 Task 4)
 	spatialIndex := movement.NewSpatialIndex()
@@ -158,10 +158,10 @@ func main() {
 
 	// Configura LevelProvider para checagens de regiÃ£o da Sprint 3 Task 5 (PATCH 1)
 	movementSystem.LevelProvider = func(playerID string) int {
-	if stats, exists := combatManager.GetEntityStats(playerID); exists {
-		return stats.Level
-	}
-	return 1
+		if stats, exists := combatManager.GetEntityStats(playerID); exists {
+			return stats.Level
+		}
+		return 1
 	}
 
 	// Inicializa Sistema de Combate Autorizativo (Sprint 2 Task 5)
@@ -181,26 +181,26 @@ func main() {
 
 	// Inicializa e configura PersistenceManager e Esquemas do DB
 	persistenceMgr := persistence.NewPersistenceManager(pgPool)
-    if err := persistenceMgr.InitSchema(); err != nil {
-        slog.Error("Failed to initialize database schema; refusing to start Gateway", "error", err)
-        os.Exit(1)
-    }
+	if err := persistenceMgr.InitSchema(); err != nil {
+		slog.Error("Failed to initialize database schema; refusing to start Gateway", "error", err)
+		os.Exit(1)
+	}
 
 	// Inicializa e configura Gateway
 	server := &GatewayServer{
-		config:         cfg,
-		pgPool:         pgPool,
-		redisClient:    redisClient,
-		clients:        make(map[net.Conn]bool),
-		spatialIndex:   spatialIndex,
-		chunkManager:   chunkManager,
-		aoiManager:     aoiManager,
-		movementSystem: movementSystem,
-		combatManager:  combatManager,
-		persistenceMgr: persistenceMgr,
-		inventories:    make(map[string]*inventory.PlayerInventory),
+		config:           cfg,
+		pgPool:           pgPool,
+		redisClient:      redisClient,
+		clients:          make(map[net.Conn]bool),
+		spatialIndex:     spatialIndex,
+		chunkManager:     chunkManager,
+		aoiManager:       aoiManager,
+		movementSystem:   movementSystem,
+		combatManager:    combatManager,
+		persistenceMgr:   persistenceMgr,
+		inventories:      make(map[string]*inventory.PlayerInventory),
 		activeGatherings: make(map[string]string),
-		stopAutosave:   make(chan struct{}),
+		stopAutosave:     make(chan struct{}),
 	}
 
 	// Inicializa e configura PveManager (Sprint 3 Task 2)
@@ -443,11 +443,11 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 		s.clientsMu.Lock()
 		delete(s.clients, conn)
 		s.clientsMu.Unlock()
-        // Sessão de autenticação preservada no Redis até TTL ou logout explícito.
-        // O disconnect limpa estado ativo do player, mas não revoga a sessão.
-        if sessionToken != "" {
-            slog.Info("Client disconnected; auth session preserved until TTL", "account_id", authenticatedAccountID)
-        }
+		// Sessão de autenticação preservada no Redis até TTL ou logout explícito.
+		// O disconnect limpa estado ativo do player, mas não revoga a sessão.
+		if sessionToken != "" {
+			slog.Info("Client disconnected; auth session preserved until TTL", "account_id", authenticatedAccountID)
+		}
 
 		// Desregistra jogador do motor de movimentos e AOI para liberar recursos de rede
 		if playerID != "" {
@@ -503,169 +503,169 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			slog.Debug("Sent Heartbeat Ack", "seq", packet.Sequence)
 
 		case protocol.CS_LOGIN_REQUEST:
-            slog.Info("Routing login request to Auth Server")
+			slog.Info("Routing login request to Auth Server")
 
-            loginReq, err := protocol.DecodeLoginRequest(packet.Payload)
-            if err != nil || loginReq.Username == "" || loginReq.Password == "" {
-                slog.Warn("Invalid CS_LOGIN_REQUEST payload", "error", err)
+			loginReq, err := protocol.DecodeLoginRequest(packet.Payload)
+			if err != nil || loginReq.Username == "" || loginReq.Password == "" {
+				slog.Warn("Invalid CS_LOGIN_REQUEST payload", "error", err)
 
-                response := &protocol.Packet{
-                    Opcode:   protocol.SC_LOGIN_RESPONSE,
-                    Sequence: packet.Sequence,
-                    Payload:  protocol.EncodeLoginResponse(false, 0, "", "invalid_login_payload"),
-                }
-                conn.Write(response.Serialize())
-                break
-            }
+				response := &protocol.Packet{
+					Opcode:   protocol.SC_LOGIN_RESPONSE,
+					Sequence: packet.Sequence,
+					Payload:  protocol.EncodeLoginResponse(false, 0, "", "invalid_login_payload"),
+				}
+				conn.Write(response.Serialize())
+				break
+			}
 
-            authCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-            authResp, err := s.authenticateWithAuthServer(authCtx, loginReq.Username, loginReq.Password)
-            cancel()
+			authCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			authResp, err := s.authenticateWithAuthServer(authCtx, loginReq.Username, loginReq.Password)
+			cancel()
 
-            if err != nil {
-                slog.Warn("Login rejected by Auth Server", "username", loginReq.Username, "error", err)
+			if err != nil {
+				slog.Warn("Login rejected by Auth Server", "username", loginReq.Username, "error", err)
 
-                response := &protocol.Packet{
-                    Opcode:   protocol.SC_LOGIN_RESPONSE,
-                    Sequence: packet.Sequence,
-                    Payload:  protocol.EncodeLoginResponse(false, 0, "", "invalid_credentials"),
-                }
-                conn.Write(response.Serialize())
-                break
-            }
+				response := &protocol.Packet{
+					Opcode:   protocol.SC_LOGIN_RESPONSE,
+					Sequence: packet.Sequence,
+					Payload:  protocol.EncodeLoginResponse(false, 0, "", "invalid_credentials"),
+				}
+				conn.Write(response.Serialize())
+				break
+			}
 
-            sessionToken = authResp.Token
-            authenticatedAccountID = authResp.AccountID
-            lastRefresh = time.Now()
+			sessionToken = authResp.Token
+			authenticatedAccountID = authResp.AccountID
+			lastRefresh = time.Now()
 
-            slog.Info("Login accepted by Auth Server", "username", loginReq.Username, "account_id", authResp.AccountID)
+			slog.Info("Login accepted by Auth Server", "username", loginReq.Username, "account_id", authResp.AccountID)
 
-            messaging.GetInstance().Publish("gateway.login", sessionToken)
+			messaging.GetInstance().Publish("gateway.login", sessionToken)
 
-            response := &protocol.Packet{
-                Opcode:   protocol.SC_LOGIN_RESPONSE,
-                Sequence: packet.Sequence,
-                Payload:  protocol.EncodeLoginResponse(true, uint32(authenticatedAccountID), sessionToken, ""),
-            }
-            conn.Write(response.Serialize())
+			response := &protocol.Packet{
+				Opcode:   protocol.SC_LOGIN_RESPONSE,
+				Sequence: packet.Sequence,
+				Payload:  protocol.EncodeLoginResponse(true, uint32(authenticatedAccountID), sessionToken, ""),
+			}
+			conn.Write(response.Serialize())
 
-                case protocol.CS_CHAR_LIST_REQUEST:
-            if authenticatedAccountID <= 0 {
-                slog.Warn("Character list rejected: client is not authenticated")
-                response := &protocol.Packet{
-                    Opcode:   protocol.SC_CHAR_LIST_RESPONSE,
-                    Sequence: packet.Sequence,
-                    Payload:  protocol.EncodeCharacterListResponse(false, "not_authenticated", nil),
-                }
-                conn.Write(response.Serialize())
-                break
-            }
+		case protocol.CS_CHAR_LIST_REQUEST:
+			if authenticatedAccountID <= 0 {
+				slog.Warn("Character list rejected: client is not authenticated")
+				response := &protocol.Packet{
+					Opcode:   protocol.SC_CHAR_LIST_RESPONSE,
+					Sequence: packet.Sequence,
+					Payload:  protocol.EncodeCharacterListResponse(false, "not_authenticated", nil),
+				}
+				conn.Write(response.Serialize())
+				break
+			}
 
-            slog.Info("Requesting character list from PostgreSQL")
-            // FASE 3.3 Task 4D: usa account_id autenticado retornado pelo Auth Server.
-            characters, err := s.persistenceMgr.ListCharactersByAccount(authenticatedAccountID)
-            if err != nil {
-                slog.Error("Failed to list characters from PostgreSQL", "error", err)
-                response := &protocol.Packet{
-                    Opcode:   protocol.SC_CHAR_LIST_RESPONSE,
-                    Sequence: packet.Sequence,
-                    Payload:  protocol.EncodeCharacterListResponse(false, "failed_to_list_characters", nil),
-                }
-                conn.Write(response.Serialize())
-                break
-            }
+			slog.Info("Requesting character list from PostgreSQL")
+			// FASE 3.3 Task 4D: usa account_id autenticado retornado pelo Auth Server.
+			characters, err := s.persistenceMgr.ListCharactersByAccount(authenticatedAccountID)
+			if err != nil {
+				slog.Error("Failed to list characters from PostgreSQL", "error", err)
+				response := &protocol.Packet{
+					Opcode:   protocol.SC_CHAR_LIST_RESPONSE,
+					Sequence: packet.Sequence,
+					Payload:  protocol.EncodeCharacterListResponse(false, "failed_to_list_characters", nil),
+				}
+				conn.Write(response.Serialize())
+				break
+			}
 
-            entries := make([]protocol.CharacterListEntry, 0, len(characters))
-            for _, ch := range characters {
-                entries = append(entries, protocol.CharacterListEntry{
-                    Name:  ch.Name,
-                    Class: ch.Class,
-                    Level: uint32(ch.Level),
-                })
-            }
+			entries := make([]protocol.CharacterListEntry, 0, len(characters))
+			for _, ch := range characters {
+				entries = append(entries, protocol.CharacterListEntry{
+					Name:   ch.Name,
+					Class:  ch.Class,
+					Level:  uint32(ch.Level),
+					RaceID: ch.RaceID, // (R1-I-B)
+				})
+			}
 
-            response := &protocol.Packet{
-                Opcode:   protocol.SC_CHAR_LIST_RESPONSE,
-                Sequence: packet.Sequence,
-                Payload:  protocol.EncodeCharacterListResponse(true, "", entries),
-            }
-            conn.Write(response.Serialize())
-
+			response := &protocol.Packet{
+				Opcode:   protocol.SC_CHAR_LIST_RESPONSE,
+				Sequence: packet.Sequence,
+				Payload:  protocol.EncodeCharacterListResponse(true, "", entries),
+			}
+			conn.Write(response.Serialize())
 
 		case protocol.CS_CHAR_SELECT_REQUEST:
-            if authenticatedAccountID <= 0 {
-                slog.Warn("Character selection rejected: client is not authenticated")
-                response := &protocol.Packet{
-                    Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
-                    Sequence: packet.Sequence,
-                    Payload:  protocol.EncodeCharacterSelectResponse(false, "", "not_authenticated"),
-                }
-                conn.Write(response.Serialize())
-                break
-            }
-            slog.Info("Routing character selection to World Server")
+			if authenticatedAccountID <= 0 {
+				slog.Warn("Character selection rejected: client is not authenticated")
+				response := &protocol.Packet{
+					Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
+					Sequence: packet.Sequence,
+					Payload:  protocol.EncodeCharacterSelectResponse(false, "", "not_authenticated"),
+				}
+				conn.Write(response.Serialize())
+				break
+			}
+			slog.Info("Routing character selection to World Server")
 
-            offset := 0
-            selectedCharacterName, err := protocol.ReadString(packet.Payload, &offset)
-            if err != nil || selectedCharacterName == "" {
-                slog.Warn("Invalid CS_CHAR_SELECT_REQUEST payload", "error", err)
-                response := &protocol.Packet{
-                    Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
-                    Sequence: packet.Sequence,
-                    Payload:  protocol.EncodeCharacterSelectResponse(false, "", "invalid_character_select_payload"), // Status: failed
-                }
-                conn.Write(response.Serialize())
-                break
-            }
+			offset := 0
+			selectedCharacterName, err := protocol.ReadString(packet.Payload, &offset)
+			if err != nil || selectedCharacterName == "" {
+				slog.Warn("Invalid CS_CHAR_SELECT_REQUEST payload", "error", err)
+				response := &protocol.Packet{
+					Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
+					Sequence: packet.Sequence,
+					Payload:  protocol.EncodeCharacterSelectResponse(false, "", "invalid_character_select_payload"), // Status: failed
+				}
+				conn.Write(response.Serialize())
+				break
+			}
 
-            // FASE 3.3 Task 4D: valida ownership usando account_id autenticado.
-            ownsCharacter, err := s.persistenceMgr.CharacterBelongsToAccount(authenticatedAccountID, selectedCharacterName)
-            if err != nil {
-                slog.Error("Failed to validate selected character ownership", "character", selectedCharacterName, "error", err)
-                response := &protocol.Packet{
-                    Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
-                    Sequence: packet.Sequence,
-                    Payload:  protocol.EncodeCharacterSelectResponse(false, "", "ownership_validation_failed"), // Status: failed
-                }
-                conn.Write(response.Serialize())
-                break
-            }
+			// FASE 3.3 Task 4D: valida ownership usando account_id autenticado.
+			ownsCharacter, err := s.persistenceMgr.CharacterBelongsToAccount(authenticatedAccountID, selectedCharacterName)
+			if err != nil {
+				slog.Error("Failed to validate selected character ownership", "character", selectedCharacterName, "error", err)
+				response := &protocol.Packet{
+					Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
+					Sequence: packet.Sequence,
+					Payload:  protocol.EncodeCharacterSelectResponse(false, "", "ownership_validation_failed"), // Status: failed
+				}
+				conn.Write(response.Serialize())
+				break
+			}
 
-            if !ownsCharacter {
-                slog.Warn("Character selection rejected: character does not belong to account", "character", selectedCharacterName, "account_id", authenticatedAccountID)
-                response := &protocol.Packet{
-                    Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
-                    Sequence: packet.Sequence,
-                    Payload:  protocol.EncodeCharacterSelectResponse(false, "", "character_not_owned"), // Status: failed
-                }
-                conn.Write(response.Serialize())
-                break
-            }
+			if !ownsCharacter {
+				slog.Warn("Character selection rejected: character does not belong to account", "character", selectedCharacterName, "account_id", authenticatedAccountID)
+				response := &protocol.Packet{
+					Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
+					Sequence: packet.Sequence,
+					Payload:  protocol.EncodeCharacterSelectResponse(false, "", "character_not_owned"), // Status: failed
+				}
+				conn.Write(response.Serialize())
+				break
+			}
 
-            characterID := selectedCharacterName // ID validado, mas ainda não ativo até LoadCharacter concluir
+			characterID := selectedCharacterName // ID validado, mas ainda não ativo até LoadCharacter concluir
 
 			// Carrega dados persistentes do banco PostgreSQL de forma atÃ´mica (PATCH 4)
 			stats, items, savedX, savedY, savedZ, version, exp, gold, err := s.persistenceMgr.LoadCharacter(characterID)
 			if err != nil {
-                slog.Error("Failed to load character from PostgreSQL; rejecting character selection", "character", characterID, "account_id", authenticatedAccountID, "error", err)
-                response := &protocol.Packet{
-                    Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
-                    Sequence: packet.Sequence,
-                    Payload:  protocol.EncodeCharacterSelectResponse(false, "", "character_load_failed"), // Status: failed
-                }
-                conn.Write(response.Serialize())
-                break
-            }
+				slog.Error("Failed to load character from PostgreSQL; rejecting character selection", "character", characterID, "account_id", authenticatedAccountID, "error", err)
+				response := &protocol.Packet{
+					Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
+					Sequence: packet.Sequence,
+					Payload:  protocol.EncodeCharacterSelectResponse(false, "", "character_load_failed"), // Status: failed
+				}
+				conn.Write(response.Serialize())
+				break
+			}
 
-            playerID = characterID // Ativa o jogador somente após load persistente bem-sucedido
+			playerID = characterID // Ativa o jogador somente após load persistente bem-sucedido
 
 			// Inicializa inventÃ¡rio in-memory do jogador
 			playerInv := inventory.NewPlayerInventory(playerID)
 			playerInv.SetItems(items)
-			playerInv.BaseStats = *stats // Configura bÃ´nus de stats base antes do recÃ¡lculo
-			playerInv.SetVersion(version) // (PATCH 4)
-			playerInv.SetDirty(false)     // (PATCH 2)
-			playerInv.SetGold(gold)       // Define o gold do inventÃ¡rio
+			playerInv.BaseStats = *stats   // Configura bÃ´nus de stats base antes do recÃ¡lculo
+			playerInv.SetVersion(version)  // (PATCH 4)
+			playerInv.SetDirty(false)      // (PATCH 2)
+			playerInv.SetGold(gold)        // Define o gold do inventÃ¡rio
 			pve.SetPlayerXp(playerID, exp) // Inicializa o XP do jogador para o PvE e ProgressÃ£o de NÃ­vel
 
 			// Recalcula stats baseado nos equipamentos equipados de verdade no banco!
@@ -2105,7 +2105,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			} else {
 				slog.Info("Choose vocation succeeded", "player", playerID, "vocation", vocation)
 				respPayload = protocol.EncodeChooseVocationResponse(true, "", vocation)
-				
+
 				// Sync inventory immediately to client to reflect new vocation stats
 				s.inventoriesMu.RLock()
 				playerInv, existsInv := s.inventories[playerID]
@@ -2133,7 +2133,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				slog.Info("Unlock subclass succeeded", "player", playerID, "subclass", subclass)
 				stats, _ := s.combatManager.GetEntityStats(playerID)
 				respPayload = protocol.EncodeUnlockSubclassResponse(true, "", subclass, stats.Element)
-				
+
 				// Sync inventory immediately to client to reflect new subclass stats
 				s.inventoriesMu.RLock()
 				playerInv, existsInv := s.inventories[playerID]
@@ -2445,5 +2445,3 @@ func (s *GatewayServer) broadcastTradeUpdate(playerID string) {
 		connB.Write(serialized)
 	}
 }
-
-
