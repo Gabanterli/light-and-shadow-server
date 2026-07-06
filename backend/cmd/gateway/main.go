@@ -802,6 +802,25 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			}
 			conn.Write(response.Serialize())
 
+			// Send initial position update to the client itself (R1-O-D1)
+			initialPositionPayload, _ := json.Marshal(struct {
+				PlayerID string  `json:"id"`
+				X        float64 `json:"x"`
+				Y        float64 `json:"y"`
+				Z        int     `json:"z"`
+			}{
+				PlayerID: playerID,
+				X:        savedX,
+				Y:        savedY,
+				Z:        int(savedZ),
+			})
+			initialPositionPacket := &protocol.Packet{
+				Opcode:  protocol.SC_PLAYER_UPDATE,
+				Payload: initialPositionPayload,
+			}
+			conn.Write(initialPositionPacket.Serialize())
+			slog.Info("Initial player position update sent to client", "playerID", playerID, "x", savedX, "y", savedY, "z", savedZ)
+
 			// Envia sincronizaÃ§Ã£o binÃ¡ria inicial de inventÃ¡rio e atributos recalculados
 			s.sendInventorySync(conn, playerID, stats, playerInv)
 
