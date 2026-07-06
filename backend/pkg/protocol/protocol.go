@@ -17,6 +17,8 @@ const (
 	SC_CHAR_LIST_RESPONSE   uint16 = 1005
 	CS_CHAR_SELECT_REQUEST  uint16 = 1006
 	SC_CHAR_SELECT_RESPONSE uint16 = 1007
+	CS_CHAR_CREATE_REQUEST  uint16 = 1008
+	SC_CHAR_CREATE_RESPONSE uint16 = 1009
 
 	CS_PLAYER_MOVE    uint16 = 2000
 	SC_PLAYER_UPDATE  uint16 = 2001
@@ -1800,5 +1802,111 @@ func DecodeCharacterSelectResponse(payload []byte) (*CharacterSelectResponse, er
 		Success:       status == 1,
 		CharacterName: characterName,
 		ErrorCode:     errorCode,
+	}, nil
+}
+
+type CharacterCreateRequest struct {
+	DesiredName string
+	RaceID      string
+}
+
+func DecodeCharacterCreateRequest(payload []byte) (*CharacterCreateRequest, error) {
+	offset := 0
+
+	desiredName, err := ReadString(payload, &offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read desired_name: %w", err)
+	}
+
+	raceID, err := ReadString(payload, &offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read race_id: %w", err)
+	}
+
+	return &CharacterCreateRequest{
+		DesiredName: desiredName,
+		RaceID:      raceID,
+	}, nil
+}
+
+type CharacterCreateResponse struct {
+	Success   bool
+	ErrorCode string
+	Character CharacterListEntry
+}
+
+func EncodeCharacterCreateResponse(success bool, errorCode string, character CharacterListEntry) []byte {
+	status := byte(0)
+	if success {
+		status = 1
+	}
+
+	size := 1 +
+		(2 + len(errorCode)) +
+		(2 + len(character.Name)) +
+		(2 + len(character.Class)) +
+		4 +
+		(2 + len(character.RaceID))
+
+	payload := make([]byte, size)
+	offset := 0
+
+	payload[offset] = status
+	offset++
+
+	WriteString(payload, errorCode, &offset)
+	WriteString(payload, character.Name, &offset)
+	WriteString(payload, character.Class, &offset)
+	WriteUint32(payload, character.Level, &offset)
+	WriteString(payload, character.RaceID, &offset)
+
+	return payload
+}
+
+func DecodeCharacterCreateResponse(payload []byte) (*CharacterCreateResponse, error) {
+	if len(payload) < 1 {
+		return nil, fmt.Errorf("character create response payload too small: %d", len(payload))
+	}
+
+	success := payload[0] == 1
+	offset := 1
+
+	errorCode, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
+	if err != nil {
+		return nil, err
+	}
+	offset = nextOffset
+
+	name, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
+	if err != nil {
+		return nil, err
+	}
+	offset = nextOffset
+
+	className, nextOffset, err := readLengthPrefixedProtocolString(payload, offset)
+	if err != nil {
+		return nil, err
+	}
+	offset = nextOffset
+
+	level, err := ReadUint32(payload, &offset)
+	if err != nil {
+		return nil, err
+	}
+
+	raceID, _, err := readLengthPrefixedProtocolString(payload, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	return &CharacterCreateResponse{
+		Success:   success,
+		ErrorCode: errorCode,
+		Character: CharacterListEntry{
+			Name:   name,
+			Class:  className,
+			Level:  level,
+			RaceID: raceID,
+		},
 	}, nil
 }
