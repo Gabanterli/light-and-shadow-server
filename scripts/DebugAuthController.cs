@@ -17,6 +17,11 @@ public partial class DebugAuthController : Control
     private Label? _statusLabel;
     private TextEdit? _logTextEdit;
 
+    // R1-N-E: Character Creation UI Nodes
+    private LineEdit? _createCharacterNameLineEdit;
+    private OptionButton? _createCharacterRaceOptionButton;
+    private Button? _createCharacterButton;
+
     private GatewayTcpClient _gatewayClient = null!;
 
     private readonly AuthSession _authSession = new();
@@ -37,14 +42,21 @@ public partial class DebugAuthController : Control
         _statusLabel = GetNode<Label>("VBoxContainer/StatusLabel");
         _logTextEdit = GetNode<TextEdit>("VBoxContainer/LogTextEdit");
 
+        // R1-N-E: Get Character Creation Nodes
+        _createCharacterNameLineEdit = GetNode<LineEdit>("VBoxContainer/CreateCharacterHBox/CreateCharacterNameLineEdit");
+        _createCharacterRaceOptionButton = GetNode<OptionButton>("VBoxContainer/CreateCharacterHBox/CreateCharacterRaceOptionButton");
+        _createCharacterButton = GetNode<Button>("VBoxContainer/CreateCharacterHBox/CreateCharacterButton");
+
         // Connect signals
         _loginButton.Pressed += OnLoginButtonPressed;
         _requestCharactersButton.Pressed += OnRequestCharactersButtonPressed;
         _selectCharacterButton.Pressed += OnSelectCharacterButtonPressed;
+        _createCharacterButton.Pressed += OnCreateCharacterButtonPressed;
 
         // Initial state
         _requestCharactersButton.Disabled = true;
         _selectCharacterButton!.Disabled = true;
+        _createCharacterButton.Disabled = true;
         _statusLabel.Text = "Status: Disconnected";
 
         var gatewayConfig = new GatewayRuntimeConfig();
@@ -94,12 +106,14 @@ public partial class DebugAuthController : Control
                 _statusLabel.Text = $"Status: Logged in! Account ID: {response.AccountId}";
                 Log("Login successful. AuthSession updated.");
                 _requestCharactersButton!.Disabled = false;
+                _createCharacterButton!.Disabled = false;
             }
             else
             {
                 _statusLabel.Text = "Status: Login failed.";
                 Log($"Login failed. Error: {response.ErrorCode}");
                 _authSession.Clear();
+                _createCharacterButton!.Disabled = true;
                 _gatewayClient.Disconnect(); // Disconnect on failed login
             }
         }
@@ -109,6 +123,7 @@ public partial class DebugAuthController : Control
             Log($"Exception during login: {ex.Message}");
             _gatewayClient.Disconnect();
             _authSession.Clear();
+            _createCharacterButton!.Disabled = true;
         }
         finally
         {
@@ -117,6 +132,11 @@ public partial class DebugAuthController : Control
     }
 
     private async void OnRequestCharactersButtonPressed()
+    {
+        await RefreshCharacterListAsync();
+    }
+
+    private async Task RefreshCharacterListAsync()
     {
         _requestCharactersButton!.Disabled = true;
         _statusLabel!.Text = "Status: Requesting character list...";
@@ -151,6 +171,7 @@ public partial class DebugAuthController : Control
             _gatewayClient.Disconnect();
             _authSession.Clear();
             _requestCharactersButton.Disabled = true;
+            _createCharacterButton!.Disabled = true;
             _selectCharacterButton!.Disabled = true;
         }
         finally
@@ -158,6 +179,77 @@ public partial class DebugAuthController : Control
             if (_gatewayClient.IsConnected)
             {
                 _requestCharactersButton.Disabled = false;
+            }
+        }
+    }
+
+    private async void OnCreateCharacterButtonPressed()
+    {
+        var desiredName = _createCharacterNameLineEdit?.Text?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(desiredName))
+        {
+            Log("Error: Character name cannot be empty.");
+            return;
+        }
+
+        if (_createCharacterRaceOptionButton is null)
+        {
+            Log("Error: Race option button node is missing.");
+            return;
+        }
+
+        if (_createCharacterRaceOptionButton.Selected < 0)
+        {
+            Log("Error: No character race selected.");
+            return;
+        }
+
+        var selectedRace = _createCharacterRaceOptionButton.GetItemText(_createCharacterRaceOptionButton.Selected);
+        if (string.IsNullOrEmpty(selectedRace))
+        {
+            Log("Error: Character race cannot be empty.");
+            return;
+        }
+
+        _createCharacterButton!.Disabled = true;
+        _statusLabel!.Text = $"Status: Creating character '{desiredName}'...";
+        Log($"Creating character '{desiredName}' with race '{selectedRace}'...");
+
+        try
+        {
+            var response = await _gatewayClient.CreateCharacterAsync(desiredName, selectedRace);
+
+            if (response.Status)
+            {
+                _statusLabel.Text = $"Status: Character '{response.Character.Name}' created.";
+                Log($"Character created: {response.Character.Name} (Lvl {response.Character.Level} {response.Character.Class} / {response.Character.RaceId})");
+                _createCharacterNameLineEdit!.Text = string.Empty;
+
+                // Refresh the character list to show the new character
+                await RefreshCharacterListAsync();
+            }
+            else
+            {
+                _statusLabel.Text = "Status: Character creation failed.";
+                Log($"Character creation failed. Error: {response.ErrorCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _statusLabel.Text = "Status: Error.";
+            Log($"Exception during character creation: {ex.Message}");
+            // A network error during creation is more severe, so we disconnect.
+            _gatewayClient.Disconnect();
+            _authSession.Clear();
+            _requestCharactersButton!.Disabled = true;
+            _createCharacterButton!.Disabled = true;
+            _selectCharacterButton!.Disabled = true;
+        }
+        finally
+        {
+            if (_gatewayClient.IsConnected)
+            {
+                _createCharacterButton.Disabled = false;
             }
         }
     }
@@ -210,6 +302,7 @@ public partial class DebugAuthController : Control
             _gatewayClient.Disconnect();
             _authSession.Clear();
             _requestCharactersButton!.Disabled = true;
+            _createCharacterButton!.Disabled = true;
         }
         finally
         {
