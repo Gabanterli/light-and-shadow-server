@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/light-and-shadow/backend/pkg/combat"
 	"github.com/light-and-shadow/backend/pkg/db"
 	"github.com/light-and-shadow/backend/pkg/inventory"
@@ -68,6 +70,99 @@ func (pm *PersistenceManager) ListCharactersByAccount(accountID int) ([]Characte
 	}
 
 	return characters, nil
+}
+
+// CreateCharacterForAccount creates a new character and its initial inventory in a single transaction.
+// This is the authoritative persistence method and should be called by a service layer that has already
+// performed all business logic validations (name rules, race rules from Rule Registry, etc.).
+// It returns a summary of the created character, a client-facing error code, or an internal error.
+func (pm *PersistenceManager) CreateCharacterForAccount(ctx context.Context, accountID int, desiredName string, raceID string) (*CharacterSummary, string, error) {
+	// 1. Perform minimal persistence-level validations.
+	if accountID <= 0 {
+		return nil, "not_authenticated", fmt.Errorf("invalid accountID: %d", accountID)
+	}
+
+	normalizedName := strings.TrimSpace(desiredName)
+	if normalizedName == "" {
+		return nil, "invalid_name", fmt.Errorf("desiredName cannot be empty")
+	}
+
+	normalizedRaceID := strings.TrimSpace(raceID)
+	if normalizedRaceID == "" {
+		return nil, "invalid_race", fmt.Errorf("raceID cannot be empty")
+	}
+
+	if pm.pgPool == nil || pm.pgPool.DB == nil {
+		return nil, "persistence_error", fmt.Errorf("database is not available")
+	}
+
+	dbConn := pm.pgPool.DB
+	tx, err := dbConn.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+	if err != nil {
+		return nil, "internal_error", fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback() // Rollback is a no-op if the transaction has been committed.
+
+	// 2. Insert the new character row with authoritative defaults.
+	// The query returns the newly generated ID for use in subsequent inserts.
+	var newCharID int
+	insertCharQuery := `
+		INSERT INTO characters (account_id, name, class, level, race_id)
+		VALUES ($1, $2, 'novice', 1, $3)
+		RETURNING id
+	`
+	err = tx.QueryRowContext(ctx, insertCharQuery, accountID, normalizedName, normalizedRaceID).Scan(&newCharID)
+	if err != nil {
+		// Check for unique constraint violation on the name.
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" { // unique_violation
+			return nil, "name_taken", fmt.Errorf("character name %q is already taken: %w", normalizedName, err)
+		}
+		return nil, "persistence_error", fmt.Errorf("failed to insert new character: %w", err)
+	}
+
+	// 3. Create the initial inventory for the new character.
+	// We reuse the same logic from the LoadCharacter fallback for consistency.
+	initialInventory := inventory.NewPlayerInventory(normalizedName)
+
+	// 4. Insert the initial inventory items into the 'inventories' table.
+	stmt, err := tx.PrepareContext(ctx, `
+		INSERT INTO inventories (character_id, slot_index, item_id, quantity, durability, item_uuid)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`)
+	if err != nil {
+		return nil, "internal_error", fmt.Errorf("failed to prepare inventory insert statement: %w", err)
+	}
+	defer stmt.Close()
+
+	for _, item := range initialInventory.Items {
+		if item == nil {
+			continue
+		}
+		_, err = stmt.ExecContext(ctx, newCharID, item.SlotIndex, item.ItemID, item.Quantity, item.Durability, item.ItemUUID)
+		if err != nil {
+			// The defer tx.Rollback() will handle the cleanup.
+			return nil, "persistence_error", fmt.Errorf("failed to insert initial inventory item for slot %d: %w", item.SlotIndex, err)
+		}
+	}
+
+	// 5. Commit the transaction if all inserts were successful.
+	if err := tx.Commit(); err != nil {
+		return nil, "internal_error", fmt.Errorf("failed to commit character creation transaction: %w", err)
+	}
+
+	slog.Info("Successfully created new character", "name", normalizedName, "race", normalizedRaceID, "accountID", accountID, "charID", newCharID)
+
+	// 6. Return a summary of the newly created character.
+	summary := &CharacterSummary{
+		ID:      newCharID,
+		Name:    normalizedName,
+		Class:   "novice",
+		Level:   1,
+		RaceID:  normalizedRaceID,
+		Account: accountID,
+	}
+
+	return summary, "", nil
 }
 
 // InitSchema cria tabelas e garante colunas necessÃ¡rias para atributos de combate no PostgreSQL
