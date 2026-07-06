@@ -133,15 +133,46 @@ public partial class DebugWorldEntryController : Control
         SceneFlow.ToDebugAuth(this);
     }
     
-    private async void OnSendMoveButtonPressed()
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (@event is InputEventKey keyEvent && keyEvent.Pressed && !keyEvent.IsEcho())
+        {
+            if (_isMovePending)
+            {
+                return; // Ignore new movement input while one is pending
+            }
+
+            var (deltaX, deltaY) = keyEvent.Keycode switch
+            {
+                Key.W or Key.Up => (0, -1),
+                Key.S or Key.Down => (0, 1),
+                Key.A or Key.Left => (-1, 0),
+                Key.D or Key.Right => (1, 0),
+                _ => (0, 0)
+            };
+
+            if (deltaX != 0 || deltaY != 0)
+            {
+                _ = SendDebugMoveAsync(deltaX, deltaY, "keyboard");
+                GetViewport().SetInputAsHandled();
+            }
+        }
+    }
+
+    private void OnSendMoveButtonPressed()
+    {
+        _ = SendDebugMoveAsync(1, 0, "button");
+    }
+
+    private async Task SendDebugMoveAsync(int deltaX, int deltaY, string source)
     {
         if (_isMovePending)
         {
-            LogPacketInfo("Cannot send move: a move is already pending confirmation.");
+            LogPacketInfo($"Cannot send move from {source}: a move is already pending confirmation.");
             return;
         }
 
-        SetMoveResultText("Last Move Result: button clicked");
+        SetMoveResultText($"Last Move Result: move initiated by {source}");
 
         if (GatewayClient == null || !GatewayClient.IsConnected)
         {
@@ -156,8 +187,8 @@ public partial class DebugWorldEntryController : Control
             return;
         }
 
-        var targetX = _currentConfirmedPos.x + 1;
-        var targetY = _currentConfirmedPos.y;
+        var targetX = _currentConfirmedPos.x + deltaX;
+        var targetY = _currentConfirmedPos.y + deltaY;
         var targetZ = (sbyte)_currentConfirmedPos.z;
         var clientTimestamp = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         _lastSentTarget = new Vector2I(targetX, targetY);
