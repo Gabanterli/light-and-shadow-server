@@ -101,6 +101,20 @@ public sealed class GatewayTcpClient : IDisposable
         return BinaryProtocol.DecodeCharacterSelectResponse(responsePacket.Payload);
     }
 
+    public async Task<CharacterCreateResponseData> CreateCharacterAsync(string desiredName, string raceId, CancellationToken cancellationToken = default)
+    {
+        EnsureConnected();
+        var payload = BinaryProtocol.EncodeCharacterCreateRequest(desiredName, raceId);
+        var packet = new Packet(1008, NextSequence(), payload);
+        await SendPacketAsync(packet, cancellationToken);
+        var responsePacket = await ReceivePacketAsync(cancellationToken);
+        if (responsePacket.Opcode != 1009)
+        {
+            throw new InvalidDataException($"Unexpected opcode {responsePacket.Opcode} while waiting for character creation response.");
+        }
+        return BinaryProtocol.DecodeCharacterCreateResponse(responsePacket.Payload);
+    }
+
     public async Task SendMoveRequestAsync(int targetX, int targetY, sbyte targetZ, byte direction, ulong clientTimestamp, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
