@@ -16,10 +16,12 @@ import (
 
 	"github.com/light-and-shadow/backend/config"
 	"github.com/light-and-shadow/backend/pkg/blessing"
+	"github.com/light-and-shadow/backend/pkg/charactercreation"
 	"github.com/light-and-shadow/backend/pkg/combat"
 	"github.com/light-and-shadow/backend/pkg/db"
 	"github.com/light-and-shadow/backend/pkg/dungeon"
 	"github.com/light-and-shadow/backend/pkg/economy"
+	"github.com/light-and-shadow/backend/pkg/gamedata/rules"
 	"github.com/light-and-shadow/backend/pkg/housing"
 	"github.com/light-and-shadow/backend/pkg/inventory"
 	"github.com/light-and-shadow/backend/pkg/lifecycle"
@@ -40,38 +42,39 @@ import (
 )
 
 type GatewayServer struct {
-	config              *config.Config
-	tcpListener         net.Listener
-	httpServer          *http.Server
-	pgPool              *db.PostgresPool
-	redisClient         *db.RedisClient
-	clientsMu           sync.Mutex
-	clients             map[net.Conn]bool
-	wg                  sync.WaitGroup
-	spatialIndex        *movement.SpatialIndex
-	chunkManager        *movement.ChunkManager
-	aoiManager          *movement.AOIManager
-	movementSystem      *movement.MovementSystem
-	combatManager       *combat.CombatManager
-	persistenceMgr      *persistence.PersistenceManager
-	pveManager          *pve.PveManager
-	questManager        *quest.QuestManager
-	npcManager          *npc.NPCManager
-	socialManager       *social.SocialManager
-	economyManager      *economy.EconomyManager
-	professionsManager  *professions.ProfessionsManager
-	dungeonManager      *dungeon.DungeonManager
-	progressionManager  *progression.ProgressionManager
-	blessingManager     *blessing.BlessingManager
-	respawnManager      *lifecycle.RespawnManager
-	deathPenaltyManager *lifecycle.DeathPenaltyManager
-	housingManager      *housing.HousingManager
-	pvpManager          *pvp.PvPManager
-	activeGatheringsMu  sync.Mutex
-	activeGatherings    map[string]string // playerID -> nodeID
-	inventoriesMu       sync.RWMutex
-	inventories         map[string]*inventory.PlayerInventory
-	stopAutosave        chan struct{}
+	config                   *config.Config
+	tcpListener              net.Listener
+	httpServer               *http.Server
+	pgPool                   *db.PostgresPool
+	redisClient              *db.RedisClient
+	clientsMu                sync.Mutex
+	clients                  map[net.Conn]bool
+	wg                       sync.WaitGroup
+	spatialIndex             *movement.SpatialIndex
+	chunkManager             *movement.ChunkManager
+	aoiManager               *movement.AOIManager
+	movementSystem           *movement.MovementSystem
+	combatManager            *combat.CombatManager
+	persistenceMgr           *persistence.PersistenceManager
+	characterCreationService *charactercreation.Service
+	pveManager               *pve.PveManager
+	questManager             *quest.QuestManager
+	npcManager               *npc.NPCManager
+	socialManager            *social.SocialManager
+	economyManager           *economy.EconomyManager
+	professionsManager       *professions.ProfessionsManager
+	dungeonManager           *dungeon.DungeonManager
+	progressionManager       *progression.ProgressionManager
+	blessingManager          *blessing.BlessingManager
+	respawnManager           *lifecycle.RespawnManager
+	deathPenaltyManager      *lifecycle.DeathPenaltyManager
+	housingManager           *housing.HousingManager
+	pvpManager               *pvp.PvPManager
+	activeGatheringsMu       sync.Mutex
+	activeGatherings         map[string]string // playerID -> nodeID
+	inventoriesMu            sync.RWMutex
+	inventories              map[string]*inventory.PlayerInventory
+	stopAutosave             chan struct{}
 }
 
 type gatewayAuthRequest struct {
@@ -186,21 +189,31 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize Character Creation Service (R1-M-E)
+	ruleRegistry, err := rules.NewDefaultRegistry()
+	if err != nil {
+		slog.Error("Failed to create default rule registry; refusing to start Gateway", "error", err)
+		os.Exit(1)
+	}
+	raceValidator := charactercreation.NewRuleRegistryRaceValidator(ruleRegistry)
+	characterCreationService := charactercreation.NewService(persistenceMgr, raceValidator)
+
 	// Inicializa e configura Gateway
 	server := &GatewayServer{
-		config:           cfg,
-		pgPool:           pgPool,
-		redisClient:      redisClient,
-		clients:          make(map[net.Conn]bool),
-		spatialIndex:     spatialIndex,
-		chunkManager:     chunkManager,
-		aoiManager:       aoiManager,
-		movementSystem:   movementSystem,
-		combatManager:    combatManager,
-		persistenceMgr:   persistenceMgr,
-		inventories:      make(map[string]*inventory.PlayerInventory),
-		activeGatherings: make(map[string]string),
-		stopAutosave:     make(chan struct{}),
+		config:                   cfg,
+		pgPool:                   pgPool,
+		redisClient:              redisClient,
+		clients:                  make(map[net.Conn]bool),
+		spatialIndex:             spatialIndex,
+		chunkManager:             chunkManager,
+		aoiManager:               aoiManager,
+		movementSystem:           movementSystem,
+		combatManager:            combatManager,
+		persistenceMgr:           persistenceMgr,
+		characterCreationService: characterCreationService,
+		inventories:              make(map[string]*inventory.PlayerInventory),
+		activeGatherings:         make(map[string]string),
+		stopAutosave:             make(chan struct{}),
 	}
 
 	// Inicializa e configura PveManager (Sprint 3 Task 2)
@@ -589,6 +602,80 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				Opcode:   protocol.SC_CHAR_LIST_RESPONSE,
 				Sequence: packet.Sequence,
 				Payload:  protocol.EncodeCharacterListResponse(true, "", entries),
+			}
+			conn.Write(response.Serialize())
+
+		case protocol.CS_CHAR_CREATE_REQUEST:
+			if authenticatedAccountID <= 0 {
+				slog.Warn("Character creation rejected: client is not authenticated")
+				response := &protocol.Packet{
+					Opcode:   protocol.SC_CHAR_CREATE_RESPONSE,
+					Sequence: packet.Sequence,
+					Payload:  protocol.EncodeCharacterCreateResponse(false, "not_authenticated", protocol.CharacterListEntry{}),
+				}
+				conn.Write(response.Serialize())
+				break
+			}
+
+			createReq, err := protocol.DecodeCharacterCreateRequest(packet.Payload)
+			if err != nil {
+				slog.Warn("Invalid CS_CHAR_CREATE_REQUEST payload", "error", err)
+				response := &protocol.Packet{
+					Opcode:   protocol.SC_CHAR_CREATE_RESPONSE,
+					Sequence: packet.Sequence,
+					Payload:  protocol.EncodeCharacterCreateResponse(false, "invalid_character_create_payload", protocol.CharacterListEntry{}),
+				}
+				conn.Write(response.Serialize())
+				break
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			summary, errorCode, err := s.characterCreationService.CreateCharacter(
+				ctx,
+				authenticatedAccountID,
+				charactercreation.CreateRequest{
+					DesiredName: createReq.DesiredName,
+					RaceID:      createReq.RaceID,
+				},
+			)
+			cancel()
+
+			if err != nil {
+				if errorCode == "" {
+					errorCode = "internal_error"
+				}
+				slog.Error("Character creation failed", "account_id", authenticatedAccountID, "name", createReq.DesiredName, "error", err)
+				response := &protocol.Packet{
+					Opcode:   protocol.SC_CHAR_CREATE_RESPONSE,
+					Sequence: packet.Sequence,
+					Payload:  protocol.EncodeCharacterCreateResponse(false, errorCode, protocol.CharacterListEntry{}),
+				}
+				conn.Write(response.Serialize())
+				break
+			}
+
+			if summary == nil {
+				slog.Error("Character creation returned nil summary without an error", "account_id", authenticatedAccountID)
+				response := &protocol.Packet{
+					Opcode:   protocol.SC_CHAR_CREATE_RESPONSE,
+					Sequence: packet.Sequence,
+					Payload:  protocol.EncodeCharacterCreateResponse(false, "internal_error", protocol.CharacterListEntry{}),
+				}
+				conn.Write(response.Serialize())
+				break
+			}
+
+			// Success
+			characterEntry := protocol.CharacterListEntry{
+				Name:   summary.Name,
+				Class:  summary.Class,
+				Level:  uint32(summary.Level),
+				RaceID: summary.RaceID,
+			}
+			response := &protocol.Packet{
+				Opcode:   protocol.SC_CHAR_CREATE_RESPONSE,
+				Sequence: packet.Sequence,
+				Payload:  protocol.EncodeCharacterCreateResponse(true, "", characterEntry),
 			}
 			conn.Write(response.Serialize())
 
