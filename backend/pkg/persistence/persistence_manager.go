@@ -14,60 +14,61 @@ import (
 )
 
 type PersistenceManager struct {
-    pgPool *db.PostgresPool
+	pgPool *db.PostgresPool
 }
 
 type CharacterSummary struct {
-    ID      int
-    Name    string
-    Class   string
-    Level   int
-    Account int
+	ID      int
+	Name    string
+	Class   string
+	Level   int
+	Account int
 }
 
 func NewPersistenceManager(pgPool *db.PostgresPool) *PersistenceManager {
-    return &PersistenceManager{
-        pgPool: pgPool,
-    }
+	return &PersistenceManager{
+		pgPool: pgPool,
+	}
 }
 
 func (pm *PersistenceManager) ListCharactersByAccount(accountID int) ([]CharacterSummary, error) {
-    if pm.pgPool == nil || pm.pgPool.DB == nil {
-        slog.Warn("PostgreSQL in fallback mode. Returning empty character list", "accountID", accountID)
-        return []CharacterSummary{}, nil
-    }
+	if pm.pgPool == nil || pm.pgPool.DB == nil {
+		slog.Warn("PostgreSQL in fallback mode. Returning empty character list", "accountID", accountID)
+		return []CharacterSummary{}, nil
+	}
 
-    dbConn := pm.pgPool.DB
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+	dbConn := pm.pgPool.DB
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-    rows, err := dbConn.QueryContext(ctx, `
+	rows, err := dbConn.QueryContext(ctx, `
         SELECT id, name, class, level, account_id
         FROM characters
         WHERE account_id = $1
         ORDER BY id ASC
     `, accountID)
-    if err != nil {
-        return nil, fmt.Errorf("failed to list characters for account %d: %w", accountID, err)
-    }
-    defer rows.Close()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list characters for account %d: %w", accountID, err)
+	}
+	defer rows.Close()
 
-    characters := make([]CharacterSummary, 0)
+	characters := make([]CharacterSummary, 0)
 
-    for rows.Next() {
-        var ch CharacterSummary
-        if err := rows.Scan(&ch.ID, &ch.Name, &ch.Class, &ch.Level, &ch.Account); err != nil {
-            return nil, fmt.Errorf("failed to scan character summary: %w", err)
-        }
-        characters = append(characters, ch)
-    }
+	for rows.Next() {
+		var ch CharacterSummary
+		if err := rows.Scan(&ch.ID, &ch.Name, &ch.Class, &ch.Level, &ch.Account); err != nil {
+			return nil, fmt.Errorf("failed to scan character summary: %w", err)
+		}
+		characters = append(characters, ch)
+	}
 
-    if err := rows.Err(); err != nil {
-        return nil, fmt.Errorf("failed while iterating character summaries: %w", err)
-    }
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed while iterating character summaries: %w", err)
+	}
 
-    return characters, nil
+	return characters, nil
 }
+
 // InitSchema cria tabelas e garante colunas necessÃ¡rias para atributos de combate no PostgreSQL
 func (pm *PersistenceManager) InitSchema() error {
 	if pm.pgPool == nil || pm.pgPool.DB == nil {
@@ -152,14 +153,15 @@ func (pm *PersistenceManager) InitSchema() error {
 		{"element_attack_bonus", "DOUBLE PRECISION", "0.10"},
 		{"element_def_bonus", "DOUBLE PRECISION", "0.05"},
 		{"faction", "VARCHAR(32)", "'Alliance'"},
-		{"version", "INT", "1"}, // Controle de versÃ£o para optimistic locking (PATCH 4)
-		{"gold", "INT", "1000"}, // Gold do jogador (PATCH 1)
-		{"subclass", "VARCHAR(50)", "''"}, // Subclasse do jogador (Sprint 3 Task 5)
-		{"affinity_fire", "INT", "0"}, // Afinidade de Fogo
-		{"affinity_ice", "INT", "0"}, // Afinidade de Gelo
-		{"affinity_holy", "INT", "0"}, // Afinidade Sagrada
-		{"affinity_shadow", "INT", "0"}, // Afinidade Sombria
-		{"affinity_nature", "INT", "0"}, // Afinidade Natural
+		{"version", "INT", "1"},                        // Controle de versÃ£o para optimistic locking (PATCH 4)
+		{"gold", "INT", "1000"},                        // Gold do jogador (PATCH 1)
+		{"subclass", "VARCHAR(50)", "''"},              // Subclasse do jogador (Sprint 3 Task 5)
+		{"affinity_fire", "INT", "0"},                  // Afinidade de Fogo
+		{"affinity_ice", "INT", "0"},                   // Afinidade de Gelo
+		{"affinity_holy", "INT", "0"},                  // Afinidade Sagrada
+		{"affinity_shadow", "INT", "0"},                // Afinidade Sombria
+		{"affinity_nature", "INT", "0"},                // Afinidade Natural
+		{"race_id", "VARCHAR(32) NOT NULL", "'human'"}, // Raça do personagem (R1-D)
 	}
 
 	for _, col := range columnsToAdd {
@@ -474,33 +476,34 @@ func (pm *PersistenceManager) InitSchema() error {
 }
 
 func (pm *PersistenceManager) CharacterBelongsToAccount(accountID int, characterName string) (bool, error) {
-    if characterName == "" {
-        return false, nil
-    }
+	if characterName == "" {
+		return false, nil
+	}
 
-    if pm.pgPool == nil || pm.pgPool.DB == nil {
-        slog.Warn("PostgreSQL in fallback mode. Allowing character selection", "accountID", accountID, "character", characterName)
-        return true, nil
-    }
+	if pm.pgPool == nil || pm.pgPool.DB == nil {
+		slog.Warn("PostgreSQL in fallback mode. Allowing character selection", "accountID", accountID, "character", characterName)
+		return true, nil
+	}
 
-    dbConn := pm.pgPool.DB
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+	dbConn := pm.pgPool.DB
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-    var exists bool
-    err := dbConn.QueryRowContext(ctx, `
+	var exists bool
+	err := dbConn.QueryRowContext(ctx, `
         SELECT EXISTS (
             SELECT 1
             FROM characters
             WHERE account_id = $1 AND name = $2
         )
     `, accountID, characterName).Scan(&exists)
-    if err != nil {
-        return false, fmt.Errorf("failed to validate character ownership for account %d and character %s: %w", accountID, characterName, err)
-    }
+	if err != nil {
+		return false, fmt.Errorf("failed to validate character ownership for account %d and character %s: %w", accountID, characterName, err)
+	}
 
-    return exists, nil
+	return exists, nil
 }
+
 // LoadCharacter carrega os atributos autoritativos de um personagem, versÃ£o e inventÃ¡rio correspondente do PostgreSQL (PATCH 4)
 func (pm *PersistenceManager) LoadCharacter(playerID string) (*combat.EntityStats, map[int]*inventory.InventoryItem, float64, float64, float64, int, int64, int64, error) {
 	if pm.pgPool == nil || pm.pgPool.DB == nil {
