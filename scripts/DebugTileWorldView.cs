@@ -7,7 +7,7 @@ public partial class DebugTileWorldView : Control
     public Vector2I? PlayerTilePosition { get; set; }
     public Vector2I? TargetPosition { get; set; }
 
-    private const int TileSize = 4;
+    private const int TileSize = 8;
     private const int ChunkWidthInTiles = 32;
     private const int ChunkHeightInTiles = 32;
 
