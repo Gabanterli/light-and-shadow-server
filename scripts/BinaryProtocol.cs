@@ -112,6 +112,54 @@ public static class BinaryProtocol
         };
     }
 
+    public static byte[] EncodeCharacterCreateRequest(string desiredName, string raceId)
+    {
+        var safeDesiredName = desiredName ?? string.Empty;
+        var safeRaceId = raceId ?? string.Empty;
+
+        var payload = new byte[2 + Encoding.UTF8.GetByteCount(safeDesiredName) + 2 + Encoding.UTF8.GetByteCount(safeRaceId)];
+        var offset = 0;
+        offset = WriteStringUInt16(payload, offset, safeDesiredName);
+        offset = WriteStringUInt16(payload, offset, safeRaceId);
+        return payload;
+    }
+
+    public static CharacterCreateResponseData DecodeCharacterCreateResponse(byte[] payload)
+    {
+        if (payload.Length < 1)
+        {
+            throw new InvalidDataException("Character create response payload is too small.");
+        }
+
+        var offset = 0;
+        var status = payload[offset++];
+        var errorCode = ReadStringUInt16(payload, offset, out offset);
+        var name = ReadStringUInt16(payload, offset, out offset);
+        var className = ReadStringUInt16(payload, offset, out offset);
+
+        if (offset + 4 > payload.Length)
+        {
+            throw new InvalidDataException("Payload truncated before reading character level.");
+        }
+        var level = ReadUInt32LE(payload, offset);
+        offset += 4;
+
+        var raceId = ReadStringUInt16(payload, offset, out _);
+
+        return new CharacterCreateResponseData
+        {
+            Status = status == 1,
+            ErrorCode = errorCode,
+            Character = new CharacterListEntryData
+            {
+                Name = name,
+                Class = className,
+                Level = level,
+                RaceId = raceId
+            }
+        };
+    }
+
     public static byte[] EncodeMoveRequest(int targetX, int targetY, sbyte targetZ, byte direction, ulong clientTimestamp)
     {
         var payload = new byte[18];
@@ -352,6 +400,13 @@ public sealed class CharacterSelectResponseData
     public bool Status { get; set; }
     public string CharacterName { get; set; } = string.Empty;
     public string ErrorCode { get; set; } = string.Empty;
+}
+
+public sealed class CharacterCreateResponseData
+{
+    public bool Status { get; set; }
+    public string ErrorCode { get; set; } = string.Empty;
+    public CharacterListEntryData Character { get; set; } = new();
 }
 
 public sealed class InventoryItemData
