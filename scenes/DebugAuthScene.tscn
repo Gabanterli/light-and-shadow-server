@@ -43,6 +43,39 @@ placeholder_text = "Password"
 layout_mode = 2
 text = "Connect / Login"
 
+[node name="CreateCharacterSeparator" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="CreateCharacterLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Create Character"
+
+[node name="CreateCharacterHBox" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="CreateCharacterNameLineEdit" type="LineEdit" parent="VBoxContainer/CreateCharacterHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Character name"
+
+[node name="CreateCharacterRaceOptionButton" type="OptionButton" parent="VBoxContainer/CreateCharacterHBox"]
+layout_mode = 2
+item_count = 5
+item_0/text = "human"
+item_0/id = 0
+item_1/text = "forest_elf"
+item_1/id = 1
+item_2/text = "dwarf"
+item_2/id = 2
+item_3/text = "ice_elf"
+item_3/id = 3
+item_4/text = "green_orc"
+item_4/id = 4
+
+[node name="CreateCharacterButton" type="Button" parent="VBoxContainer/CreateCharacterHBox"]
+layout_mode = 2
+text = "Create Character"
+
 [node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
 layout_mode = 2
 
