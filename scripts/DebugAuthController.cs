@@ -47,6 +47,8 @@ public partial class DebugAuthController : Control
         _createCharacterRaceOptionButton = GetNode<OptionButton>("VBoxContainer/CreateCharacterHBox/CreateCharacterRaceOptionButton");
         _createCharacterButton = GetNode<Button>("VBoxContainer/CreateCharacterHBox/CreateCharacterButton");
 
+        ConfigureCharacterRaceOptions();
+
         // Connect signals
         _loginButton.Pressed += OnLoginButtonPressed;
         _requestCharactersButton.Pressed += OnRequestCharactersButtonPressed;
@@ -188,18 +190,21 @@ public partial class DebugAuthController : Control
         var desiredName = _createCharacterNameLineEdit?.Text?.Trim() ?? string.Empty;
         if (string.IsNullOrEmpty(desiredName))
         {
+            _statusLabel!.Text = "Status: Character name cannot be empty.";
             Log("Error: Character name cannot be empty.");
             return;
         }
 
         if (_createCharacterRaceOptionButton is null)
         {
+            _statusLabel!.Text = "Status: Race selector is missing.";
             Log("Error: Race option button node is missing.");
             return;
         }
 
         if (_createCharacterRaceOptionButton.Selected < 0)
         {
+            _statusLabel!.Text = "Status: No character race selected.";
             Log("Error: No character race selected.");
             return;
         }
@@ -207,6 +212,7 @@ public partial class DebugAuthController : Control
         var selectedRace = _createCharacterRaceOptionButton.GetItemText(_createCharacterRaceOptionButton.Selected);
         if (string.IsNullOrEmpty(selectedRace))
         {
+            _statusLabel!.Text = "Status: Character race cannot be empty.";
             Log("Error: Character race cannot be empty.");
             return;
         }
@@ -317,5 +323,21 @@ public partial class DebugAuthController : Control
     {
         var timestamp = DateTime.Now.ToString("HH:mm:ss");
         _logTextEdit!.Text += $"[{timestamp}] {message}\n";
+    }
+
+    private void ConfigureCharacterRaceOptions()
+    {
+        if (_createCharacterRaceOptionButton is null)
+        {
+            return;
+        }
+
+        _createCharacterRaceOptionButton.Clear();
+        _createCharacterRaceOptionButton.AddItem("human");
+        _createCharacterRaceOptionButton.AddItem("forest_elf");
+        _createCharacterRaceOptionButton.AddItem("dwarf");
+        _createCharacterRaceOptionButton.AddItem("ice_elf");
+        _createCharacterRaceOptionButton.AddItem("green_orc");
+        _createCharacterRaceOptionButton.Select(0);
     }
 }
