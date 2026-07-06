@@ -21,3 +21,6 @@ obj/
 
 # Local exported builds
 builds/
+
+# Local runtime gateway config
+gateway-config.json
