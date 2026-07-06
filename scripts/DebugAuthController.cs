@@ -17,10 +17,10 @@ public partial class DebugAuthController : Control
     private Label? _statusLabel;
     private TextEdit? _logTextEdit;
 
-    private GatewayTcpClient _gatewayClient = new("127.0.0.1", 8080);
-    
+    private GatewayTcpClient _gatewayClient = null!;
+
     private readonly AuthSession _authSession = new();
-    
+
     private readonly List<string> _characterNames = new();
 
     private bool _isTransferringGatewayClientToWorldEntry = false;
@@ -46,6 +46,11 @@ public partial class DebugAuthController : Control
         _requestCharactersButton.Disabled = true;
         _selectCharacterButton!.Disabled = true;
         _statusLabel.Text = "Status: Disconnected";
+
+        var gatewayConfig = new GatewayRuntimeConfig();
+        _gatewayClient = new GatewayTcpClient(gatewayConfig.Host, gatewayConfig.Port);
+
+        Log($"Gateway config loaded. {gatewayConfig}");
         Log("Debug Auth Controller Initialized. Ready to connect.");
     }
 
