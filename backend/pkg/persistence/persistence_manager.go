@@ -172,6 +172,14 @@ func (pm *PersistenceManager) InitSchema() error {
 		}
 	}
 
+	// Garante o índice na coluna race_id para consistência com a migration 0011 (Task R1-F)
+	_, err = dbConn.ExecContext(ctx, `
+		CREATE INDEX IF NOT EXISTS idx_characters_race_id ON characters(race_id);
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create race_id index on characters: %w", err)
+	}
+
 	// 5. Cria tabela de inventÃ¡rios
 	_, err = dbConn.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS inventories (
