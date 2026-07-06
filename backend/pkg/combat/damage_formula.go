@@ -12,6 +12,7 @@ type EntityStats struct {
 	Name               string
 	IsPlayer           bool
 	Faction            string // Para friendly fire
+	RaceID             string // (R1-H) Raça do personagem
 	Level              int    // Added for level scaling
 	BaseAttack         float64
 	WeaponDamage       float64 // Added for weapon damage
@@ -32,14 +33,14 @@ type EntityStats struct {
 	LastCombatTime     time.Time
 
 	// Sprint 3 Task 5 - Progression & Vocation system
-	Class              string // "Novice", "Knight", "Mage", "Archer", "Assassin", "Cleric"
-	Subclass           string // e.g. "Holy Knight", "Fire Mage", etc.
-	AffinityFire       int
-	AffinityIce        int
-	AffinityHoly       int
-	AffinityShadow     int
-	AffinityNature     int
-	ProgressionDirty   bool
+	Class            string // "Novice", "Knight", "Mage", "Archer", "Assassin", "Cleric"
+	Subclass         string // e.g. "Holy Knight", "Fire Mage", etc.
+	AffinityFire     int
+	AffinityIce      int
+	AffinityHoly     int
+	AffinityShadow   int
+	AffinityNature   int
+	ProgressionDirty bool
 }
 
 // CalculateHitChance calcula a chance de acerto entre duas entidades, limitada entre 10% e 95%
@@ -72,7 +73,7 @@ func RollHit(attacker, defender *EntityStats) bool {
 // CalculateDamage calcula o dano final baseado na fórmula oficial MMO completa
 func CalculateDamage(attacker, defender *EntityStats, weaponScale float64, skillScale float64, isPvP bool) (float64, bool) {
 	// Pipeline: Weapon Damage -> Skill Scaling -> Level Scaling -> Element Scaling -> Critical -> Armor Penetration & Defense Mitigation -> Resistance Reduction -> PvP Modifier -> Random Variance -> Final Damage
-	
+
 	// 1. Weapon Damage & Base Attack
 	weaponDmg := attacker.WeaponDamage
 	if weaponDmg <= 0 {
@@ -191,5 +192,5 @@ func CalculateDamage(attacker, defender *EntityStats, weaponScale float64, skill
 		finalDamage = 1.0 // Garante dano mínimo
 	}
 
-	return math.Round(finalDamage*100.0)/100.0, isCrit
+	return math.Round(finalDamage*100.0) / 100.0, isCrit
 }

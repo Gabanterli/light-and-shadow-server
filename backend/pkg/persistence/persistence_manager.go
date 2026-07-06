@@ -517,6 +517,7 @@ func (pm *PersistenceManager) LoadCharacter(playerID string) (*combat.EntityStat
 	if pm.pgPool == nil || pm.pgPool.DB == nil {
 		slog.Warn("PostgreSQL in fallback mode. Loading default state in-memory", "playerID", playerID)
 		defaultInv := inventory.NewPlayerInventory(playerID)
+		defaultInv.BaseStats.RaceID = "human" // (R1-H)
 		return &defaultInv.BaseStats, defaultInv.Items, 100.0, 100.0, 0.0, 1, 0, int64(1000), nil
 	}
 
@@ -536,6 +537,7 @@ func (pm *PersistenceManager) LoadCharacter(playerID string) (*combat.EntityStat
 	var health, maxHealth, mana, maxMana, baseAttack, weaponDamage, defense, resistance float64
 	var accuracy, evasion, critChance, critMultiplier, armorPenetration float64
 	var element string
+	var raceID string // (R1-H)
 	var elementAttackBonus, elementDefBonus float64
 	var faction string
 	var version int // (PATCH 4)
@@ -545,13 +547,13 @@ func (pm *PersistenceManager) LoadCharacter(playerID string) (*combat.EntityStat
 	// Busca o personagem na tabela (inclui gold e progresso da Sprint 3 Task 5)
 	row := dbConn.QueryRowContext(ctx, `
 		SELECT id, account_id, class, level, experience, posX, posY, posZ,
-			health, max_health, mana, max_mana, base_attack, weapon_damage, defense, resistance,
+			health, max_health, mana, max_mana, base_attack, weapon_damage, defense, resistance, race_id,
 			accuracy, evasion, crit_chance, crit_multiplier, armor_penetration, element, element_attack_bonus, element_def_bonus, faction, version, gold,
 			subclass, affinity_fire, affinity_ice, affinity_holy, affinity_shadow, affinity_nature
 		FROM characters WHERE name = $1`, playerID)
 
 	err := row.Scan(&charID, &accountID, &className, &level, &experience, &posX, &posY, &posZ,
-		&health, &maxHealth, &mana, &maxMana, &baseAttack, &weaponDamage, &defense, &resistance,
+		&health, &maxHealth, &mana, &maxMana, &baseAttack, &weaponDamage, &defense, &resistance, &raceID,
 		&accuracy, &evasion, &critChance, &critMultiplier, &armorPenetration, &element, &elementAttackBonus, &elementDefBonus, &faction, &version, &gold,
 		&subclass, &affFire, &affIce, &affHoly, &affShadow, &affNature)
 
@@ -561,19 +563,19 @@ func (pm *PersistenceManager) LoadCharacter(playerID string) (*combat.EntityStat
 		// Insere novo personagem padrÃ£o com gold inicial no estado Novice (Level 1)
 		err = dbConn.QueryRowContext(ctx, `
 			INSERT INTO characters (account_id, name, class, level, experience, posX, posY, posZ,
-				health, max_health, mana, max_mana, base_attack, weapon_damage, defense, resistance,
+				health, max_health, mana, max_mana, base_attack, weapon_damage, defense, resistance, race_id,
 				accuracy, evasion, crit_chance, crit_multiplier, armor_penetration, element, element_attack_bonus, element_def_bonus, faction, version, gold,
 				subclass, affinity_fire, affinity_ice, affinity_holy, affinity_shadow, affinity_nature)
 			VALUES (1, $1, 'Novice', 1, 0, 100.0, 100.0, 0.0,
-				200.0, 200.0, 50.0, 50.0, 10.0, 15.0, 10.0, 0.0,
+				200.0, 200.0, 50.0, 50.0, 10.0, 15.0, 10.0, 0.0, 'human',
 				95.0, 5.0, 0.05, 1.50, 0.05, 'None', 0.0, 0.0, 'Alliance', 1, 1000,
 				'', 0, 0, 0, 0, 0)
 			RETURNING id, account_id, class, level, experience, posX, posY, posZ,
-				health, max_health, mana, max_mana, base_attack, weapon_damage, defense, resistance,
+				health, max_health, mana, max_mana, base_attack, weapon_damage, defense, resistance, race_id,
 				accuracy, evasion, crit_chance, crit_multiplier, armor_penetration, element, element_attack_bonus, element_def_bonus, faction, version, gold,
 				subclass, affinity_fire, affinity_ice, affinity_holy, affinity_shadow, affinity_nature
 		`, playerID).Scan(&charID, &accountID, &className, &level, &experience, &posX, &posY, &posZ,
-			&health, &maxHealth, &mana, &maxMana, &baseAttack, &weaponDamage, &defense, &resistance,
+			&health, &maxHealth, &mana, &maxMana, &baseAttack, &weaponDamage, &defense, &resistance, &raceID,
 			&accuracy, &evasion, &critChance, &critMultiplier, &armorPenetration, &element, &elementAttackBonus, &elementDefBonus, &faction, &version, &gold,
 			&subclass, &affFire, &affIce, &affHoly, &affShadow, &affNature)
 
@@ -610,6 +612,7 @@ func (pm *PersistenceManager) LoadCharacter(playerID string) (*combat.EntityStat
 		defaultInv.BaseStats.AffinityHoly = affHoly
 		defaultInv.BaseStats.AffinityShadow = affShadow
 		defaultInv.BaseStats.AffinityNature = affNature
+		defaultInv.BaseStats.RaceID = raceID // (R1-H)
 		defaultInv.BaseStats.Level = level
 
 		slog.Info("New character and default items persisted successfully", "player", playerID, "char_id", charID)
@@ -651,6 +654,7 @@ func (pm *PersistenceManager) LoadCharacter(playerID string) (*combat.EntityStat
 		Name:               playerID,
 		IsPlayer:           true,
 		Faction:            faction,
+		RaceID:             raceID, // (R1-H)
 		Level:              level,
 		BaseAttack:         baseAttack,
 		WeaponDamage:       weaponDamage,
