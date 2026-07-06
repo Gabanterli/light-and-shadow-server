@@ -312,6 +312,15 @@ public partial class DebugWorldEntryController : Control
         if (data != null)
         {
             logMessage.AppendLine($"  Player '{data.PlayerID}' moved to ({data.X:F2}, {data.Y:F2}, {data.Z})");
+
+            // Check if this update is for our own player (e.g., initial position sync)
+            if (Session != null && data.PlayerID == Session.SelectedCharacterName)
+            {
+                logMessage.AppendLine("  > Applied authoritative position for local player.");
+                _currentConfirmedPos = ((int)Math.Round(data.X), (int)Math.Round(data.Y), data.Z);
+                CallDeferred(nameof(SetDebugPlayerMarkerAndRedraw), _currentConfirmedPos.x, _currentConfirmedPos.y);
+                CallDeferred(nameof(UpdateConfirmedPositionLabel));
+            }
         }
         CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
     }
@@ -368,6 +377,11 @@ public partial class DebugWorldEntryController : Control
         _movePendingValueLabel!.Text = "No";
         _worldView!.TargetPosition = null;
         _worldView.QueueRedraw();
+        UpdateConfirmedPositionLabel();
+    }
+
+    private void UpdateConfirmedPositionLabel()
+    {
         _confirmedPosValueLabel!.Text = $"({_currentConfirmedPos.x}, {_currentConfirmedPos.y}, {_currentConfirmedPos.z})";
     }
 }
