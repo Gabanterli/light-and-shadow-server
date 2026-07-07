@@ -1678,7 +1678,6 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 					s.inventoriesMu.RLock()
 					playerInv, hasInventory := s.inventories[playerID]
 					s.inventoriesMu.RUnlock()
-
 					if hasInventory && playerInv != nil {
 						if playerInv.AddItem("sword_t1_rusty", 1) {
 							playerInv.SetDirty(true)
@@ -1686,6 +1685,11 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 								s.sendInventorySync(conn, playerID, playerStats, playerInv)
 							}
 							slog.Info("Debug loot granted after target death", "player", playerID, "target", resolvedTargetID, "item", "sword_t1_rusty", "quantity", 1)
+						} else if playerInv.AddGold(25) {
+							if playerStats, statsExist := s.combatManager.GetEntityStats(playerID); statsExist {
+								s.sendInventorySync(conn, playerID, playerStats, playerInv)
+							}
+							slog.Info("Debug loot fallback gold granted after target death", "player", playerID, "target", resolvedTargetID, "item", "sword_t1_rusty", "fallback_gold", 25)
 						} else {
 							slog.Warn("Failed to grant debug loot after target death", "player", playerID, "target", resolvedTargetID, "item", "sword_t1_rusty")
 						}
