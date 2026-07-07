@@ -1471,7 +1471,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 					Z:        float64(confZ),
 				})
 			} else {
-				slog.Warn("Authoritative movement validation failed (Client out of sync/rubberbanded)", "player", playerID, "x", targetX, "y", targetY)
+				slog.Warn("Authoritative movement validation failed (Client out of sync/rubberbanded)", "player", playerID, "requested_x", targetX, "requested_y", targetY, "confirmed_x", confX, "confirmed_y", confY, "confirmed_z", confZ)
 			}
 
 		case protocol.CS_PLAYER_MOVE:

@@ -412,14 +412,21 @@ public partial class DebugWorldEntryController : Control
             logMessage.AppendLine($"  Success: {data.Success}");
             logMessage.AppendLine($"  Confirmed Pos: ({data.X:F2}, {data.Y:F2}, {data.Z})");
             logMessage.AppendLine($"  Sequence Echo: {data.Seq}");
+            // Always apply the server-confirmed position.
+            // On Success=false, this is an authoritative rubberband correction.
+            _currentConfirmedPos = ((int)Math.Round(data.X), (int)Math.Round(data.Y), data.Z);
 
             if (data.Success)
             {
-                // Update local debug position to the server-confirmed position
-                _currentConfirmedPos = ((int)Math.Round(data.X), (int)Math.Round(data.Y), data.Z);
-                // Safely schedule the visual update for the world view
-                CallDeferred(nameof(UpdateWorldViewMarkers));
+                logMessage.AppendLine("  > Applied accepted authoritative move.");
             }
+            else
+            {
+                logMessage.AppendLine("  > Applied authoritative rubberband correction.");
+            }
+
+            // Safely schedule the visual update for the world view.
+            CallDeferred(nameof(UpdateWorldViewMarkers));
         }
         else
         {
