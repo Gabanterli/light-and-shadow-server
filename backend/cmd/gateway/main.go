@@ -1518,13 +1518,25 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				slog.Warn("Failed to decode binary CS_ATTACK_REQUEST", "error", err)
 				break
 			}
-			if req.TargetID == "Orc_Elite" {
-				if targetStats, exists := s.combatManager.GetEntityStats(req.TargetID); exists && targetStats.Health <= 0 {
+			requestedTargetID := req.TargetID
+			resolvedTargetID := req.TargetID
+			isDebugOrcEliteTarget := req.TargetID == "Orc_Elite"
+
+			if !isDebugOrcEliteTarget && s.creatureSpawnManager != nil {
+				if spawnState, exists := s.creatureSpawnManager.GetSpawnByRuntimeEntityID(req.TargetID); exists && spawnState.SpawnID == "debug_orc_elite_001" {
+					resolvedTargetID = "Orc_Elite"
+					isDebugOrcEliteTarget = true
+					slog.Info("Resolved debug Orc Elite attack target by runtime entity id", "player", playerID, "requested_target", requestedTargetID, "resolved_target", resolvedTargetID, "runtime_entity_id", spawnState.RuntimeEntityID)
+				}
+			}
+
+			if isDebugOrcEliteTarget {
+				if targetStats, exists := s.combatManager.GetEntityStats(resolvedTargetID); exists && targetStats.Health <= 0 {
 					timerRespawned := false
 
 					if s.creatureSpawnManager != nil {
 						if spawnState, due := s.creatureSpawnManager.TryRespawnDue("debug_orc_elite_001", time.Now().UTC()); due {
-							if s.combatManager.ReviveEntity(req.TargetID) {
+							if s.combatManager.ReviveEntity(resolvedTargetID) {
 								timerRespawned = true
 								slog.Info("Orc Elite creature spawn timer respawned", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "version", spawnState.Version, "spawned_at", spawnState.SpawnedAt)
 							} else {
@@ -1534,23 +1546,23 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 					}
 
 					if !timerRespawned {
-						if s.combatManager.ReviveEntity(req.TargetID) {
-							slog.Info("Debug Orc Elite revived for retry flow", "player", playerID, "target", req.TargetID)
+						if s.combatManager.ReviveEntity(resolvedTargetID) {
+							slog.Info("Debug Orc Elite revived for retry flow", "player", playerID, "target", resolvedTargetID)
 							if s.creatureSpawnManager != nil {
 								if spawnState, revived := s.creatureSpawnManager.ReviveRespawn("debug_orc_elite_001"); revived {
 									slog.Info("Debug Orc Elite creature spawn state revived for retry flow", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "version", spawnState.Version)
 								} else {
-									slog.Warn("Debug Orc Elite creature spawn state revive skipped for retry flow", "spawn_id", "debug_orc_elite_001", "target", req.TargetID)
+									slog.Warn("Debug Orc Elite creature spawn state revive skipped for retry flow", "spawn_id", "debug_orc_elite_001", "target", resolvedTargetID)
 								}
 							}
 						}
 					}
 				}
 			}
-			damage, isCrit, isProj, err := s.combatManager.ProcessAttackRequest(playerID, req.TargetID, req.WeaponType)
+			damage, isCrit, isProj, err := s.combatManager.ProcessAttackRequest(playerID, resolvedTargetID, req.WeaponType)
 			if err != nil {
 				slog.Warn("Failed to process basic attack", "error", err)
-				errPayload := protocol.EncodeDamageEvent(playerID, req.TargetID, 0, false, false, false, err.Error())
+				errPayload := protocol.EncodeDamageEvent(playerID, resolvedTargetID, 0, false, false, false, err.Error())
 				errPacket := &protocol.Packet{
 					Opcode:   protocol.SC_DAMAGE_EVENT,
 					Sequence: packet.Sequence,
@@ -1585,13 +1597,13 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 
 			if isProj {
 				// ProjÃ©til agendado. Broadcast visual do efeito de tiro via BroadcastEffects
-				spawnPayload := protocol.EncodeDamageEvent(playerID, req.TargetID, 0, false, false, true, req.WeaponType)
+				spawnPayload := protocol.EncodeDamageEvent(playerID, resolvedTargetID, 0, false, false, true, req.WeaponType)
 				s.aoiManager.BroadcastEffects(playerID, protocol.SC_DAMAGE_EVENT, spawnPayload)
 				break
 			}
 
 			// Retorna evento de dano com sucesso para melee instantÃ¢neo
-			dmgPayload := protocol.EncodeDamageEvent(playerID, req.TargetID, damage, isCrit, damage > 0, true, "")
+			dmgPayload := protocol.EncodeDamageEvent(playerID, resolvedTargetID, damage, isCrit, damage > 0, true, "")
 			dmgPacket := &protocol.Packet{
 				Opcode:   protocol.SC_DAMAGE_EVENT,
 				Sequence: packet.Sequence,
@@ -1603,14 +1615,14 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			s.aoiManager.BroadcastCombat(playerID, protocol.SC_DAMAGE_EVENT, dmgPayload)
 
 			// Verifica se o alvo morreu
-			targetStats, exists := s.combatManager.GetEntityStats(req.TargetID)
+			targetStats, exists := s.combatManager.GetEntityStats(resolvedTargetID)
 			if exists && targetStats.Health <= 0 {
 				shouldEmitDeath := true
-				shouldGrantDebugLoot := req.TargetID == "Orc_Elite"
+				shouldGrantDebugLoot := isDebugOrcEliteTarget
 
-				if req.TargetID == "Orc_Elite" {
+				if isDebugOrcEliteTarget {
 					if s.creatureSpawnManager == nil {
-						slog.Warn("Orc Elite death blocked because creature spawn manager is unavailable", "spawn_id", "debug_orc_elite_001", "target", req.TargetID)
+						slog.Warn("Orc Elite death blocked because creature spawn manager is unavailable", "spawn_id", "debug_orc_elite_001", "target", resolvedTargetID)
 						shouldEmitDeath = false
 						shouldGrantDebugLoot = false
 					} else if spawnState, markedDead := s.creatureSpawnManager.MarkDead("debug_orc_elite_001", playerID, 30*time.Second); markedDead {
@@ -1622,24 +1634,24 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 							shouldGrantDebugLoot = false
 						}
 					} else {
-						slog.Warn("Orc Elite duplicate death blocked by creature spawn state", "spawn_id", "debug_orc_elite_001", "target", req.TargetID)
+						slog.Warn("Orc Elite duplicate death blocked by creature spawn state", "spawn_id", "debug_orc_elite_001", "target", resolvedTargetID)
 						shouldEmitDeath = false
 						shouldGrantDebugLoot = false
 					}
 				}
 
 				if shouldEmitDeath {
-					deadPayload := protocol.EncodeTargetDeadEvent(req.TargetID)
+					deadPayload := protocol.EncodeTargetDeadEvent(resolvedTargetID)
 					deadPacket := &protocol.Packet{
 						Opcode:   protocol.SC_TARGET_DEAD, // 3003
 						Sequence: packet.Sequence,
 						Payload:  deadPayload,
 					}
-					slog.Info("Sending target dead packet to client", "target", req.TargetID, "opcode", protocol.SC_TARGET_DEAD, "sequence", packet.Sequence)
+					slog.Info("Sending target dead packet to client", "target", resolvedTargetID, "opcode", protocol.SC_TARGET_DEAD, "sequence", packet.Sequence)
 					if _, err := conn.Write(deadPacket.Serialize()); err != nil {
-						slog.Warn("Failed to send target dead packet to client", "target", req.TargetID, "error", err)
+						slog.Warn("Failed to send target dead packet to client", "target", resolvedTargetID, "error", err)
 					} else {
-						slog.Info("Target dead packet sent to client", "target", req.TargetID, "opcode", protocol.SC_TARGET_DEAD, "sequence", packet.Sequence)
+						slog.Info("Target dead packet sent to client", "target", resolvedTargetID, "opcode", protocol.SC_TARGET_DEAD, "sequence", packet.Sequence)
 					}
 					s.aoiManager.BroadcastCombat(playerID, protocol.SC_TARGET_DEAD, deadPayload)
 				}
@@ -1656,12 +1668,12 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 							if playerStats, statsExist := s.combatManager.GetEntityStats(playerID); statsExist {
 								s.sendInventorySync(conn, playerID, playerStats, playerInv)
 							}
-							slog.Info("Debug loot granted after target death", "player", playerID, "target", req.TargetID, "item", "sword_t1_rusty", "quantity", 1)
+							slog.Info("Debug loot granted after target death", "player", playerID, "target", resolvedTargetID, "item", "sword_t1_rusty", "quantity", 1)
 						} else {
-							slog.Warn("Failed to grant debug loot after target death", "player", playerID, "target", req.TargetID, "item", "sword_t1_rusty")
+							slog.Warn("Failed to grant debug loot after target death", "player", playerID, "target", resolvedTargetID, "item", "sword_t1_rusty")
 						}
 					} else {
-						slog.Warn("Cannot grant debug loot because player inventory was not found", "player", playerID, "target", req.TargetID)
+						slog.Warn("Cannot grant debug loot because player inventory was not found", "player", playerID, "target", resolvedTargetID)
 					}
 				}
 			}

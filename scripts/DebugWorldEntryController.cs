@@ -213,8 +213,14 @@ public partial class DebugWorldEntryController : Control
             $"Debug attack session state: Auth={sessionAuth}, CharSelected={sessionCharSelected}, " +
             $"CurrentSessionName='{sessionCharName}', CachedWorldEntryName='{_selectedCharacterNameForWorldEntry}'"
         );
+        var attackTargetId = string.IsNullOrWhiteSpace(_orcEliteRuntimeEntityId)
+            ? "Orc_Elite"
+            : _orcEliteRuntimeEntityId;
+        var attackTargetMode = attackTargetId == "Orc_Elite" ? "fallback-static" : "runtime-entity";
+
         logMessage.AppendLine("[SEND] Opcode: 3000 (CS_ATTACK_REQUEST)");
-        logMessage.AppendLine("  Target: Orc_Elite");
+        logMessage.AppendLine($"  Target: {attackTargetId}");
+        logMessage.AppendLine($"  TargetMode: {attackTargetMode}");
         logMessage.AppendLine("  WeaponType: debug_sword");
         if (_isOrcEliteDead)
         {
@@ -225,7 +231,7 @@ public partial class DebugWorldEntryController : Control
         try
         {
             var wasOrcEliteDeadBeforeAttack = _isOrcEliteDead;
-            await GatewayClient.SendAttackRequestAsync("Orc_Elite", "debug_sword", _cts.Token);
+            await GatewayClient.SendAttackRequestAsync(attackTargetId, "debug_sword", _cts.Token);
 
             if (wasOrcEliteDeadBeforeAttack)
             {
@@ -236,12 +242,12 @@ public partial class DebugWorldEntryController : Control
                     _worldView.QueueRedraw();
                 }
 
-                SetActionResultText("Last Action Result: retry attack sent; Orc_Elite respawn requested");
+                SetActionResultText($"Last Action Result: retry attack sent to {attackTargetId}; Orc_Elite respawn requested");
                 LogPacketInfo("Debug retry flow: Orc_Elite local visual state reset after attack send.");
             }
             else
             {
-                SetActionResultText("Last Action Result: attack request sent to Orc_Elite");
+                SetActionResultText($"Last Action Result: attack request sent to {attackTargetId}");
             }
         }
         catch (Exception ex)
