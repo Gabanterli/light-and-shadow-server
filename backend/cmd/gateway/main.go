@@ -76,6 +76,7 @@ type GatewayServer struct {
 	inventoriesMu            sync.RWMutex
 	inventories              map[string]*inventory.PlayerInventory
 	stopAutosave             chan struct{}
+	stopRespawnScheduler     chan struct{}
 }
 
 type gatewayAuthRequest struct {
@@ -220,6 +221,7 @@ func main() {
 		inventories:              make(map[string]*inventory.PlayerInventory),
 		activeGatherings:         make(map[string]string),
 		stopAutosave:             make(chan struct{}),
+		stopRespawnScheduler:     make(chan struct{}),
 	}
 
 	// Inicializa e configura PveManager (Sprint 3 Task 2)
@@ -386,6 +388,8 @@ func main() {
 	// Inicia Loop de Autosave a cada 30 segundos
 	server.startAutosaveLoop()
 
+	// Inicia scheduler minimo de respawn de criatura para validacao R2.
+	server.startCreatureRespawnSchedulerLoop()
 	lifecycleMgr := lifecycle.NewManager()
 
 	// Inicia HTTP Server para /health
@@ -2379,6 +2383,11 @@ func (s *GatewayServer) Shutdown(ctx context.Context) error {
 		close(s.stopAutosave)
 	}
 
+	// Parar scheduler minimo de respawn de criatura
+	if s.stopRespawnScheduler != nil {
+		close(s.stopRespawnScheduler)
+	}
+
 	// Salva todos os personagens de forma sÃ­ncrona/atÃ´mica antes do desligamento do servidor (crash shutdown)
 	slog.Info("Saving all active character states to PostgreSQL on shutdown...")
 	s.saveAllActiveCharacters()
@@ -2445,6 +2454,42 @@ func (s *GatewayServer) startAutosaveLoop() {
 }
 
 // Varre todos os inventÃ¡rios ativos cadastrados e os persiste no PostgreSQL
+// Inicia o scheduler minimo de respawn de criatura para validacao R2.
+// Escopo atual: Orc_Elite debug spawn only.
+func (s *GatewayServer) startCreatureRespawnSchedulerLoop() {
+	ticker := time.NewTicker(1 * time.Second)
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if s.creatureSpawnManager == nil || s.combatManager == nil {
+					continue
+				}
+
+				targetStats, exists := s.combatManager.GetEntityStats("Orc_Elite")
+				if !exists || targetStats == nil || targetStats.Health > 0 {
+					continue
+				}
+
+				spawnState, due := s.creatureSpawnManager.TryRespawnDue("debug_orc_elite_001", time.Now().UTC())
+				if !due {
+					continue
+				}
+
+				if s.combatManager.ReviveEntity("Orc_Elite") {
+					slog.Info("Orc Elite creature spawn scheduler respawned", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "version", spawnState.Version, "spawned_at", spawnState.SpawnedAt)
+				} else {
+					slog.Warn("Orc Elite creature spawn scheduler respawned but combat revive failed", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID)
+				}
+			case <-s.stopRespawnScheduler:
+				slog.Info("Creature respawn scheduler loop stopped.")
+				return
+			}
+		}
+	}()
+}
+
 func (s *GatewayServer) saveAllActiveCharacters() {
 	s.inventoriesMu.RLock()
 	playerIDs := make([]string, 0, len(s.inventories))
