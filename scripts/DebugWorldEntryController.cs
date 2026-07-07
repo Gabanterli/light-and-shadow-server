@@ -29,7 +29,7 @@ public partial class DebugWorldEntryController : Control
     private Label? _lastActionResultLabel; // Renamed for clarity
     private Button? _attackOrcEliteButton;
     private DebugTileWorldView? _worldView;
-    
+
     // Snapshot UI Node references
     private Label? _invSyncValueLabel;
     private Label? _levelValueLabel;
@@ -46,6 +46,7 @@ public partial class DebugWorldEntryController : Control
 
     // Local state for debug movement
     private (int x, int y, int z) _currentConfirmedPos = (103, 102, 0);
+    private string _selectedCharacterNameForWorldEntry = string.Empty;
 
     private bool _isMovePending = false;
     private Vector2I? _lastSentTarget;
@@ -64,7 +65,7 @@ public partial class DebugWorldEntryController : Control
         _lastActionResultLabel = GetNode<Label>("VBoxContainer/LastMoveResultLabel"); // Renamed for clarity
         _attackOrcEliteButton = GetNode<Button>("VBoxContainer/AttackOrcEliteButton");
         _worldView = GetNode<DebugTileWorldView>("VBoxContainer/DebugTileWorldView");
-        
+
         // Get snapshot node references
         _invSyncValueLabel = GetNode<Label>("VBoxContainer/SnapshotGridContainer/InvSyncValueLabel");
         _levelValueLabel = GetNode<Label>("VBoxContainer/SnapshotGridContainer/LevelValueLabel");
@@ -99,6 +100,7 @@ public partial class DebugWorldEntryController : Control
             _isCharacterSelectedValueLabel.Text = Session.IsCharacterSelected.ToString();
             _accountIdValueLabel.Text = Session.AccountId.ToString();
             _selectedCharacterNameValueLabel.Text = Session.SelectedCharacterName;
+            _selectedCharacterNameForWorldEntry = Session.SelectedCharacterName;
 
             // Setup the packet router
             _router = new DebugIncomingPacketRouter();
@@ -137,7 +139,7 @@ public partial class DebugWorldEntryController : Control
         // Use the centralized scene flow manager to go back.
         SceneFlow.ToDebugAuth(this);
     }
-    
+
     public override void _UnhandledInput(InputEvent @event)
     {
         if (@event is InputEventKey keyEvent && keyEvent.Pressed && !keyEvent.IsEcho())
@@ -178,12 +180,20 @@ public partial class DebugWorldEntryController : Control
             SetActionResultText("Last Action Result: cannot send attack - not connected");
             return;
         }
-        if (Session == null || !Session.IsCharacterSelected)
+
+        if (Session == null)
         {
-            LogPacketInfo("Cannot send attack: No character selected.");
-            SetActionResultText("Last Action Result: cannot send attack - no character");
+            LogPacketInfo("Cannot send attack: Session is null.");
+            SetActionResultText("Last Action Result: cannot send attack - session null");
             return;
         }
+        if (string.IsNullOrWhiteSpace(_selectedCharacterNameForWorldEntry))
+        {
+            LogPacketInfo("Cannot send attack: cached selected character name is empty.");
+            SetActionResultText("Last Action Result: cannot send attack - cached selected character empty");
+            return;
+        }
+
         if (_cts == null || _cts.IsCancellationRequested)
         {
             LogPacketInfo("Cannot send attack: Packet listener is not active.");
@@ -191,6 +201,13 @@ public partial class DebugWorldEntryController : Control
         }
 
         var logMessage = new StringBuilder();
+        var sessionAuth = Session?.IsAuthenticated ?? false;
+        var sessionCharSelected = Session?.IsCharacterSelected ?? false;
+        var sessionCharName = Session?.SelectedCharacterName ?? "[null]";
+        LogPacketInfo(
+            $"Debug attack session state: Auth={sessionAuth}, CharSelected={sessionCharSelected}, " +
+            $"CurrentSessionName='{sessionCharName}', CachedWorldEntryName='{_selectedCharacterNameForWorldEntry}'"
+        );
         logMessage.AppendLine("[SEND] Opcode: 3000 (CS_ATTACK_REQUEST)");
         logMessage.AppendLine("  Target: Orc_Elite");
         logMessage.AppendLine("  WeaponType: debug_sword");
@@ -250,7 +267,7 @@ public partial class DebugWorldEntryController : Control
         logMessage.AppendLine($"  Target: ({targetX}, {targetY}, {targetZ})");
         LogPacketInfo(logMessage.ToString());
         SetActionResultText($"Last Move Result: sending move request to ({targetX}, {targetY}, {targetZ})");
-        
+
         try
         {
             await GatewayClient.SendMoveRequestAsync(targetX, targetY, targetZ, 0, clientTimestamp, _cts.Token);
@@ -389,7 +406,7 @@ public partial class DebugWorldEntryController : Control
             logMessage.AppendLine($"  Player '{data.PlayerID}' moved to ({data.X:F2}, {data.Y:F2}, {data.Z})");
 
             // Check if this update is for our own player (e.g., initial position sync)
-            if (Session != null && data.PlayerID == Session.SelectedCharacterName)
+            if (!string.IsNullOrEmpty(_selectedCharacterNameForWorldEntry) && data.PlayerID == _selectedCharacterNameForWorldEntry)
             {
                 logMessage.AppendLine("  > Applied authoritative position for local player.");
                 _currentConfirmedPos = ((int)Math.Round(data.X), (int)Math.Round(data.Y), data.Z);
