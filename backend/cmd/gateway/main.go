@@ -58,6 +58,7 @@ type GatewayServer struct {
 	persistenceMgr           *persistence.PersistenceManager
 	characterCreationService *charactercreation.Service
 	pveManager               *pve.PveManager
+	creatureSpawnManager     *pve.CreatureSpawnManager
 	questManager             *quest.QuestManager
 	npcManager               *npc.NPCManager
 	socialManager            *social.SocialManager
@@ -198,6 +199,11 @@ func main() {
 	raceValidator := charactercreation.NewRuleRegistryRaceValidator(ruleRegistry)
 	characterCreationService := charactercreation.NewService(persistenceMgr, raceValidator)
 
+	// Inicializa CreatureSpawnManager para estado real de spawn da R2.
+
+	creatureSpawnManager := pve.NewCreatureSpawnManager()
+
+
 	// Inicializa e configura Gateway
 	server := &GatewayServer{
 		config:                   cfg,
@@ -211,6 +217,7 @@ func main() {
 		combatManager:            combatManager,
 		persistenceMgr:           persistenceMgr,
 		characterCreationService: characterCreationService,
+		creatureSpawnManager:     creatureSpawnManager,
 		inventories:              make(map[string]*inventory.PlayerInventory),
 		activeGatherings:         make(map[string]string),
 		stopAutosave:             make(chan struct{}),
@@ -796,6 +803,15 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				MaxHealth: 80.0,
 			}, savedX+2.0, savedY+2.0)
 
+
+			if s.creatureSpawnManager != nil {
+			    spawnState, err := s.creatureSpawnManager.RegisterSpawn("debug_orc_elite_001", "orc_elite", savedX+2.0, savedY+2.0, int(savedZ), 80.0)
+			    if err != nil {
+			        slog.Warn("Failed to register Orc Elite creature spawn state", "error", err)
+			    } else {
+			        slog.Info("Registered Orc Elite creature spawn state", "spawn_id", spawnState.SpawnID, "creature_id", spawnState.CreatureID, "runtime_entity_id", spawnState.RuntimeEntityID, "x", spawnState.X, "y", spawnState.Y, "z", spawnState.Z)
+			    }
+			}
 			response := &protocol.Packet{
 				Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
 				Sequence: packet.Sequence,
