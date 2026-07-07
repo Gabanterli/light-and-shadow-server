@@ -312,6 +312,18 @@ public static class BinaryProtocol
         return new TargetDeadEventData { TargetID = ReadStringUInt16(payload, 0, out _) };
     }
 
+    public static CreatureRespawnEventData DecodeCreatureRespawnEvent(byte[] payload)
+    {
+        var offset = 0;
+        var targetId = ReadStringUInt16(payload, offset, out offset);
+        var runtimeEntityId = offset < payload.Length ? ReadStringUInt16(payload, offset, out offset) : string.Empty;
+
+        return new CreatureRespawnEventData
+        {
+            TargetID = targetId,
+            RuntimeEntityID = runtimeEntityId
+        };
+    }
     public static void WriteUInt16LE(byte[] buffer, int offset, ushort value)
     {
         if (offset + 2 > buffer.Length)
@@ -555,6 +567,11 @@ public sealed class TargetDeadEventData
     public string TargetID { get; set; } = string.Empty;
 }
 
+public sealed class CreatureRespawnEventData
+{
+    public string TargetID { get; set; } = string.Empty;
+    public string RuntimeEntityID { get; set; } = string.Empty;
+}
 
 public sealed class PlayerUpdateData
 {

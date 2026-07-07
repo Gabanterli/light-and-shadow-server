@@ -50,6 +50,7 @@ public partial class DebugWorldEntryController : Control
     private bool _initialPositionSet = false;
     private Vector2I? _orcElitePosition;
     private bool _isOrcEliteDead = false;
+    private string _orcEliteRuntimeEntityId = string.Empty;
 
     private bool _isMovePending = false;
     private Vector2I? _lastSentTarget;
@@ -529,12 +530,14 @@ public partial class DebugWorldEntryController : Control
 
         try
         {
-            var data = BinaryProtocol.DecodeTargetDeadEvent(packet.Payload);
-            CallDeferred(nameof(SetActionResultText), $"Last Action Result: creature respawn received - {data.TargetID} (3004)");
+            var data = BinaryProtocol.DecodeCreatureRespawnEvent(packet.Payload);
+            CallDeferred(nameof(SetActionResultText), $"Last Action Result: creature respawn received - {data.TargetID} runtime={data.RuntimeEntityID} (3004)");
             logMessage.AppendLine($"  Creature Respawn: {data.TargetID}");
+            logMessage.AppendLine($"  RuntimeEntityID: {data.RuntimeEntityID}");
 
             if (data.TargetID == "Orc_Elite")
             {
+                _orcEliteRuntimeEntityId = data.RuntimeEntityID;
                 _isOrcEliteDead = false;
                 if (_worldView != null)
                 {
