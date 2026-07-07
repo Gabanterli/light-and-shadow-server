@@ -1556,6 +1556,27 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 					slog.Info("Target dead packet sent to client", "target", req.TargetID, "opcode", protocol.SC_TARGET_DEAD, "sequence", packet.Sequence)
 				}
 				s.aoiManager.BroadcastCombat(playerID, protocol.SC_TARGET_DEAD, deadPayload)
+
+				// Grant debug loot only for the specific debug target.
+				if req.TargetID == "Orc_Elite" {
+					s.inventoriesMu.RLock()
+					playerInv, hasInventory := s.inventories[playerID]
+					s.inventoriesMu.RUnlock()
+
+					if hasInventory && playerInv != nil {
+						if playerInv.AddItem("sword_t1_rusty", 1) {
+							playerInv.SetDirty(true)
+							if playerStats, statsExist := s.combatManager.GetEntityStats(playerID); statsExist {
+								s.sendInventorySync(conn, playerID, playerStats, playerInv)
+							}
+							slog.Info("Debug loot granted after target death", "player", playerID, "target", req.TargetID, "item", "sword_t1_rusty", "quantity", 1)
+						} else {
+							slog.Warn("Failed to grant debug loot after target death", "player", playerID, "target", req.TargetID, "item", "sword_t1_rusty")
+						}
+					} else {
+						slog.Warn("Cannot grant debug loot because player inventory was not found", "player", playerID, "target", req.TargetID)
+					}
+				}
 			}
 
 		case protocol.CS_CAST_SKILL:
