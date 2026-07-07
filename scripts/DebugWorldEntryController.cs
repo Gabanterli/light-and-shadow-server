@@ -47,6 +47,8 @@ public partial class DebugWorldEntryController : Control
     // Local state for debug movement
     private (int x, int y, int z) _currentConfirmedPos = (103, 102, 0);
     private string _selectedCharacterNameForWorldEntry = string.Empty;
+    private bool _initialPositionSet = false;
+    private Vector2I? _orcElitePosition;
 
     private bool _isMovePending = false;
     private Vector2I? _lastSentTarget;
@@ -85,7 +87,7 @@ public partial class DebugWorldEntryController : Control
         _attackOrcEliteButton.Pressed += OnAttackOrcEliteButtonPressed;
 
         // Pass the chunk store to the view
-        _worldView.ChunkStore = _chunkStore;
+        _worldView!.ChunkStore = _chunkStore;
 
         // Set initial player marker position
         _worldView.PlayerTilePosition = new Vector2I(_currentConfirmedPos.x, _currentConfirmedPos.y);
@@ -378,8 +380,8 @@ public partial class DebugWorldEntryController : Control
             {
                 // Update local debug position to the server-confirmed position
                 _currentConfirmedPos = ((int)Math.Round(data.X), (int)Math.Round(data.Y), data.Z);
-                // Safely schedule the visual update for the player marker
-                CallDeferred(nameof(SetDebugPlayerMarkerAndRedraw), _currentConfirmedPos.x, _currentConfirmedPos.y);
+                // Safely schedule the visual update for the world view
+                CallDeferred(nameof(UpdateWorldViewMarkers));
             }
         }
         else
@@ -410,7 +412,15 @@ public partial class DebugWorldEntryController : Control
             {
                 logMessage.AppendLine("  > Applied authoritative position for local player.");
                 _currentConfirmedPos = ((int)Math.Round(data.X), (int)Math.Round(data.Y), data.Z);
-                CallDeferred(nameof(SetDebugPlayerMarkerAndRedraw), _currentConfirmedPos.x, _currentConfirmedPos.y);
+
+                // If this is the first time we get the player's position, calculate the debug Orc's position.
+                if (!_initialPositionSet)
+                {
+                    _orcElitePosition = new Vector2I(_currentConfirmedPos.x + 2, _currentConfirmedPos.y + 2);
+                    _initialPositionSet = true;
+                }
+
+                CallDeferred(nameof(UpdateWorldViewMarkers));
                 CallDeferred(nameof(UpdateConfirmedPositionLabel));
             }
         }
@@ -493,11 +503,12 @@ public partial class DebugWorldEntryController : Control
         _worldView?.QueueRedraw();
     }
 
-    private void SetDebugPlayerMarkerAndRedraw(int x, int y)
+    private void UpdateWorldViewMarkers()
     {
         if (_worldView != null)
         {
-            _worldView.PlayerTilePosition = new Vector2I(x, y);
+            _worldView.PlayerTilePosition = new Vector2I(_currentConfirmedPos.x, _currentConfirmedPos.y);
+            _worldView.OrcElitePosition = _orcElitePosition;
             _worldView.QueueRedraw();
         }
     }

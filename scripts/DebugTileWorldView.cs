@@ -5,12 +5,15 @@ public partial class DebugTileWorldView : Control
 {
     public DebugChunkStore? ChunkStore { get; set; }
     public Vector2I? PlayerTilePosition { get; set; }
+    // Technical visualization for combat validation. Not final art.
+    public Vector2I? OrcElitePosition { get; set; }
     public Vector2I? TargetPosition { get; set; }
 
     private const int TileSize = 8;
     private const int ChunkWidthInTiles = 32;
     private const int ChunkHeightInTiles = 32;
 
+    // Debug-only colors
     private readonly Color _walkableColor = new(0.3f, 0.3f, 0.3f);
     private readonly Color _blockedColor = new(0.8f, 0.2f, 0.2f);
     private readonly Color _playerColor = new(0.9f, 0.9f, 0.2f);
@@ -72,23 +75,22 @@ public partial class DebugTileWorldView : Control
             }
         }
 
-        // Draw player marker on top
+        // Draw player marker on top. Technical visualization for combat validation. Not final art.
         if (PlayerTilePosition.HasValue)
         {
-            var playerGlobalTileX = PlayerTilePosition.Value.X;
-            var playerGlobalTileY = PlayerTilePosition.Value.Y;
-
-            var drawX = (playerGlobalTileX * TileSize) - minPixelX;
-            var drawY = (playerGlobalTileY * TileSize) - minPixelY;
-
-            var playerRect = new Rect2(drawX, drawY, TileSize, TileSize);
-            if (visibleRect.Intersects(playerRect))
-            {
-                DrawRect(playerRect, _playerColor);
-            }
+            // Use a strong yellow color for the player marker with a black border for contrast.
+            DrawDebugMarker(PlayerTilePosition.Value, _playerColor, Colors.Black, minPixelX, minPixelY, visibleRect);
         }
 
-        // Draw target marker on top
+        // Draw Orc Elite marker on top. Technical visualization for combat validation. Not final art.
+        if (OrcElitePosition.HasValue)
+        {
+            // Use a strong red color for the enemy marker with a white border for contrast.
+            var strongRed = new Color(0.9f, 0.1f, 0.1f);
+            DrawDebugMarker(OrcElitePosition.Value, strongRed, Colors.White, minPixelX, minPixelY, visibleRect);
+        }
+
+        // Draw movement target marker on top
         if (TargetPosition.HasValue)
         {
             var targetGlobalTileX = TargetPosition.Value.X;
@@ -103,6 +105,9 @@ public partial class DebugTileWorldView : Control
                 DrawRect(targetRect, _targetColor);
             }
         }
+
+        // Always draw the fixed combat overlay on top of everything else.
+        DrawFixedCombatDebugOverlay();
     }
 
     private void DrawTile(Rect2 tileRect, byte tileType, int globalTileX, int globalTileY, Rect2 visibleRect)
@@ -148,5 +153,66 @@ public partial class DebugTileWorldView : Control
             // Fallback to drawing a solid color if the texture is not loaded
             DrawRect(tileRect, fallbackColor);
         }
+    }
+
+    // Debug-only technical marker for combat validation.
+    private void DrawDebugMarker(Vector2I tilePosition, Color fillColor, Color borderColor, long minPixelX, long minPixelY, Rect2 visibleRect)
+    {
+        var markerGlobalTileX = tilePosition.X;
+        var markerGlobalTileY = tilePosition.Y;
+
+        // Center the 3x3 marker on the tile position by offsetting by one tile size.
+        var drawX = (markerGlobalTileX * TileSize) - minPixelX - TileSize;
+        var drawY = (markerGlobalTileY * TileSize) - minPixelY - TileSize;
+
+        var markerRect = new Rect2(drawX, drawY, TileSize * 3, TileSize * 3);
+
+        if (visibleRect.Intersects(markerRect))
+        {
+            // Draw the main filled color block.
+            DrawRect(markerRect, fillColor);
+            // Draw a thick border on top for high contrast.
+            DrawRect(markerRect, borderColor, false, 2.0f);
+        }
+    }
+
+    // Debug-only fixed overlay marker for combat validation.
+    private void DrawFixedCombatDebugOverlay()
+    {
+        if (!PlayerTilePosition.HasValue)
+        {
+            return;
+        }
+
+        var playerTile = PlayerTilePosition.Value;
+        // The backend spawns the orc at playerX+2, playerY+2, so this is a safe default before the controller gets the update.
+        var orcTile = OrcElitePosition ?? new Vector2I(playerTile.X + 2, playerTile.Y + 2);
+
+        var viewSize = Size;
+        var playerScreenPosition = viewSize / 2;
+        var markerSize = new Vector2(48, 48);
+
+        // Calculate Orc position relative to the player's fixed center position.
+        var delta = orcTile - playerTile;
+        // Use a larger multiplier for better visual separation in the overlay.
+        var orcScreenPosition = playerScreenPosition + new Vector2(delta.X * 32, delta.Y * 32);
+
+        // Clamp the Orc's position to ensure it's always visible within the view.
+        orcScreenPosition.X = Mathf.Clamp(orcScreenPosition.X, markerSize.X / 2, viewSize.X - markerSize.X / 2);
+        orcScreenPosition.Y = Mathf.Clamp(orcScreenPosition.Y, markerSize.Y / 2, viewSize.Y - markerSize.Y / 2);
+
+        // --- Draw Player Marker (Fixed Center) ---
+        var playerRect = new Rect2(playerScreenPosition - markerSize / 2, markerSize);
+        // Yellow fill
+        DrawRect(playerRect, new Color(0.9f, 0.9f, 0.2f));
+        // Black border
+        DrawRect(playerRect, Colors.Black, false, 2.0f);
+
+        // --- Draw Orc Marker (Relative to Player) ---
+        var orcRect = new Rect2(orcScreenPosition - markerSize / 2, markerSize);
+        // Red fill
+        DrawRect(orcRect, new Color(0.9f, 0.1f, 0.1f));
+        // White border
+        DrawRect(orcRect, Colors.White, false, 2.0f);
     }
 }
