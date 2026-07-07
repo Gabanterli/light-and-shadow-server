@@ -791,8 +791,9 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				Element:            "Shadow",
 				ElementAttackBonus: 0.05,
 				ElementDefBonus:    0.10,
-				Health:             500.0,
-				MaxHealth:          500.0,
+				// HP baixo para validação técnica de morte/3003 (debug-only)
+				Health:    80.0,
+				MaxHealth: 80.0,
 			}, savedX+2.0, savedY+2.0)
 
 			response := &protocol.Packet{
