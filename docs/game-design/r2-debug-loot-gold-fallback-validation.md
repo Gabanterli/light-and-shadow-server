@@ -90,3 +90,32 @@ This task does not modify PostgreSQL schema.
 ## Next Recommended Task
 
 Run one runtime checkpoint for the R2 RuntimeEntityID + debug loot reward loop before moving deeper into Alpha technical checklist.
+## Runtime Checkpoint Completed
+
+Runtime checkpoint completed after commit 0283d24.
+
+Observed runtime flow:
+
+- Login with default_user succeeded.
+- Character Gabriela entered the world.
+- Inventory loaded with 30 items.
+- Gold loaded as 1000.
+- Orc Elite registered as creature:debug_orc_elite_001:1.
+- Runtime entity 1 was killed.
+- Backend emitted SC_TARGET_DEAD opcode 3003.
+- Debug loot item insertion could not use a free backpack slot.
+- Gold fallback was granted with fallback_gold 25.
+- Autosave persisted gold as 1025.
+- Scheduler respawned Orc Elite as creature:debug_orc_elite_001:2.
+- Client attacked using RuntimeEntityID creature:debug_orc_elite_001:2.
+- Backend resolved requested_target creature:debug_orc_elite_001:2 to Orc_Elite.
+- Runtime entity 2 was killed.
+- Gold fallback was granted again with fallback_gold 25.
+- Autosave persisted gold as 1050.
+
+Validation result:
+
+- RuntimeEntityID respawn targeting still works.
+- Target dead sync still works.
+- Debug loot reward loop no longer fails when backpack is full.
+- Gold fallback persists through autosave.
