@@ -511,7 +511,7 @@ public partial class DebugWorldEntryController : Control
             logMessage.AppendLine($"  Target Dead: {data.TargetID}");
 
             // If the specific debug target is dead, update its state and redraw the view.
-            if (data.TargetID == "Orc_Elite")
+            if (data.TargetID == "Orc_Elite" || (!string.IsNullOrWhiteSpace(data.RuntimeEntityID) && data.RuntimeEntityID == _orcEliteRuntimeEntityId))
             {
                 _isOrcEliteDead = true;
                 if (_worldView != null)
@@ -541,7 +541,7 @@ public partial class DebugWorldEntryController : Control
             logMessage.AppendLine($"  Creature Respawn: {data.TargetID}");
             logMessage.AppendLine($"  RuntimeEntityID: {data.RuntimeEntityID}");
 
-            if (data.TargetID == "Orc_Elite")
+            if (data.TargetID == "Orc_Elite" || (!string.IsNullOrWhiteSpace(data.RuntimeEntityID) && data.RuntimeEntityID == _orcEliteRuntimeEntityId))
             {
                 _orcEliteRuntimeEntityId = data.RuntimeEntityID;
                 _isOrcEliteDead = false;

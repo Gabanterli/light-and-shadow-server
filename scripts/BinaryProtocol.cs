@@ -309,7 +309,15 @@ public static class BinaryProtocol
 
     public static TargetDeadEventData DecodeTargetDeadEvent(byte[] payload)
     {
-        return new TargetDeadEventData { TargetID = ReadStringUInt16(payload, 0, out _) };
+        var offset = 0;
+        var targetId = ReadStringUInt16(payload, offset, out offset);
+        var runtimeEntityId = offset < payload.Length ? ReadStringUInt16(payload, offset, out offset) : string.Empty;
+
+        return new TargetDeadEventData
+        {
+            TargetID = targetId,
+            RuntimeEntityID = runtimeEntityId
+        };
     }
 
     public static CreatureRespawnEventData DecodeCreatureRespawnEvent(byte[] payload)
@@ -565,6 +573,7 @@ public sealed class DamageEventData
 public sealed class TargetDeadEventData
 {
     public string TargetID { get; set; } = string.Empty;
+    public string RuntimeEntityID { get; set; } = string.Empty;
 }
 
 public sealed class CreatureRespawnEventData
