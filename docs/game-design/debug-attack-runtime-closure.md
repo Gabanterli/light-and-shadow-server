@@ -62,4 +62,6 @@ O botão `Attack Orc_Elite` é uma implementação de debug com um alvo fixo. Pa
 
 **Fechado.**
 
-A validação técnica do envio do pacote de ataque de debug está concluída. O problema de cache do cliente foi resolvido (commit `bc6e597`) e o fluxo de comunicação até a camada de validação de regras do backend foi confirmado como funcional.
+A validação técnica do envio do pacote de ataque de debug está concluída. O problema de cache do client foi resolvido no commit `bc6e597`, o opcode 3000 chegou ao Gateway, e o fluxo de comunicação até a camada de validação autoritativa do backend foi confirmado como funcional.
+
+A ausência do opcode 3002 nesta execução foi esperada, pois o backend rejeitou o ataque por regra de alcance antes de gerar dano.
