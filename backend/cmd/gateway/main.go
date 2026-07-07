@@ -1520,6 +1520,13 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				if targetStats, exists := s.combatManager.GetEntityStats(req.TargetID); exists && targetStats.Health <= 0 {
 					if s.combatManager.ReviveEntity(req.TargetID) {
 						slog.Info("Debug Orc Elite revived for retry flow", "player", playerID, "target", req.TargetID)
+						if s.creatureSpawnManager != nil {
+						    if spawnState, revived := s.creatureSpawnManager.ReviveRespawn("debug_orc_elite_001"); revived {
+						        slog.Info("Debug Orc Elite creature spawn state revived for retry flow", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "version", spawnState.Version)
+						    } else {
+						        slog.Warn("Debug Orc Elite creature spawn state revive skipped for retry flow", "spawn_id", "debug_orc_elite_001", "target", req.TargetID)
+						    }
+						}
 					}
 				}
 			}
@@ -1580,6 +1587,14 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				}
 				s.aoiManager.BroadcastCombat(playerID, protocol.SC_TARGET_DEAD, deadPayload)
 
+
+				if req.TargetID == "Orc_Elite" && s.creatureSpawnManager != nil {
+				    if spawnState, markedDead := s.creatureSpawnManager.MarkDead("debug_orc_elite_001", playerID, 30*time.Second); markedDead {
+				        slog.Info("Marked Orc Elite creature spawn dead", "spawn_id", spawnState.SpawnID, "creature_id", spawnState.CreatureID, "runtime_entity_id", spawnState.RuntimeEntityID, "killer_player_id", spawnState.KillerPlayerID, "died_at", spawnState.DiedAt, "next_respawn_at", spawnState.NextRespawn, "version", spawnState.Version)
+				    } else {
+				        slog.Warn("Orc Elite creature spawn death transition skipped", "spawn_id", "debug_orc_elite_001", "target", req.TargetID)
+				    }
+				}
 				// Grant debug loot only for the specific debug target.
 				if req.TargetID == "Orc_Elite" {
 					s.inventoriesMu.RLock()
