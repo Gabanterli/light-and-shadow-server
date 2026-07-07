@@ -2479,6 +2479,13 @@ func (s *GatewayServer) startCreatureRespawnSchedulerLoop() {
 
 				if s.combatManager.ReviveEntity("Orc_Elite") {
 					slog.Info("Orc Elite creature spawn scheduler respawned", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "version", spawnState.Version, "spawned_at", spawnState.SpawnedAt)
+
+					respawnPacket := &protocol.Packet{
+						Opcode:  3004, // SC_CREATURE_RESPAWN debug bridge
+						Payload: protocol.EncodeTargetDeadEvent("Orc_Elite"),
+					}
+					s.broadcastToAll(respawnPacket)
+					slog.Info("Orc Elite creature respawn visual sync packet emitted", "target", "Orc_Elite", "opcode", 3004, "runtime_entity_id", spawnState.RuntimeEntityID)
 				} else {
 					slog.Warn("Orc Elite creature spawn scheduler respawned but combat revive failed", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID)
 				}

@@ -113,6 +113,7 @@ public partial class DebugWorldEntryController : Control
             _router.RegisterHandler(2001, OnPlayerUpdateReceived);
             _router.RegisterHandler(3002, OnDamageEventReceived);
             _router.RegisterHandler(3003, OnTargetDeadEventReceived);
+            _router.RegisterHandler(3004, OnCreatureRespawnEventReceived);
             _router.RegisterFallback(OnUnknownPacketReceived);
 
             StartPacketListenerLoop();
@@ -521,6 +522,36 @@ public partial class DebugWorldEntryController : Control
         CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
     }
 
+    private void OnCreatureRespawnEventReceived(Packet packet)
+    {
+        var logMessage = new StringBuilder();
+        logMessage.AppendLine($"[RECV] Opcode: {packet.Opcode} (SC_CREATURE_RESPAWN), Size: {packet.Size}");
+
+        try
+        {
+            var data = BinaryProtocol.DecodeTargetDeadEvent(packet.Payload);
+            CallDeferred(nameof(SetActionResultText), $"Last Action Result: creature respawn received - {data.TargetID} (3004)");
+            logMessage.AppendLine($"  Creature Respawn: {data.TargetID}");
+
+            if (data.TargetID == "Orc_Elite")
+            {
+                _isOrcEliteDead = false;
+                if (_worldView != null)
+                {
+                    _worldView.IsOrcEliteDead = false;
+                    _worldView.QueueRedraw();
+                }
+
+                logMessage.AppendLine("  Orc_Elite visual state reset to alive/red.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logMessage.AppendLine($"  Error decoding CreatureRespawnEvent: {ex.Message}");
+        }
+
+        CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
+    }
     private void OnUnknownPacketReceived(Packet packet)
     {
         var logMessage = new StringBuilder();
