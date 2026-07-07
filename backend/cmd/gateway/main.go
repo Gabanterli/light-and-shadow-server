@@ -1530,6 +1530,18 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				}
 			}
 
+			debugOrcEliteRuntimePrefix := "creature:debug_orc_elite_001:"
+			if !isDebugOrcEliteTarget && len(req.TargetID) > len(debugOrcEliteRuntimePrefix) && req.TargetID[:len(debugOrcEliteRuntimePrefix)] == debugOrcEliteRuntimePrefix {
+				slog.Warn("Rejected stale debug Orc Elite runtime target", "player", playerID, "requested_target", requestedTargetID)
+				errPayload := protocol.EncodeDamageEvent(playerID, requestedTargetID, 0, false, false, false, "stale target")
+				errPacket := &protocol.Packet{
+					Opcode:   protocol.SC_DAMAGE_EVENT,
+					Sequence: packet.Sequence,
+					Payload:  errPayload,
+				}
+				conn.Write(errPacket.Serialize())
+				break
+			}
 			if isDebugOrcEliteTarget {
 				if targetStats, exists := s.combatManager.GetEntityStats(resolvedTargetID); exists && targetStats.Health <= 0 {
 					timerRespawned := false
