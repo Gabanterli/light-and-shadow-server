@@ -214,12 +214,33 @@ public partial class DebugWorldEntryController : Control
         logMessage.AppendLine("[SEND] Opcode: 3000 (CS_ATTACK_REQUEST)");
         logMessage.AppendLine("  Target: Orc_Elite");
         logMessage.AppendLine("  WeaponType: debug_sword");
+        if (_isOrcEliteDead)
+        {
+            logMessage.AppendLine("  RetryFlow: Orc_Elite is locally dead; next attack requests server-side debug respawn.");
+        }
         LogPacketInfo(logMessage.ToString());
 
         try
         {
+            var wasOrcEliteDeadBeforeAttack = _isOrcEliteDead;
             await GatewayClient.SendAttackRequestAsync("Orc_Elite", "debug_sword", _cts.Token);
-            SetActionResultText("Last Action Result: attack request sent to Orc_Elite");
+
+            if (wasOrcEliteDeadBeforeAttack)
+            {
+                _isOrcEliteDead = false;
+                if (_worldView != null)
+                {
+                    _worldView.IsOrcEliteDead = false;
+                    _worldView.QueueRedraw();
+                }
+
+                SetActionResultText("Last Action Result: retry attack sent; Orc_Elite respawn requested");
+                LogPacketInfo("Debug retry flow: Orc_Elite local visual state reset after attack send.");
+            }
+            else
+            {
+                SetActionResultText("Last Action Result: attack request sent to Orc_Elite");
+            }
         }
         catch (Exception ex)
         {

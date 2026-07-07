@@ -744,3 +744,34 @@ func (cm *CombatManager) GetAggroTable(id string) (*AggroTable, bool) {
 	table, ok := cm.aggroTables[id]
 	return table, ok
 }
+
+// ReviveEntity restores an existing entity to MaxHealth in-place.
+// This is intentionally generic server-authoritative combat state handling;
+// callers decide whether a revive is allowed for a given gameplay/debug flow.
+func (cm *CombatManager) ReviveEntity(id string) bool {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	stats, exists := cm.entities[id]
+	if !exists || stats == nil || stats.MaxHealth <= 0 {
+		return false
+	}
+
+	stats.Health = stats.MaxHealth
+	stats.LastCombatTime = time.Time{}
+
+	if cm.nextAttackTime != nil {
+		cm.nextAttackTime[id] = time.Now()
+	}
+	if cm.skillCooldowns != nil {
+		cm.skillCooldowns[id] = make(map[uint32]time.Time)
+	}
+	if cm.aggroTables != nil {
+		delete(cm.aggroTables, id)
+	}
+	if cm.lastAttacker != nil {
+		delete(cm.lastAttacker, id)
+	}
+
+	return true
+}

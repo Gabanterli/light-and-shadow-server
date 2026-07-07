@@ -1500,6 +1500,13 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				slog.Warn("Failed to decode binary CS_ATTACK_REQUEST", "error", err)
 				break
 			}
+			if req.TargetID == "Orc_Elite" {
+				if targetStats, exists := s.combatManager.GetEntityStats(req.TargetID); exists && targetStats.Health <= 0 {
+					if s.combatManager.ReviveEntity(req.TargetID) {
+						slog.Info("Debug Orc Elite revived for retry flow", "player", playerID, "target", req.TargetID)
+					}
+				}
+			}
 
 			damage, isCrit, isProj, err := s.combatManager.ProcessAttackRequest(playerID, req.TargetID, req.WeaponType)
 			if err != nil {
