@@ -1,4 +1,4 @@
-﻿using Godot;
+using Godot;
 using LightAndShadow.Client;
 using System;
 using System.IO;
@@ -54,6 +54,8 @@ public partial class DebugWorldEntryController : Control
 
     private bool _isMovePending = false;
     private Vector2I? _lastSentTarget;
+    private DateTime _lastMoveRequestSentUtc = DateTime.MinValue;
+    private static readonly TimeSpan MinimumMoveRequestInterval = TimeSpan.FromMilliseconds(275);
 
     public override void _Ready()
     {
@@ -280,6 +282,16 @@ public partial class DebugWorldEntryController : Control
             return;
         }
 
+        var nowUtc = DateTime.UtcNow;
+        var elapsedSinceLastMove = nowUtc - _lastMoveRequestSentUtc;
+        if (elapsedSinceLastMove < MinimumMoveRequestInterval)
+        {
+            var waitMs = Math.Max(0, MinimumMoveRequestInterval.TotalMilliseconds - elapsedSinceLastMove.TotalMilliseconds);
+            LogPacketInfo($"Cannot send move from {source}: waiting {waitMs:F0}ms for server movement cooldown.");
+            SetActionResultText("Last Move Result: waiting for movement cooldown");
+            return;
+        }
+
         var targetX = _currentConfirmedPos.x + deltaX;
         var targetY = _currentConfirmedPos.y + deltaY;
         var targetZ = (sbyte)_currentConfirmedPos.z;
@@ -293,6 +305,7 @@ public partial class DebugWorldEntryController : Control
         _lastTargetValueLabel!.Text = $"({targetX}, {targetY})";
         _worldView!.TargetPosition = _lastSentTarget;
         _worldView.QueueRedraw();
+        _lastMoveRequestSentUtc = nowUtc;
 
         var logMessage = new StringBuilder();
         logMessage.AppendLine($"[SEND] Opcode: 2004 (CS_MOVE_REQUEST)");
@@ -623,4 +636,3 @@ public partial class DebugWorldEntryController : Control
         _confirmedPosValueLabel!.Text = $"({_currentConfirmedPos.x}, {_currentConfirmedPos.y}, {_currentConfirmedPos.z})";
     }
 }
-
