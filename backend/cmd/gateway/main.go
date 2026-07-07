@@ -1516,19 +1516,33 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			}
 			if req.TargetID == "Orc_Elite" {
 				if targetStats, exists := s.combatManager.GetEntityStats(req.TargetID); exists && targetStats.Health <= 0 {
-					if s.combatManager.ReviveEntity(req.TargetID) {
-						slog.Info("Debug Orc Elite revived for retry flow", "player", playerID, "target", req.TargetID)
-						if s.creatureSpawnManager != nil {
-							if spawnState, revived := s.creatureSpawnManager.ReviveRespawn("debug_orc_elite_001"); revived {
-								slog.Info("Debug Orc Elite creature spawn state revived for retry flow", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "version", spawnState.Version)
+					timerRespawned := false
+
+					if s.creatureSpawnManager != nil {
+						if spawnState, due := s.creatureSpawnManager.TryRespawnDue("debug_orc_elite_001", time.Now().UTC()); due {
+							if s.combatManager.ReviveEntity(req.TargetID) {
+								timerRespawned = true
+								slog.Info("Orc Elite creature spawn timer respawned", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "version", spawnState.Version, "spawned_at", spawnState.SpawnedAt)
 							} else {
-								slog.Warn("Debug Orc Elite creature spawn state revive skipped for retry flow", "spawn_id", "debug_orc_elite_001", "target", req.TargetID)
+								slog.Warn("Orc Elite creature spawn timer respawned but combat revive failed", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID)
+							}
+						}
+					}
+
+					if !timerRespawned {
+						if s.combatManager.ReviveEntity(req.TargetID) {
+							slog.Info("Debug Orc Elite revived for retry flow", "player", playerID, "target", req.TargetID)
+							if s.creatureSpawnManager != nil {
+								if spawnState, revived := s.creatureSpawnManager.ReviveRespawn("debug_orc_elite_001"); revived {
+									slog.Info("Debug Orc Elite creature spawn state revived for retry flow", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "version", spawnState.Version)
+								} else {
+									slog.Warn("Debug Orc Elite creature spawn state revive skipped for retry flow", "spawn_id", "debug_orc_elite_001", "target", req.TargetID)
+								}
 							}
 						}
 					}
 				}
 			}
-
 			damage, isCrit, isProj, err := s.combatManager.ProcessAttackRequest(playerID, req.TargetID, req.WeaponType)
 			if err != nil {
 				slog.Warn("Failed to process basic attack", "error", err)

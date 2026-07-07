@@ -214,6 +214,43 @@ func (m *CreatureSpawnManager) ReviveRespawn(spawnID string) (*CreatureSpawnStat
 	return cloneCreatureSpawnState(state), true
 }
 
+// TryRespawnDue resets a dead spawn to a new alive runtime entity only when its respawn timer is due.
+// It returns false if the spawn is missing, alive, has no respawn time, or is not due yet.
+func (m *CreatureSpawnManager) TryRespawnDue(spawnID string, now time.Time) (*CreatureSpawnState, bool) {
+	if spawnID == "" {
+		return nil, false
+	}
+
+	if now.IsZero() {
+		now = time.Now().UTC()
+	} else {
+		now = now.UTC()
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	state, exists := m.spawns[spawnID]
+	if !exists || state == nil || state.Alive || state.NextRespawn.IsZero() || now.Before(state.NextRespawn) {
+		return nil, false
+	}
+
+	m.counter[spawnID]++
+	state.RuntimeEntityID = buildRuntimeEntityID(spawnID, m.counter[spawnID])
+	state.Alive = true
+	state.CurrentHP = state.MaxHP
+	state.SpawnedAt = now
+	state.DiedAt = time.Time{}
+	state.NextRespawn = time.Time{}
+	state.KillerPlayerID = ""
+	state.LastDamagerPlayerID = ""
+	state.DamageContributors = make(map[string]float64)
+	state.LootGenerated = false
+	state.Version++
+
+	return cloneCreatureSpawnState(state), true
+}
+
 // ListSpawns returns safe copies of all known spawn states.
 func (m *CreatureSpawnManager) ListSpawns() []*CreatureSpawnState {
 	m.mu.RLock()
