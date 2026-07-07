@@ -1545,11 +1545,16 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			if exists && targetStats.Health <= 0 {
 				deadPayload := protocol.EncodeTargetDeadEvent(req.TargetID)
 				deadPacket := &protocol.Packet{
-					Opcode:   protocol.SC_TARGET_DEAD,
+					Opcode:   protocol.SC_TARGET_DEAD, // 3003
 					Sequence: packet.Sequence,
 					Payload:  deadPayload,
 				}
-				conn.Write(deadPacket.Serialize())
+				slog.Info("Sending target dead packet to client", "target", req.TargetID, "opcode", protocol.SC_TARGET_DEAD, "sequence", packet.Sequence)
+				if _, err := conn.Write(deadPacket.Serialize()); err != nil {
+					slog.Warn("Failed to send target dead packet to client", "target", req.TargetID, "error", err)
+				} else {
+					slog.Info("Target dead packet sent to client", "target", req.TargetID, "opcode", protocol.SC_TARGET_DEAD, "sequence", packet.Sequence)
+				}
 				s.aoiManager.BroadcastCombat(playerID, protocol.SC_TARGET_DEAD, deadPayload)
 			}
 
