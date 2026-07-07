@@ -26,7 +26,8 @@ public partial class DebugWorldEntryController : Control
     private Label? _selectedCharacterNameValueLabel;
     private TextEdit? _packetLogTextEdit;
     private Button? _sendMoveButton;
-    private Label? _lastMoveResultLabel;
+    private Label? _lastActionResultLabel; // Renamed for clarity
+    private Button? _attackOrcEliteButton;
     private DebugTileWorldView? _worldView;
     
     // Snapshot UI Node references
@@ -60,7 +61,8 @@ public partial class DebugWorldEntryController : Control
         _selectedCharacterNameValueLabel = GetNode<Label>("VBoxContainer/GridContainer/SelectedCharacterNameValueLabel");
         _packetLogTextEdit = GetNode<TextEdit>("VBoxContainer/PacketLogTextEdit");
         _sendMoveButton = GetNode<Button>("VBoxContainer/SendMoveButton");
-        _lastMoveResultLabel = GetNode<Label>("VBoxContainer/LastMoveResultLabel");
+        _lastActionResultLabel = GetNode<Label>("VBoxContainer/LastMoveResultLabel"); // Renamed for clarity
+        _attackOrcEliteButton = GetNode<Button>("VBoxContainer/AttackOrcEliteButton");
         _worldView = GetNode<DebugTileWorldView>("VBoxContainer/DebugTileWorldView");
         
         // Get snapshot node references
@@ -79,6 +81,7 @@ public partial class DebugWorldEntryController : Control
 
         _backButton.Pressed += OnBackButtonPressed;
         _sendMoveButton.Pressed += OnSendMoveButtonPressed;
+        _attackOrcEliteButton.Pressed += OnAttackOrcEliteButtonPressed;
 
         // Pass the chunk store to the view
         _worldView.ChunkStore = _chunkStore;
@@ -166,6 +169,45 @@ public partial class DebugWorldEntryController : Control
         _ = SendDebugMoveAsync(1, 0, "button");
     }
 
+    // Debug-only technical combat validation. Not final gameplay combat input.
+    private async void OnAttackOrcEliteButtonPressed()
+    {
+        if (GatewayClient == null || !GatewayClient.IsConnected)
+        {
+            LogPacketInfo("Cannot send attack: Not connected.");
+            SetActionResultText("Last Action Result: cannot send attack - not connected");
+            return;
+        }
+        if (Session == null || !Session.IsCharacterSelected)
+        {
+            LogPacketInfo("Cannot send attack: No character selected.");
+            SetActionResultText("Last Action Result: cannot send attack - no character");
+            return;
+        }
+        if (_cts == null || _cts.IsCancellationRequested)
+        {
+            LogPacketInfo("Cannot send attack: Packet listener is not active.");
+            return;
+        }
+
+        var logMessage = new StringBuilder();
+        logMessage.AppendLine("[SEND] Opcode: 3000 (CS_ATTACK_REQUEST)");
+        logMessage.AppendLine("  Target: Orc_Elite");
+        logMessage.AppendLine("  WeaponType: debug_sword");
+        LogPacketInfo(logMessage.ToString());
+
+        try
+        {
+            await GatewayClient.SendAttackRequestAsync("Orc_Elite", "debug_sword", _cts.Token);
+            SetActionResultText("Last Action Result: attack request sent to Orc_Elite");
+        }
+        catch (Exception ex)
+        {
+            LogPacketInfo($"Error sending attack request: {ex.Message}");
+            SetActionResultText($"Last Action Result: send error - {ex.GetType().Name}");
+        }
+    }
+
     private async Task SendDebugMoveAsync(int deltaX, int deltaY, string source)
     {
         if (_isMovePending)
@@ -174,18 +216,18 @@ public partial class DebugWorldEntryController : Control
             return;
         }
 
-        SetMoveResultText($"Last Move Result: move initiated by {source}");
+        SetActionResultText($"Last Move Result: move initiated by {source}");
 
         if (GatewayClient == null || !GatewayClient.IsConnected)
         {
             LogPacketInfo("Cannot send move: Not connected.");
-            SetMoveResultText("Last Move Result: cannot send - not connected");
+            SetActionResultText("Last Move Result: cannot send - not connected");
             return;
         }
         if (_cts == null || _cts.IsCancellationRequested)
         {
             LogPacketInfo("Cannot send move: Packet listener is not active.");
-            SetMoveResultText("Last Move Result: cannot send - listener inactive");
+            SetActionResultText("Last Move Result: cannot send - listener inactive");
             return;
         }
 
@@ -207,23 +249,23 @@ public partial class DebugWorldEntryController : Control
         logMessage.AppendLine($"[SEND] Opcode: 2004 (CS_MOVE_REQUEST)");
         logMessage.AppendLine($"  Target: ({targetX}, {targetY}, {targetZ})");
         LogPacketInfo(logMessage.ToString());
-        SetMoveResultText($"Last Move Result: sending move request to ({targetX}, {targetY}, {targetZ})");
+        SetActionResultText($"Last Move Result: sending move request to ({targetX}, {targetY}, {targetZ})");
         
         try
         {
             await GatewayClient.SendMoveRequestAsync(targetX, targetY, targetZ, 0, clientTimestamp, _cts.Token);
-            SetMoveResultText($"Last Move Result: move request sent to ({targetX}, {targetY}, {targetZ}), waiting confirm");
+            SetActionResultText($"Last Move Result: move request sent to ({targetX}, {targetY}, {targetZ}), waiting confirm");
         }
         catch (OperationCanceledException)
         {
             LogPacketInfo("Move request was canceled.");
-            SetMoveResultText("Last Move Result: request canceled");
+            SetActionResultText("Last Move Result: request canceled");
             CallDeferred(nameof(ResetMoveState));
         }
         catch (Exception ex)
         {
             LogPacketInfo($"Error sending move request: {ex.Message}");
-            SetMoveResultText($"Last Move Result: send error - {ex.GetType().Name}");
+            SetActionResultText($"Last Move Result: send error - {ex.GetType().Name}");
             CallDeferred(nameof(ResetMoveState));
         }
     }
@@ -329,7 +371,7 @@ public partial class DebugWorldEntryController : Control
         }
 
         var resultText = data != null ? $"success={data.Success} confirmed=({data.X:F2}, {data.Y:F2}, {data.Z}) seq={data.Seq}" : "Error: payload decode failed";
-        CallDeferred(nameof(SetMoveResultText), "Last Move Result: " + resultText);
+        CallDeferred(nameof(SetActionResultText), "Last Move Result: " + resultText);
 
         // Always reset the pending state after receiving a response.
         CallDeferred(nameof(ResetMoveState));
@@ -406,9 +448,9 @@ public partial class DebugWorldEntryController : Control
         CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
     }
 
-    private void SetMoveResultText(string text)
+    private void SetActionResultText(string text) // Renamed for clarity
     {
-        _lastMoveResultLabel!.Text = text;
+        _lastActionResultLabel!.Text = text;
     }
 
     private void LogPacketInfo(string message)

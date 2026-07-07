@@ -182,6 +182,10 @@ layout_mode = 2
 text = "Last Move Result: not sent"
 horizontal_alignment = 1
 
+[node name="AttackOrcEliteButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Attack Orc_Elite"
+
 [node name="DebugTileWorldView" type="Control" parent="VBoxContainer"]
 custom_minimum_size = Vector2(0, 160)
 layout_mode = 2
