@@ -6,6 +6,7 @@ public partial class DebugTileWorldView : Control
     public DebugChunkStore? ChunkStore { get; set; }
     public Vector2I? PlayerTilePosition { get; set; }
     // Technical visualization for combat validation. Not final art.
+    public bool IsOrcEliteDead { get; set; }
     public Vector2I? OrcElitePosition { get; set; }
     public Vector2I? TargetPosition { get; set; }
 
@@ -86,8 +87,8 @@ public partial class DebugTileWorldView : Control
         if (OrcElitePosition.HasValue)
         {
             // Use a strong red color for the enemy marker with a white border for contrast.
-            var strongRed = new Color(0.9f, 0.1f, 0.1f);
-            DrawDebugMarker(OrcElitePosition.Value, strongRed, Colors.White, minPixelX, minPixelY, visibleRect);
+            var orcColor = IsOrcEliteDead ? new Color(0.2f, 0.2f, 0.2f) : new Color(0.9f, 0.1f, 0.1f);
+            DrawDebugMarker(OrcElitePosition.Value, orcColor, Colors.White, minPixelX, minPixelY, visibleRect);
         }
 
         // Draw movement target marker on top
@@ -211,7 +212,8 @@ public partial class DebugTileWorldView : Control
         // --- Draw Orc Marker (Relative to Player) ---
         var orcRect = new Rect2(orcScreenPosition - markerSize / 2, markerSize);
         // Red fill
-        DrawRect(orcRect, new Color(0.9f, 0.1f, 0.1f));
+        var orcFillColor = IsOrcEliteDead ? new Color(0.2f, 0.2f, 0.2f) : new Color(0.9f, 0.1f, 0.1f);
+        DrawRect(orcRect, orcFillColor);
         // White border
         DrawRect(orcRect, Colors.White, false, 2.0f);
     }

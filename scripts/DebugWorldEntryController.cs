@@ -49,6 +49,7 @@ public partial class DebugWorldEntryController : Control
     private string _selectedCharacterNameForWorldEntry = string.Empty;
     private bool _initialPositionSet = false;
     private Vector2I? _orcElitePosition;
+    private bool _isOrcEliteDead = false;
 
     private bool _isMovePending = false;
     private Vector2I? _lastSentTarget;
@@ -473,7 +474,16 @@ public partial class DebugWorldEntryController : Control
             CallDeferred(nameof(SetActionResultText), $"Last Action Result: target dead received - {data.TargetID} (3003)");
             logMessage.AppendLine($"  Target Dead: {data.TargetID}");
 
-            // Future idea: Find the entity with this ID in the world view and mark it as dead.
+            // If the specific debug target is dead, update its state and redraw the view.
+            if (data.TargetID == "Orc_Elite")
+            {
+                _isOrcEliteDead = true;
+                if (_worldView != null)
+                {
+                    _worldView.IsOrcEliteDead = true;
+                    _worldView.QueueRedraw();
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -525,6 +535,7 @@ public partial class DebugWorldEntryController : Control
         {
             _worldView.PlayerTilePosition = new Vector2I(_currentConfirmedPos.x, _currentConfirmedPos.y);
             _worldView.OrcElitePosition = _orcElitePosition;
+            _worldView.IsOrcEliteDead = _isOrcEliteDead;
             _worldView.QueueRedraw();
         }
     }
