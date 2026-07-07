@@ -1619,6 +1619,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			if exists && targetStats.Health <= 0 {
 				shouldEmitDeath := true
 				shouldGrantDebugLoot := isDebugOrcEliteTarget
+				deadRuntimeEntityID := ""
 
 				if isDebugOrcEliteTarget {
 					if s.creatureSpawnManager == nil {
@@ -1626,6 +1627,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 						shouldEmitDeath = false
 						shouldGrantDebugLoot = false
 					} else if spawnState, markedDead := s.creatureSpawnManager.MarkDead("debug_orc_elite_001", playerID, 30*time.Second); markedDead {
+						deadRuntimeEntityID = spawnState.RuntimeEntityID
 						slog.Info("Marked Orc Elite creature spawn dead", "spawn_id", spawnState.SpawnID, "creature_id", spawnState.CreatureID, "runtime_entity_id", spawnState.RuntimeEntityID, "killer_player_id", spawnState.KillerPlayerID, "died_at", spawnState.DiedAt, "next_respawn_at", spawnState.NextRespawn, "version", spawnState.Version)
 						if s.creatureSpawnManager.MarkLootGenerated("debug_orc_elite_001") {
 							slog.Info("Orc Elite debug loot generation guard accepted", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID)
@@ -1642,6 +1644,9 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 
 				if shouldEmitDeath {
 					deadPayload := protocol.EncodeTargetDeadEvent(resolvedTargetID)
+					if isDebugOrcEliteTarget && deadRuntimeEntityID != "" {
+						deadPayload = protocol.EncodeTargetDeadEventWithRuntimeEntityID(resolvedTargetID, deadRuntimeEntityID)
+					}
 					deadPacket := &protocol.Packet{
 						Opcode:   protocol.SC_TARGET_DEAD, // 3003
 						Sequence: packet.Sequence,

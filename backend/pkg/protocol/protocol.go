@@ -472,6 +472,15 @@ func EncodeTargetDeadEvent(targetID string) []byte {
 	return buf
 }
 
+func EncodeTargetDeadEventWithRuntimeEntityID(targetID, runtimeEntityID string) []byte {
+	payload := EncodeTargetDeadEvent(targetID)
+	if runtimeEntityID == "" {
+		return payload
+	}
+
+	return append(payload, EncodeTargetDeadEvent(runtimeEntityID)...)
+}
+
 // Structs de dados de Inventário para Rede
 type SyncItem struct {
 	ItemID     string
