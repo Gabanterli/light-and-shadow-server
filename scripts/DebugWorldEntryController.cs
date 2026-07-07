@@ -305,7 +305,22 @@ public partial class DebugWorldEntryController : Control
             while (!_cts.Token.IsCancellationRequested)
             {
                 var packet = await GatewayClient.ReceivePacketAsync(_cts.Token);
-                _router?.Dispatch(packet);
+                CallDeferred(nameof(LogPacketInfo), $"[RAW RECV] Opcode: {packet.Opcode}, Size: {packet.Size}, Seq: {packet.Sequence}");
+
+                if (packet.Opcode == 3003)
+                {
+                    CallDeferred(nameof(SetActionResultText), "Last Action Result: RAW 3003 received from Gateway");
+                }
+
+                try
+                {
+                    _router?.Dispatch(packet);
+                }
+                catch (Exception ex)
+                {
+                    // This prevents a faulty handler from crashing the entire packet listener loop.
+                    CallDeferred(nameof(LogPacketInfo), $"Packet handler error for opcode {packet.Opcode}: {ex.Message}");
+                }
             }
         }
         catch (OperationCanceledException)
@@ -455,6 +470,7 @@ public partial class DebugWorldEntryController : Control
         try
         {
             var data = BinaryProtocol.DecodeTargetDeadEvent(packet.Payload);
+            CallDeferred(nameof(SetActionResultText), $"Last Action Result: target dead received - {data.TargetID} (3003)");
             logMessage.AppendLine($"  Target Dead: {data.TargetID}");
 
             // Future idea: Find the entity with this ID in the world view and mark it as dead.
