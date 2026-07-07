@@ -1,4 +1,4 @@
-using Godot;
+﻿using Godot;
 using LightAndShadow.Client;
 using System;
 using System.IO;
@@ -51,6 +51,7 @@ public partial class DebugWorldEntryController : Control
     private Vector2I? _orcElitePosition;
     private bool _isOrcEliteDead = false;
     private string _orcEliteRuntimeEntityId = string.Empty;
+    private bool _pendingAlphaRewardFeedbackAfterOrcEliteDeath = false;
 
     private bool _isMovePending = false;
     private Vector2I? _lastSentTarget;
@@ -393,6 +394,13 @@ public partial class DebugWorldEntryController : Control
         var inventoryData = BinaryProtocol.DecodeInventorySync(packet.Payload);
         _snapshot.UpdateFromInventorySync(inventoryData);
 
+        if (_pendingAlphaRewardFeedbackAfterOrcEliteDeath)
+        {
+            _pendingAlphaRewardFeedbackAfterOrcEliteDeath = false;
+            CallDeferred(nameof(SetActionResultText), "Alpha Reward: Orc_Elite defeated - reward sync confirmed");
+            logMessage.AppendLine("  Alpha Reward Feedback: backend inventory/gold sync confirmed after Orc_Elite death.");
+        }
+
         logMessage.AppendLine("  Type: Inventory Sync");
         logMessage.AppendLine($"  Item Count: {inventoryData.Items.Count}");
         logMessage.AppendLine($"  Level: {inventoryData.Level}");
@@ -523,6 +531,13 @@ public partial class DebugWorldEntryController : Control
             CallDeferred(nameof(SetActionResultText), $"Last Action Result: target dead received - {data.TargetID} (3003)");
             logMessage.AppendLine($"  Target Dead: {data.TargetID}");
 
+            if (data.TargetID == "Orc_Elite" || (!string.IsNullOrWhiteSpace(data.RuntimeEntityID) && data.RuntimeEntityID == _orcEliteRuntimeEntityId))
+            {
+                _pendingAlphaRewardFeedbackAfterOrcEliteDeath = true;
+                CallDeferred(nameof(SetActionResultText), "Alpha Reward: Orc_Elite defeated - waiting for backend reward sync");
+                logMessage.AppendLine("  Alpha Reward Feedback: pending backend inventory/gold sync after Orc_Elite death.");
+            }
+
             // If the specific debug target is dead, update its state and redraw the view.
             if (data.TargetID == "Orc_Elite" || (!string.IsNullOrWhiteSpace(data.RuntimeEntityID) && data.RuntimeEntityID == _orcEliteRuntimeEntityId))
             {
@@ -636,3 +651,4 @@ public partial class DebugWorldEntryController : Control
         _confirmedPosValueLabel!.Text = $"({_currentConfirmedPos.x}, {_currentConfirmedPos.y}, {_currentConfirmedPos.z})";
     }
 }
+
