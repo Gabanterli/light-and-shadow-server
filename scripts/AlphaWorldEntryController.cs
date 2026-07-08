@@ -13,14 +13,17 @@ public partial class AlphaWorldEntryController : Control
     private Label? _topBarLabel;
     private Label? _worldStatusLabel;
     private Label? _systemFeedbackLabel;
+    private Label? _combatFeedbackLabel;
     private Label? _battleLabel;
     private Label? _backpackLabel;
     private DebugTileWorldView? _worldView;
 
     private const int MaxSystemFeedbackMessages = 5;
+    private const int MaxCombatFeedbackMessages = 5;
 
     private readonly DebugChunkStore _chunkStore = new();
     private readonly Queue<string> _systemFeedbackMessages = new();
+    private readonly Queue<string> _combatFeedbackMessages = new();
     private readonly Queue<ChunkData> _pendingChunkData = new();
     private readonly object _pendingChunkDataLock = new();
 
@@ -43,12 +46,14 @@ public partial class AlphaWorldEntryController : Control
     private Vector2I _currentPlayerTilePosition;
 
     private string _alphaBattleTargetState = "Pending backend event";
+    private bool _pendingCombatRewardConfirmation;
 
     public override void _Ready()
     {
         _topBarLabel = GetNodeOrNull<Label>("Root/TopBar/TopBarHBox/TopBarLabel");
         _worldStatusLabel = GetNodeOrNull<Label>("Root/MainArea/WorldPanel/WorldVBox/WorldStatusLabel");
         _systemFeedbackLabel = GetNodeOrNull<Label>("Root/BottomTabs/System");
+        _combatFeedbackLabel = GetNodeOrNull<Label>("Root/BottomTabs/Combat");
         _battleLabel = GetNodeOrNull<Label>("Root/MainArea/SideTabs/Battle");
         _backpackLabel = GetNodeOrNull<Label>("Root/MainArea/SideTabs/Backpack");
         _worldView = GetNodeOrNull<DebugTileWorldView>("Root/MainArea/WorldPanel/WorldVBox/AlphaWorldView");
@@ -74,6 +79,7 @@ public partial class AlphaWorldEntryController : Control
 
         RefreshTopBarShellState();
         RefreshBattleTargetState();
+        RefreshCombatFeedbackState();
         RefreshBackpackShellState();
         RefreshWorldShellState();
         StartAlphaWorldBootstrapPacketLoop();
@@ -116,6 +122,29 @@ public partial class AlphaWorldEntryController : Control
         }
 
         _battleLabel.Text = $"Battle\n\nTarget: Orc_Elite\nState: {_alphaBattleTargetState}\nHP: real backend only";
+    }
+
+    private void RefreshCombatFeedbackState()
+    {
+        if (_combatFeedbackLabel == null)
+        {
+            return;
+        }
+
+        if (_combatFeedbackMessages.Count == 0)
+        {
+            _combatFeedbackLabel.Text = "Combat\n- No combat events yet\n- Real backend events only";
+            return;
+        }
+
+        var lines = new List<string> { "Combat" };
+
+        foreach (var feedbackMessage in _combatFeedbackMessages)
+        {
+            lines.Add($"- {feedbackMessage}");
+        }
+
+        _combatFeedbackLabel.Text = string.Join("\n", lines);
     }
 
     private void RefreshBackpackShellState()
@@ -163,7 +192,7 @@ public partial class AlphaWorldEntryController : Control
         _packetLoopCts = new CancellationTokenSource();
         var token = _packetLoopCts.Token;
 
-        SetAlphaSystemMessage("Alpha world bootstrap listener started. Waiting for inventory, world chunks, player position, and target state.");
+        SetAlphaSystemMessage("Alpha world bootstrap listener started. Waiting for inventory, world chunks, player position, target state, and combat feedback.");
 
         try
         {
@@ -186,6 +215,10 @@ public partial class AlphaWorldEntryController : Control
                 else if (packet.Opcode == 2005)
                 {
                     HandleAlphaMoveConfirmPacket(packet);
+                }
+                else if (packet.Opcode == 3002)
+                {
+                    HandleAlphaDamageEventPacket(packet);
                 }
                 else if (packet.Opcode == 3003)
                 {
@@ -387,6 +420,34 @@ public partial class AlphaWorldEntryController : Control
         GD.Print($"Alpha local player marker synced: z={z}");
     }
 
+    private void HandleAlphaDamageEventPacket(Packet packet)
+    {
+        try
+        {
+            var data = BinaryProtocol.DecodeDamageEvent(packet.Payload);
+
+            if (!data.Success)
+            {
+                CallDeferred(nameof(SetAlphaCombatMessage), "Combat action failed.");
+                return;
+            }
+
+            if (!data.IsHit)
+            {
+                CallDeferred(nameof(SetAlphaCombatMessage), "Combat event: attack missed.");
+                return;
+            }
+
+            var critText = data.IsCrit ? " Critical." : string.Empty;
+            CallDeferred(nameof(SetAlphaCombatMessage), $"Combat event: {data.Damage:F0} damage.{critText}");
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Alpha DamageEvent decode failed: {ex.Message}");
+            CallDeferred(nameof(SetAlphaCombatMessage), $"Combat feedback decode failed: {ex.GetType().Name}");
+        }
+    }
+
     private void HandleAlphaTargetDeadPacket(Packet packet)
     {
         try
@@ -440,6 +501,16 @@ public partial class AlphaWorldEntryController : Control
         RequestAlphaWorldViewRedraw();
         SetAlphaSystemMessage(feedbackMessage);
 
+        if (state == "Dead")
+        {
+            _pendingCombatRewardConfirmation = true;
+            SetAlphaCombatMessage("Target defeated. Waiting for reward sync.");
+        }
+        else if (state == "Alive")
+        {
+            SetAlphaCombatMessage("Target respawned.");
+        }
+
         GD.Print($"Alpha Battle target state updated: Orc_Elite={state}");
     }
 
@@ -469,6 +540,12 @@ public partial class AlphaWorldEntryController : Control
         RefreshBackpackShellState();
         SetAlphaSystemMessage($"InventorySync 4001 received. Items: {_syncedItemCount}");
 
+        if (_pendingCombatRewardConfirmation)
+        {
+            _pendingCombatRewardConfirmation = false;
+            SetAlphaCombatMessage("Reward sync confirmed.");
+        }
+
         GD.Print($"Alpha inventory sync applied: level={_syncedLevel}, hp={_syncedHealth:F2}/{_syncedMaxHealth:F2}, mana={_syncedMana:F2}/{_syncedMaxMana:F2}, items={_syncedItemCount}");
     }
 
@@ -497,6 +574,23 @@ public partial class AlphaWorldEntryController : Control
         }
 
         GD.Print($"Alpha System: {message}");
+    }
+
+    private void SetAlphaCombatMessage(string message)
+    {
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            _combatFeedbackMessages.Enqueue(message.Trim());
+
+            while (_combatFeedbackMessages.Count > MaxCombatFeedbackMessages)
+            {
+                _combatFeedbackMessages.Dequeue();
+            }
+        }
+
+        RefreshCombatFeedbackState();
+
+        GD.Print($"Alpha Combat: {message}");
     }
 
     private void OnBackButtonPressed()
