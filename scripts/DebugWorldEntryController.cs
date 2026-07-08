@@ -1,4 +1,4 @@
-﻿using Godot;
+using Godot;
 using LightAndShadow.Client;
 using System;
 using System.IO;
@@ -680,5 +680,3 @@ public partial class DebugWorldEntryController : Control
         _confirmedPosValueLabel!.Text = $"({_currentConfirmedPos.x}, {_currentConfirmedPos.y}, {_currentConfirmedPos.z})";
     }
 }
-
-
