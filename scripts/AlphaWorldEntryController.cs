@@ -1,6 +1,7 @@
 using Godot;
 using LightAndShadow.Client;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 
 public partial class AlphaWorldEntryController : Control
@@ -14,6 +15,10 @@ public partial class AlphaWorldEntryController : Control
     private Label? _systemFeedbackLabel;
     private Label? _backpackLabel;
     private DebugTileWorldView? _worldView;
+
+    private const int MaxSystemFeedbackMessages = 5;
+
+    private readonly Queue<string> _systemFeedbackMessages = new();
 
     private CancellationTokenSource? _packetLoopCts;
     private int _ignoredPacketCount;
@@ -217,9 +222,26 @@ public partial class AlphaWorldEntryController : Control
 
     private void SetAlphaSystemMessage(string message)
     {
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            _systemFeedbackMessages.Enqueue(message.Trim());
+
+            while (_systemFeedbackMessages.Count > MaxSystemFeedbackMessages)
+            {
+                _systemFeedbackMessages.Dequeue();
+            }
+        }
+
         if (_systemFeedbackLabel != null)
         {
-            _systemFeedbackLabel.Text = $"System\n- {message}";
+            var lines = new List<string> { "System" };
+
+            foreach (var feedbackMessage in _systemFeedbackMessages)
+            {
+                lines.Add($"- {feedbackMessage}");
+            }
+
+            _systemFeedbackLabel.Text = string.Join("\n", lines);
         }
 
         GD.Print($"Alpha System: {message}");
@@ -227,6 +249,7 @@ public partial class AlphaWorldEntryController : Control
 
     private void OnBackButtonPressed()
     {
+        SetAlphaSystemMessage("Back requested. Alpha listener cancellation requested.");
         StopAlphaPacketLoop();
         SceneFlow.ToDebugAuth(this);
     }
