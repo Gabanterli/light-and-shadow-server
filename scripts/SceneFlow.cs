@@ -33,12 +33,17 @@ public static class SceneFlow
         ChangeScene(caller, instance);
     }
 
-    public static void ToAlphaWorldEntryShell(Node caller)
+    public static void ToAlphaWorldEntryShell(Node caller, AuthSession? session = null, GatewayTcpClient? client = null)
     {
         var packedScene = ResourceLoader.Load<PackedScene>(AlphaWorldEntryScenePath);
         var instance = packedScene.Instantiate();
 
-        if (instance is not AlphaWorldEntryController)
+        if (instance is AlphaWorldEntryController alphaWorldEntryController)
+        {
+            alphaWorldEntryController.Session = session;
+            alphaWorldEntryController.GatewayClient = client;
+        }
+        else
         {
             GD.PrintErr($"Error: Could not instantiate or find controller in {AlphaWorldEntryScenePath}. Scene transition aborted.");
             return;

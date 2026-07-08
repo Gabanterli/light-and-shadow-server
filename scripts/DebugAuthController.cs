@@ -266,7 +266,7 @@ public partial class DebugAuthController : Control
     private void OnOpenAlphaShellButtonPressed()
     {
         Log("Opening Alpha UI shell. Backend integration is pending.");
-        SceneFlow.ToAlphaWorldEntryShell(this);
+        SceneFlow.ToAlphaWorldEntryShell(this, _authSession, _gatewayClient);
     }
 
     private async void OnSelectCharacterButtonPressed()
