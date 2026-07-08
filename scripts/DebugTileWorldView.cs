@@ -16,6 +16,7 @@ public partial class DebugTileWorldView : Control
     public int MinimumFocusedViewportTilesWide { get; set; } = 24;
     public int FocusedViewportTilesHigh { get; set; } = 18;
     public bool ShowFixedCombatDebugOverlay { get; set; } = true;
+    public bool UseOneTileEntityMarkers { get; set; }
 
     private const int TileSize = 8;
     private const int ChunkWidthInTiles = 32;
@@ -278,9 +279,11 @@ public partial class DebugTileWorldView : Control
         float tileSize,
         Rect2 visibleRect)
     {
-        var drawX = (tilePosition.X - startTileX) * tileSize - tileSize;
-        var drawY = (tilePosition.Y - startTileY) * tileSize - tileSize;
-        var markerRect = new Rect2(drawX, drawY, tileSize * 3, tileSize * 3);
+        var markerTileSize = UseOneTileEntityMarkers ? tileSize : tileSize * 3;
+        var markerOffset = UseOneTileEntityMarkers ? 0 : tileSize;
+        var drawX = (tilePosition.X - startTileX) * tileSize - markerOffset;
+        var drawY = (tilePosition.Y - startTileY) * tileSize - markerOffset;
+        var markerRect = new Rect2(drawX, drawY, markerTileSize, markerTileSize);
 
         if (visibleRect.Intersects(markerRect))
         {
@@ -340,11 +343,13 @@ public partial class DebugTileWorldView : Control
         var markerGlobalTileX = tilePosition.X;
         var markerGlobalTileY = tilePosition.Y;
 
-        // Center the 3x3 marker on the tile position by offsetting by one tile size.
-        var drawX = (markerGlobalTileX * TileSize) - minPixelX - TileSize;
-        var drawY = (markerGlobalTileY * TileSize) - minPixelY - TileSize;
+        var markerTileSize = UseOneTileEntityMarkers ? TileSize : TileSize * 3;
+        var markerOffset = UseOneTileEntityMarkers ? 0 : TileSize;
 
-        var markerRect = new Rect2(drawX, drawY, TileSize * 3, TileSize * 3);
+        var drawX = (markerGlobalTileX * TileSize) - minPixelX - markerOffset;
+        var drawY = (markerGlobalTileY * TileSize) - minPixelY - markerOffset;
+
+        var markerRect = new Rect2(drawX, drawY, markerTileSize, markerTileSize);
 
         if (visibleRect.Intersects(markerRect))
         {

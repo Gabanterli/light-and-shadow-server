@@ -86,6 +86,7 @@ public partial class AlphaWorldEntryController : Control
             _worldView.MinimumFocusedViewportTilesWide = 24;
             _worldView.FocusedViewportTilesHigh = 18;
             _worldView.ShowFixedCombatDebugOverlay = false;
+            _worldView.UseOneTileEntityMarkers = true;
             _worldView.MouseFilter = Control.MouseFilterEnum.Stop;
             _worldView.GuiInput += OnAlphaWorldViewGuiInput;
         }
