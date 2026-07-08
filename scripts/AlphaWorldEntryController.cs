@@ -54,6 +54,10 @@ public partial class AlphaWorldEntryController : Control
         if (_worldView != null)
         {
             _worldView.ChunkStore = _chunkStore;
+            _worldView.UseFocusedViewport = true;
+            _worldView.MinimumFocusedViewportTilesWide = 24;
+            _worldView.FocusedViewportTilesHigh = 18;
+            _worldView.ShowFixedCombatDebugOverlay = false;
         }
 
         RefreshTopBarShellState();
@@ -108,7 +112,7 @@ public partial class AlphaWorldEntryController : Control
         {
             var viewState = _worldView != null ? "world view mounted" : "world view missing";
             var chunkState = _hasWorldChunks ? $"{_syncedChunkCount} chunks synced" : "chunks pending sync";
-            _worldStatusLabel.Text = $"World sync: {chunkState}. {viewState}. Alpha packet loop: InventorySync + world chunks only.";
+            _worldStatusLabel.Text = $"World sync: {chunkState}. {viewState}. Focused Alpha viewport. Packet loop: InventorySync + world chunks only.";
         }
     }
 
