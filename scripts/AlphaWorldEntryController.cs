@@ -3,7 +3,7 @@ using LightAndShadow.Client;
 using System;
 using System.Collections.Generic;
 using System.Threading;
-
+using System.Threading.Tasks;
 public partial class AlphaWorldEntryController : Control
 {
     public AuthSession? Session { get; set; }
@@ -44,6 +44,12 @@ public partial class AlphaWorldEntryController : Control
     private string _selectedCharacterNameForWorldEntry = string.Empty;
     private bool _hasLocalPlayerPosition;
     private Vector2I _currentPlayerTilePosition;
+    private int _currentPlayerTileZ;
+
+    private bool _isAlphaMovePending;
+    private Vector2I? _alphaPendingMoveTarget;
+    private DateTime _lastAlphaMoveRequestSentUtc = DateTime.MinValue;
+    private static readonly TimeSpan MinimumAlphaMoveRequestInterval = TimeSpan.FromMilliseconds(275);
 
     private string _alphaBattleTargetState = "Pending backend event";
     private string _alphaOrcEliteRuntimeEntityId = string.Empty;
@@ -101,6 +107,31 @@ public partial class AlphaWorldEntryController : Control
         _packetLoopCts?.Dispose();
         _packetLoopCts = null;
         GatewayClient?.Dispose();
+    }
+
+    public override void _UnhandledInput(InputEvent inputEvent)
+    {
+        if (inputEvent is not InputEventKey keyEvent || !keyEvent.Pressed || keyEvent.IsEcho())
+        {
+            return;
+        }
+
+        var (deltaX, deltaY) = keyEvent.Keycode switch
+        {
+            Key.W or Key.Up => (0, -1),
+            Key.S or Key.Down => (0, 1),
+            Key.A or Key.Left => (-1, 0),
+            Key.D or Key.Right => (1, 0),
+            _ => (0, 0)
+        };
+
+        if (deltaX == 0 && deltaY == 0)
+        {
+            return;
+        }
+
+        _ = SendAlphaMoveAsync(deltaX, deltaY, "keyboard");
+        GetViewport().SetInputAsHandled();
     }
 
     private void RefreshTopBarShellState()
@@ -173,7 +204,7 @@ public partial class AlphaWorldEntryController : Control
             var viewState = _worldView != null ? "world view mounted" : "world view missing";
             var chunkState = _hasWorldChunks ? $"{_syncedChunkCount} chunks synced" : "chunks pending sync";
             var playerMarkerState = _hasLocalPlayerPosition ? "player marker synced" : "player marker pending sync";
-            _worldStatusLabel.Text = $"World sync: {chunkState}. {playerMarkerState}. {viewState}. Focused Alpha viewport. Packet loop: InventorySync + world chunks + player position only.";
+            _worldStatusLabel.Text = $"World sync: {chunkState}. {playerMarkerState}. {viewState}. Focused Alpha viewport. Packet loop: InventorySync + world chunks + player position + WASD move confirm.";
         }
     }
 
@@ -397,11 +428,11 @@ public partial class AlphaWorldEntryController : Control
             }
 
             CallDeferred(
-                nameof(ApplyLocalPlayerPositionValues),
+                nameof(ApplyAlphaMoveConfirmValues),
                 data.X,
                 data.Y,
                 data.Z,
-                "Local player marker updated from authoritative position."
+                data.Success
             );
         }
         catch (Exception ex)
@@ -415,6 +446,7 @@ public partial class AlphaWorldEntryController : Control
     {
         _hasLocalPlayerPosition = true;
         _currentPlayerTilePosition = new Vector2I((int)Math.Round(x), (int)Math.Round(y));
+        _currentPlayerTileZ = z;
 
         if (_worldView != null)
         {
@@ -426,6 +458,101 @@ public partial class AlphaWorldEntryController : Control
         SetAlphaSystemMessage(feedbackMessage);
 
         GD.Print($"Alpha local player marker synced: z={z}");
+    }
+
+    private async Task SendAlphaMoveAsync(int deltaX, int deltaY, string source)
+    {
+        if (_isAlphaMovePending)
+        {
+            SetAlphaSystemMessage("Cannot move: waiting for server confirmation.");
+            return;
+        }
+
+        if (!_hasLocalPlayerPosition)
+        {
+            SetAlphaSystemMessage("Cannot move: player position pending sync.");
+            return;
+        }
+
+        if (GatewayClient == null || !GatewayClient.IsConnected)
+        {
+            SetAlphaSystemMessage("Cannot move: client disconnected.");
+            return;
+        }
+
+        if (_packetLoopCts == null || _packetLoopCts.IsCancellationRequested)
+        {
+            SetAlphaSystemMessage("Cannot move: listener inactive.");
+            return;
+        }
+
+        var nowUtc = DateTime.UtcNow;
+        var elapsedSinceLastMove = nowUtc - _lastAlphaMoveRequestSentUtc;
+        if (elapsedSinceLastMove < MinimumAlphaMoveRequestInterval)
+        {
+            var waitMs = Math.Max(0, MinimumAlphaMoveRequestInterval.TotalMilliseconds - elapsedSinceLastMove.TotalMilliseconds);
+            SetAlphaSystemMessage($"Cannot move: waiting {waitMs:F0}ms for movement cooldown.");
+            return;
+        }
+
+        var targetX = _currentPlayerTilePosition.X + deltaX;
+        var targetY = _currentPlayerTilePosition.Y + deltaY;
+        var targetZ = (sbyte)_currentPlayerTileZ;
+        var clientTimestamp = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        _isAlphaMovePending = true;
+        _alphaPendingMoveTarget = new Vector2I(targetX, targetY);
+        _lastAlphaMoveRequestSentUtc = nowUtc;
+
+        if (_worldView != null)
+        {
+            _worldView.TargetPosition = _alphaPendingMoveTarget;
+            RequestAlphaWorldViewRedraw();
+        }
+
+        SetAlphaSystemMessage($"Move requested by {source}.");
+
+        try
+        {
+            await GatewayClient.SendMoveRequestAsync(targetX, targetY, targetZ, 0, clientTimestamp, _packetLoopCts.Token);
+            SetAlphaSystemMessage("Move request sent. Waiting for server confirmation.");
+            GD.Print($"Alpha move request sent: target=({targetX}, {targetY}, {targetZ})");
+        }
+        catch (OperationCanceledException)
+        {
+            ClearAlphaMovePendingState();
+            SetAlphaSystemMessage("Move request cancelled.");
+            GD.Print("Alpha move request cancelled.");
+        }
+        catch (Exception ex)
+        {
+            ClearAlphaMovePendingState();
+            SetAlphaSystemMessage($"Move request failed: {ex.GetType().Name}.");
+            GD.PrintErr($"Alpha move request failed: {ex.Message}");
+        }
+    }
+
+    private void ApplyAlphaMoveConfirmValues(double x, double y, int z, bool success)
+    {
+        ClearAlphaMovePendingState();
+        ApplyLocalPlayerPositionValues(
+            x,
+            y,
+            z,
+            success ? "Move confirmed by server." : "Move corrected by server."
+        );
+    }
+
+    private void ClearAlphaMovePendingState()
+    {
+        _isAlphaMovePending = false;
+        _alphaPendingMoveTarget = null;
+
+        if (_worldView != null)
+        {
+            _worldView.TargetPosition = null;
+            RequestAlphaWorldViewRedraw();
+        }
     }
 
     private void HandleAlphaDamageEventPacket(Packet packet)
