@@ -1,4 +1,4 @@
-﻿[gd_scene format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/AlphaWorldEntryController.cs" id="1_alpha"]
 
@@ -24,11 +24,19 @@ theme_override_constants/separation = 8
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 
-[node name="TopBarLabel" type="Label" parent="Root/TopBar"]
+[node name="TopBarHBox" type="HBoxContainer" parent="Root/TopBar"]
 layout_mode = 2
+
+[node name="TopBarLabel" type="Label" parent="Root/TopBar/TopBarHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Player: pending backend sync | Level: - | HP: - | Mana: - | Status: Alpha shell"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="BackButton" type="Button" parent="Root/TopBar/TopBarHBox"]
+layout_mode = 2
+text = "Back"
 
 [node name="MainArea" type="HBoxContainer" parent="Root"]
 layout_mode = 2

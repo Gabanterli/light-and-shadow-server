@@ -14,6 +14,7 @@ public partial class DebugAuthController : Control
     private Button? _requestCharactersButton;
     private ItemList? _characterList;
     private Button? _selectCharacterButton;
+    private Button? _openAlphaShellButton;
     private Label? _statusLabel;
     private TextEdit? _logTextEdit;
 
@@ -39,6 +40,7 @@ public partial class DebugAuthController : Control
         _requestCharactersButton = GetNode<Button>("VBoxContainer/RequestCharactersButton");
         _characterList = GetNode<ItemList>("VBoxContainer/CharacterList");
         _selectCharacterButton = GetNode<Button>("VBoxContainer/SelectCharacterButton");
+        _openAlphaShellButton = GetNode<Button>("VBoxContainer/OpenAlphaShellButton");
         _statusLabel = GetNode<Label>("VBoxContainer/StatusLabel");
         _logTextEdit = GetNode<TextEdit>("VBoxContainer/LogTextEdit");
 
@@ -53,6 +55,7 @@ public partial class DebugAuthController : Control
         _loginButton.Pressed += OnLoginButtonPressed;
         _requestCharactersButton.Pressed += OnRequestCharactersButtonPressed;
         _selectCharacterButton.Pressed += OnSelectCharacterButtonPressed;
+        _openAlphaShellButton.Pressed += OnOpenAlphaShellButtonPressed;
         _createCharacterButton.Pressed += OnCreateCharacterButtonPressed;
 
         // Initial state
@@ -258,6 +261,12 @@ public partial class DebugAuthController : Control
                 _createCharacterButton.Disabled = false;
             }
         }
+    }
+
+    private void OnOpenAlphaShellButtonPressed()
+    {
+        Log("Opening Alpha UI shell. Backend integration is pending.");
+        SceneFlow.ToAlphaWorldEntryShell(this);
     }
 
     private async void OnSelectCharacterButtonPressed()
