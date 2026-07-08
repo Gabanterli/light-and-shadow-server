@@ -11,6 +11,14 @@ public partial class AlphaWorldEntryController : Control
     private Label? _worldStatusLabel;
     private DebugTileWorldView? _worldView;
 
+    private bool _hasInventorySync;
+    private uint _syncedLevel;
+    private double _syncedHealth;
+    private double _syncedMaxHealth;
+    private double _syncedMana;
+    private double _syncedMaxMana;
+    private int _syncedItemCount;
+
     public override void _Ready()
     {
         _topBarLabel = GetNodeOrNull<Label>("Root/TopBar/TopBarHBox/TopBarLabel");
@@ -41,8 +49,11 @@ public partial class AlphaWorldEntryController : Control
             ? Session.SelectedCharacterName
             : "pending character selection";
         var clientState = GatewayClient?.IsConnected == true ? "client connected" : "client disconnected";
+        var levelState = _hasInventorySync ? _syncedLevel.ToString() : "pending sync";
+        var hpState = _hasInventorySync ? $"{_syncedHealth:F0}/{_syncedMaxHealth:F0}" : "pending sync";
+        var manaState = _hasInventorySync ? $"{_syncedMana:F0}/{_syncedMaxMana:F0}" : "pending sync";
 
-        _topBarLabel.Text = $"Player: {characterState} | Level: pending sync | HP: pending sync | Mana: pending sync | {sessionState} | {clientState}";
+        _topBarLabel.Text = $"Player: {characterState} | Level: {levelState} | HP: {hpState} | Mana: {manaState} | {sessionState} | {clientState}";
     }
 
     private void RefreshWorldShellState()
@@ -54,6 +65,20 @@ public partial class AlphaWorldEntryController : Control
         }
     }
 
+    private void ApplyInventorySyncData(InventorySyncData data)
+    {
+        _hasInventorySync = true;
+        _syncedLevel = data.Level;
+        _syncedHealth = data.Health;
+        _syncedMaxHealth = data.MaxHealth;
+        _syncedMana = data.Mana;
+        _syncedMaxMana = data.MaxMana;
+        _syncedItemCount = data.Items.Count;
+
+        RefreshTopBarShellState();
+
+        GD.Print($"Alpha inventory sync state prepared: level={_syncedLevel}, hp={_syncedHealth:F2}/{_syncedMaxHealth:F2}, mana={_syncedMana:F2}/{_syncedMaxMana:F2}, items={_syncedItemCount}");
+    }
     private void OnBackButtonPressed()
     {
         SceneFlow.ToDebugAuth(this);
