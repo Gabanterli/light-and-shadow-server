@@ -50,6 +50,7 @@ public partial class AlphaWorldEntryController : Control
         StopAlphaPacketLoop();
         _packetLoopCts?.Dispose();
         _packetLoopCts = null;
+        GatewayClient?.Dispose();
     }
 
     private void RefreshTopBarShellState()

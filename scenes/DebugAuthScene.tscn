@@ -92,6 +92,10 @@ layout_mode = 2
 text = "Select Character"
 
 
+
+[node name="SelectCharacterAlphaButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Select Character to Alpha"
 [node name="OpenAlphaShellButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
 text = "Open Alpha UI Shell"

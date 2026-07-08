@@ -14,6 +14,7 @@ public partial class DebugAuthController : Control
     private Button? _requestCharactersButton;
     private ItemList? _characterList;
     private Button? _selectCharacterButton;
+    private Button? _selectCharacterAlphaButton;
     private Button? _openAlphaShellButton;
     private Label? _statusLabel;
     private TextEdit? _logTextEdit;
@@ -40,6 +41,7 @@ public partial class DebugAuthController : Control
         _requestCharactersButton = GetNode<Button>("VBoxContainer/RequestCharactersButton");
         _characterList = GetNode<ItemList>("VBoxContainer/CharacterList");
         _selectCharacterButton = GetNode<Button>("VBoxContainer/SelectCharacterButton");
+        _selectCharacterAlphaButton = GetNode<Button>("VBoxContainer/SelectCharacterAlphaButton");
         _openAlphaShellButton = GetNode<Button>("VBoxContainer/OpenAlphaShellButton");
         _statusLabel = GetNode<Label>("VBoxContainer/StatusLabel");
         _logTextEdit = GetNode<TextEdit>("VBoxContainer/LogTextEdit");
@@ -55,12 +57,14 @@ public partial class DebugAuthController : Control
         _loginButton.Pressed += OnLoginButtonPressed;
         _requestCharactersButton.Pressed += OnRequestCharactersButtonPressed;
         _selectCharacterButton.Pressed += OnSelectCharacterButtonPressed;
+        _selectCharacterAlphaButton.Pressed += OnSelectCharacterAlphaButtonPressed;
         _openAlphaShellButton.Pressed += OnOpenAlphaShellButtonPressed;
         _createCharacterButton.Pressed += OnCreateCharacterButtonPressed;
 
         // Initial state
         _requestCharactersButton.Disabled = true;
         _selectCharacterButton!.Disabled = true;
+        _selectCharacterAlphaButton!.Disabled = true;
         _createCharacterButton.Disabled = true;
         _statusLabel.Text = "Status: Disconnected";
 
@@ -73,12 +77,12 @@ public partial class DebugAuthController : Control
 
     public override void _ExitTree()
     {
-        // Only dispose of the client if we are not handing it off to the next scene.
+        // Only dispose and clear the local auth scene state if we are not handing it off to the next scene.
         if (!_isTransferringGatewayClientToWorldEntry)
         {
             _gatewayClient.Dispose();
+            _authSession.Clear();
         }
-        _authSession.Clear();
     }
 
     private async void OnLoginButtonPressed()
@@ -162,6 +166,7 @@ public partial class DebugAuthController : Control
                     _characterList.AddItem($"{character.Name} (Lvl {character.Level} {character.Class} / {character.RaceId})"); // (R1-I-B)
                 }
                 _selectCharacterButton!.Disabled = response.Characters.Count == 0;
+                _selectCharacterAlphaButton!.Disabled = response.Characters.Count == 0;
             }
             else
             {
@@ -178,6 +183,7 @@ public partial class DebugAuthController : Control
             _requestCharactersButton.Disabled = true;
             _createCharacterButton!.Disabled = true;
             _selectCharacterButton!.Disabled = true;
+        _selectCharacterAlphaButton!.Disabled = true;
         }
         finally
         {
@@ -253,6 +259,7 @@ public partial class DebugAuthController : Control
             _requestCharactersButton!.Disabled = true;
             _createCharacterButton!.Disabled = true;
             _selectCharacterButton!.Disabled = true;
+        _selectCharacterAlphaButton!.Disabled = true;
         }
         finally
         {
@@ -271,6 +278,16 @@ public partial class DebugAuthController : Control
 
     private async void OnSelectCharacterButtonPressed()
     {
+        await SelectCharacterAndEnterWorldAsync(enterAlpha: false);
+    }
+
+    private async void OnSelectCharacterAlphaButtonPressed()
+    {
+        await SelectCharacterAndEnterWorldAsync(enterAlpha: true);
+    }
+
+    private async System.Threading.Tasks.Task SelectCharacterAndEnterWorldAsync(bool enterAlpha)
+    {
         var selectedIndexes = _characterList!.GetSelectedItems();
         if (selectedIndexes.Length == 0)
         {
@@ -282,15 +299,16 @@ public partial class DebugAuthController : Control
         if (selectedIndex < 0 || selectedIndex >= _characterNames.Count)
         {
             Log($"Error: Invalid selected index {selectedIndex}.");
-            _selectCharacterButton!.Disabled = false;
+            SetCharacterEntryButtonsDisabled(false);
             return;
         }
 
         var characterName = _characterNames[selectedIndex];
+        var destinationLabel = enterAlpha ? "Alpha UI" : "Debug World Entry";
 
-        _selectCharacterButton!.Disabled = true;
-        _statusLabel!.Text = $"Status: Selecting '{characterName}'...";
-        Log($"Attempting to select character '{characterName}'...");
+        SetCharacterEntryButtonsDisabled(true);
+        _statusLabel!.Text = $"Status: Selecting '{characterName}' for {destinationLabel}...";
+        Log($"Attempting to select character '{characterName}' for {destinationLabel}...");
 
         try
         {
@@ -298,11 +316,20 @@ public partial class DebugAuthController : Control
             if (response.Status)
             {
                 _authSession.SetSelectedCharacter(response.CharacterName);
-                _statusLabel.Text = $"Status: Character '{response.CharacterName}' selected!";
-                Log($"Successfully selected character. AuthSession updated with '{response.CharacterName}'.");
-                // Mark that we are handing off the client, so _ExitTree doesn't dispose it.
+                _statusLabel.Text = $"Status: Character '{response.CharacterName}' selected for {destinationLabel}!";
+                Log($"Successfully selected character. AuthSession updated with '{response.CharacterName}'. Entering {destinationLabel}.");
+
+                // Mark that we are handing off the client/session, so _ExitTree does not dispose or clear them.
                 _isTransferringGatewayClientToWorldEntry = true;
-                SceneFlow.ToWorldEntry(this, _authSession, _gatewayClient);
+
+                if (enterAlpha)
+                {
+                    SceneFlow.ToAlphaWorldEntryShell(this, _authSession, _gatewayClient);
+                }
+                else
+                {
+                    SceneFlow.ToWorldEntry(this, _authSession, _gatewayClient);
+                }
             }
             else
             {
@@ -312,19 +339,28 @@ public partial class DebugAuthController : Control
         }
         catch (Exception ex)
         {
-            _statusLabel.Text = "Status: Error.";
+            _statusLabel.Text = "Status: Character selection error.";
             Log($"Exception during character selection: {ex.Message}");
-            _gatewayClient.Disconnect();
-            _authSession.Clear();
-            _requestCharactersButton!.Disabled = true;
-            _createCharacterButton!.Disabled = true;
         }
         finally
         {
-            if (_gatewayClient.IsConnected)
+            if (!_isTransferringGatewayClientToWorldEntry && _gatewayClient.IsConnected)
             {
-                _selectCharacterButton.Disabled = false;
+                SetCharacterEntryButtonsDisabled(false);
             }
+        }
+    }
+
+    private void SetCharacterEntryButtonsDisabled(bool disabled)
+    {
+        if (_selectCharacterButton != null)
+        {
+            _selectCharacterButton.Disabled = disabled;
+        }
+
+        if (_selectCharacterAlphaButton != null)
+        {
+            _selectCharacterAlphaButton.Disabled = disabled;
         }
     }
 
