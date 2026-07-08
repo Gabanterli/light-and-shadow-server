@@ -37,6 +37,10 @@ public partial class AlphaWorldEntryController : Control
     private bool _hasWorldChunks;
     private int _syncedChunkCount;
 
+    private string _selectedCharacterNameForWorldEntry = string.Empty;
+    private bool _hasLocalPlayerPosition;
+    private Vector2I _currentPlayerTilePosition;
+
     public override void _Ready()
     {
         _topBarLabel = GetNodeOrNull<Label>("Root/TopBar/TopBarHBox/TopBarLabel");
@@ -50,6 +54,10 @@ public partial class AlphaWorldEntryController : Control
         {
             _backButton.Pressed += OnBackButtonPressed;
         }
+
+        _selectedCharacterNameForWorldEntry = Session?.IsCharacterSelected == true
+            ? Session.SelectedCharacterName
+            : string.Empty;
 
         if (_worldView != null)
         {
@@ -112,7 +120,8 @@ public partial class AlphaWorldEntryController : Control
         {
             var viewState = _worldView != null ? "world view mounted" : "world view missing";
             var chunkState = _hasWorldChunks ? $"{_syncedChunkCount} chunks synced" : "chunks pending sync";
-            _worldStatusLabel.Text = $"World sync: {chunkState}. {viewState}. Focused Alpha viewport. Packet loop: InventorySync + world chunks only.";
+            var playerMarkerState = _hasLocalPlayerPosition ? "player marker synced" : "player marker pending sync";
+            _worldStatusLabel.Text = $"World sync: {chunkState}. {playerMarkerState}. {viewState}. Focused Alpha viewport. Packet loop: InventorySync + world chunks + player position only.";
         }
     }
 
@@ -139,7 +148,7 @@ public partial class AlphaWorldEntryController : Control
         _packetLoopCts = new CancellationTokenSource();
         var token = _packetLoopCts.Token;
 
-        SetAlphaSystemMessage("Alpha world bootstrap listener started. Waiting for inventory and world chunks.");
+        SetAlphaSystemMessage("Alpha world bootstrap listener started. Waiting for inventory, world chunks, and player position.");
 
         try
         {
@@ -154,6 +163,14 @@ public partial class AlphaWorldEntryController : Control
                 else if (packet.Opcode == 2006)
                 {
                     HandleAlphaChunkDataPacket(packet);
+                }
+                else if (packet.Opcode == 2001)
+                {
+                    HandleAlphaPlayerUpdatePacket(packet);
+                }
+                else if (packet.Opcode == 2005)
+                {
+                    HandleAlphaMoveConfirmPacket(packet);
                 }
                 else
                 {
@@ -271,6 +288,80 @@ public partial class AlphaWorldEntryController : Control
     private void RequestAlphaWorldViewRedraw()
     {
         _worldView?.QueueRedraw();
+    }
+
+    private void HandleAlphaPlayerUpdatePacket(Packet packet)
+    {
+        try
+        {
+            var data = BinaryProtocol.DecodePlayerUpdate(packet.Payload);
+            if (data == null)
+            {
+                CallDeferred(nameof(SetAlphaSystemMessage), "Player position sync decode returned empty data.");
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(_selectedCharacterNameForWorldEntry) && data.PlayerID != _selectedCharacterNameForWorldEntry)
+            {
+                return;
+            }
+
+            CallDeferred(
+                nameof(ApplyLocalPlayerPositionValues),
+                data.X,
+                data.Y,
+                data.Z,
+                "Local player position synced."
+            );
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Alpha PlayerUpdate decode failed: {ex.Message}");
+            CallDeferred(nameof(SetAlphaSystemMessage), $"Player position sync decode failed: {ex.GetType().Name}");
+        }
+    }
+
+    private void HandleAlphaMoveConfirmPacket(Packet packet)
+    {
+        try
+        {
+            var data = BinaryProtocol.DecodeMoveConfirm(packet.Payload);
+            if (data == null)
+            {
+                CallDeferred(nameof(SetAlphaSystemMessage), "Authoritative position correction decode returned empty data.");
+                return;
+            }
+
+            CallDeferred(
+                nameof(ApplyLocalPlayerPositionValues),
+                data.X,
+                data.Y,
+                data.Z,
+                "Local player marker updated from authoritative position."
+            );
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Alpha MoveConfirm decode failed: {ex.Message}");
+            CallDeferred(nameof(SetAlphaSystemMessage), $"Authoritative position correction decode failed: {ex.GetType().Name}");
+        }
+    }
+
+    private void ApplyLocalPlayerPositionValues(double x, double y, int z, string feedbackMessage)
+    {
+        _hasLocalPlayerPosition = true;
+        _currentPlayerTilePosition = new Vector2I((int)Math.Round(x), (int)Math.Round(y));
+
+        if (_worldView != null)
+        {
+            _worldView.PlayerTilePosition = _currentPlayerTilePosition;
+        }
+
+        RefreshWorldShellState();
+        RequestAlphaWorldViewRedraw();
+        SetAlphaSystemMessage(feedbackMessage);
+
+        GD.Print($"Alpha local player marker synced: z={z}");
     }
 
     private void ApplyInventorySyncData(InventorySyncData data)
