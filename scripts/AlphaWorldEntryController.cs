@@ -20,6 +20,8 @@ public partial class AlphaWorldEntryController : Control
 
     private const int MaxSystemFeedbackMessages = 5;
     private const int MaxCombatFeedbackMessages = 5;
+    private const int AlphaOrcEliteVisualOffsetX = 5;
+    private const int AlphaOrcEliteVisualOffsetY = 0;
 
     private readonly DebugChunkStore _chunkStore = new();
     private readonly Queue<string> _systemFeedbackMessages = new();
@@ -52,6 +54,8 @@ public partial class AlphaWorldEntryController : Control
     private static readonly TimeSpan MinimumAlphaMoveRequestInterval = TimeSpan.FromMilliseconds(275);
 
     private string _alphaBattleTargetState = "Pending backend event";
+    private bool _hasAlphaOrcEliteVisualPosition;
+    private Vector2I _alphaOrcEliteVisualPosition;
     private string _alphaOrcEliteRuntimeEntityId = string.Empty;
     private bool _pendingCombatRewardConfirmation;
 
@@ -451,6 +455,7 @@ public partial class AlphaWorldEntryController : Control
         if (_worldView != null)
         {
             _worldView.PlayerTilePosition = _currentPlayerTilePosition;
+            SyncAlphaOrcEliteNearbyVisualMarker();
         }
 
         RefreshWorldShellState();
@@ -555,6 +560,26 @@ public partial class AlphaWorldEntryController : Control
         }
     }
 
+    private void SyncAlphaOrcEliteNearbyVisualMarker()
+    {
+        if (_worldView == null || !_hasLocalPlayerPosition)
+        {
+            return;
+        }
+
+        if (!_hasAlphaOrcEliteVisualPosition)
+        {
+            _alphaOrcEliteVisualPosition = new Vector2I(
+                _currentPlayerTilePosition.X + AlphaOrcEliteVisualOffsetX,
+                _currentPlayerTilePosition.Y + AlphaOrcEliteVisualOffsetY
+            );
+            _hasAlphaOrcEliteVisualPosition = true;
+            SetAlphaSystemMessage("Orc_Elite visual marker anchored near initial player position.");
+        }
+
+        _worldView.OrcElitePosition = _alphaOrcEliteVisualPosition;
+    }
+
     private void HandleAlphaDamageEventPacket(Packet packet)
     {
         try
@@ -649,6 +674,7 @@ public partial class AlphaWorldEntryController : Control
         if (_worldView != null)
         {
             _worldView.IsOrcEliteDead = state == "Dead";
+            SyncAlphaOrcEliteNearbyVisualMarker();
         }
 
         RefreshBattleTargetState();
