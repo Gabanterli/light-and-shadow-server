@@ -503,6 +503,14 @@ public partial class AlphaWorldEntryController : Control
 
         var targetX = _currentPlayerTilePosition.X + deltaX;
         var targetY = _currentPlayerTilePosition.Y + deltaY;
+
+        if (IsAlphaTileBlockedByOrcElite(targetX, targetY))
+        {
+            SetAlphaSystemMessage("Movement blocked: Orc_Elite occupies that tile.");
+            GD.Print("Alpha movement blocked by Orc_Elite client-side collision preview.");
+            return;
+        }
+
         var targetZ = (sbyte)_currentPlayerTileZ;
         var clientTimestamp = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
@@ -536,6 +544,21 @@ public partial class AlphaWorldEntryController : Control
             SetAlphaSystemMessage($"Move request failed: {ex.GetType().Name}.");
             GD.PrintErr($"Alpha move request failed: {ex.Message}");
         }
+    }
+
+    private bool IsAlphaTileBlockedByOrcElite(int tileX, int tileY)
+    {
+        if (_alphaBattleTargetState == "Dead")
+        {
+            return false;
+        }
+
+        if (_worldView?.OrcElitePosition is not Vector2I orcElitePosition)
+        {
+            return false;
+        }
+
+        return orcElitePosition.X == tileX && orcElitePosition.Y == tileY;
     }
 
     private void ApplyAlphaMoveConfirmValues(double x, double y, int z, bool success)
