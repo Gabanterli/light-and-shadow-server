@@ -1,5 +1,7 @@
 using Godot;
 using LightAndShadow.Client;
+using System;
+using System.Threading;
 
 public partial class AlphaWorldEntryController : Control
 {
@@ -9,7 +11,11 @@ public partial class AlphaWorldEntryController : Control
     private Button? _backButton;
     private Label? _topBarLabel;
     private Label? _worldStatusLabel;
+    private Label? _systemFeedbackLabel;
     private DebugTileWorldView? _worldView;
+
+    private CancellationTokenSource? _packetLoopCts;
+    private int _ignoredPacketCount;
 
     private bool _hasInventorySync;
     private uint _syncedLevel;
@@ -23,6 +29,7 @@ public partial class AlphaWorldEntryController : Control
     {
         _topBarLabel = GetNodeOrNull<Label>("Root/TopBar/TopBarHBox/TopBarLabel");
         _worldStatusLabel = GetNodeOrNull<Label>("Root/MainArea/WorldPanel/WorldVBox/WorldStatusLabel");
+        _systemFeedbackLabel = GetNodeOrNull<Label>("Root/BottomTabs/System");
         _worldView = GetNodeOrNull<DebugTileWorldView>("Root/MainArea/WorldPanel/WorldVBox/AlphaWorldView");
         _backButton = GetNodeOrNull<Button>("Root/TopBar/TopBarHBox/BackButton");
 
@@ -33,8 +40,16 @@ public partial class AlphaWorldEntryController : Control
 
         RefreshTopBarShellState();
         RefreshWorldShellState();
+        StartAlphaInventorySyncPacketLoop();
 
-        GD.Print("AlphaWorldEntryController loaded: UI shell only. Backend packet loop pending.");
+        GD.Print("AlphaWorldEntryController loaded: InventorySync-only packet loop boundary active.");
+    }
+
+    public override void _ExitTree()
+    {
+        StopAlphaPacketLoop();
+        _packetLoopCts?.Dispose();
+        _packetLoopCts = null;
     }
 
     private void RefreshTopBarShellState()
@@ -61,26 +76,142 @@ public partial class AlphaWorldEntryController : Control
         if (_worldStatusLabel != null)
         {
             var viewState = _worldView != null ? "world view mounted" : "world view missing";
-            _worldStatusLabel.Text = $"World sync pending. {viewState}. Alpha packet loop pending.";
+            _worldStatusLabel.Text = $"World sync pending. {viewState}. Alpha packet loop: InventorySync 4001 only.";
+        }
+    }
+
+    private async void StartAlphaInventorySyncPacketLoop()
+    {
+        if (GatewayClient == null)
+        {
+            SetAlphaSystemMessage("Alpha packet loop not started: client missing.");
+            return;
+        }
+
+        if (!GatewayClient.IsConnected)
+        {
+            SetAlphaSystemMessage("Alpha packet loop not started: client disconnected.");
+            return;
+        }
+
+        if (_packetLoopCts != null && !_packetLoopCts.IsCancellationRequested)
+        {
+            SetAlphaSystemMessage("Alpha packet loop already running.");
+            return;
+        }
+
+        _packetLoopCts = new CancellationTokenSource();
+        var token = _packetLoopCts.Token;
+
+        SetAlphaSystemMessage("Alpha InventorySync listener started. Waiting for opcode 4001.");
+
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                var packet = await GatewayClient.ReceivePacketAsync(token);
+
+                if (packet.Opcode == 4001)
+                {
+                    HandleAlphaInventorySyncPacket(packet);
+                }
+                else
+                {
+                    _ignoredPacketCount++;
+                    if (_ignoredPacketCount == 1 || _ignoredPacketCount % 10 == 0)
+                    {
+                        CallDeferred(nameof(SetAlphaSystemMessage), $"Alpha listener ignoring non-4001 packets. Ignored: {_ignoredPacketCount}");
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            GD.Print("Alpha InventorySync listener stopped.");
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Alpha InventorySync listener stopped with error: {ex.Message}");
+            CallDeferred(nameof(SetAlphaSystemMessage), $"Alpha packet loop error: {ex.GetType().Name}");
+        }
+    }
+
+    private void StopAlphaPacketLoop()
+    {
+        if (_packetLoopCts == null)
+        {
+            return;
+        }
+
+        if (!_packetLoopCts.IsCancellationRequested)
+        {
+            _packetLoopCts.Cancel();
+        }
+    }
+
+    private void HandleAlphaInventorySyncPacket(Packet packet)
+    {
+        try
+        {
+            var data = BinaryProtocol.DecodeInventorySync(packet.Payload);
+            CallDeferred(
+                nameof(ApplyInventorySyncValues),
+                data.Level,
+                data.Health,
+                data.MaxHealth,
+                data.Mana,
+                data.MaxMana,
+                data.Items.Count
+            );
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Alpha InventorySync decode failed: {ex.Message}");
+            CallDeferred(nameof(SetAlphaSystemMessage), $"InventorySync decode failed: {ex.GetType().Name}");
         }
     }
 
     private void ApplyInventorySyncData(InventorySyncData data)
     {
+        ApplyInventorySyncValues(
+            data.Level,
+            data.Health,
+            data.MaxHealth,
+            data.Mana,
+            data.MaxMana,
+            data.Items.Count
+        );
+    }
+
+    private void ApplyInventorySyncValues(uint level, double health, double maxHealth, double mana, double maxMana, int itemCount)
+    {
         _hasInventorySync = true;
-        _syncedLevel = data.Level;
-        _syncedHealth = data.Health;
-        _syncedMaxHealth = data.MaxHealth;
-        _syncedMana = data.Mana;
-        _syncedMaxMana = data.MaxMana;
-        _syncedItemCount = data.Items.Count;
+        _syncedLevel = level;
+        _syncedHealth = health;
+        _syncedMaxHealth = maxHealth;
+        _syncedMana = mana;
+        _syncedMaxMana = maxMana;
+        _syncedItemCount = itemCount;
 
         RefreshTopBarShellState();
+        SetAlphaSystemMessage($"InventorySync 4001 received. Items: {_syncedItemCount}");
 
-        GD.Print($"Alpha inventory sync state prepared: level={_syncedLevel}, hp={_syncedHealth:F2}/{_syncedMaxHealth:F2}, mana={_syncedMana:F2}/{_syncedMaxMana:F2}, items={_syncedItemCount}");
+        GD.Print($"Alpha inventory sync applied: level={_syncedLevel}, hp={_syncedHealth:F2}/{_syncedMaxHealth:F2}, mana={_syncedMana:F2}/{_syncedMaxMana:F2}, items={_syncedItemCount}");
     }
+
+    private void SetAlphaSystemMessage(string message)
+    {
+        if (_systemFeedbackLabel != null)
+        {
+            _systemFeedbackLabel.Text = $"System\n- {message}";
+        }
+
+        GD.Print($"Alpha System: {message}");
+    }
+
     private void OnBackButtonPressed()
     {
+        StopAlphaPacketLoop();
         SceneFlow.ToDebugAuth(this);
     }
 }
