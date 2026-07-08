@@ -842,6 +842,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 
 			// Envia sincronizaÃ§Ã£o binÃ¡ria inicial de inventÃ¡rio e atributos recalculados
 			s.sendInventorySync(conn, playerID, stats, playerInv)
+			s.sendAlphaOrcEliteTargetIdentitySync(conn, playerID)
 
 			// Streaming inicial de chunks (janela deslizante 3x3 ao redor de sua Spawn Zone salva)
 			chunks := s.chunkManager.GetSurroundingChunks(savedX, savedY)
@@ -2604,6 +2605,45 @@ func (s *GatewayServer) saveCharacterState(playerID string) {
 }
 
 // Sincroniza de forma segura o inventÃ¡rio e bÃ´nus de atributos por rede via protocolo binÃ¡rio compacto
+func (s *GatewayServer) sendAlphaOrcEliteTargetIdentitySync(conn net.Conn, playerID string) {
+	if s.creatureSpawnManager == nil {
+		slog.Warn("Skipped Alpha Orc Elite target identity sync: creature spawn manager unavailable", "player", playerID)
+		return
+	}
+
+	spawnState, exists := s.creatureSpawnManager.GetSpawn("debug_orc_elite_001")
+	if !exists || spawnState == nil {
+		slog.Warn("Skipped Alpha Orc Elite target identity sync: spawn state unavailable", "player", playerID, "spawn_id", "debug_orc_elite_001")
+		return
+	}
+
+	if spawnState.RuntimeEntityID == "" {
+		slog.Warn("Skipped Alpha Orc Elite target identity sync: runtime entity id missing", "player", playerID, "spawn_id", spawnState.SpawnID)
+		return
+	}
+
+	opcode := uint16(protocol.SC_TARGET_DEAD)
+	targetState := "dead"
+	if spawnState.Alive {
+		opcode = 3004 // SC_CREATURE_RESPAWN debug bridge
+		targetState = "alive"
+	}
+
+	payload := protocol.EncodeTargetDeadEventWithRuntimeEntityID("Orc_Elite", spawnState.RuntimeEntityID)
+	packet := &protocol.Packet{
+		Opcode:   opcode,
+		Sequence: 0,
+		Payload:  payload,
+	}
+
+	if _, err := conn.Write(packet.Serialize()); err != nil {
+		slog.Warn("Failed to send Alpha Orc Elite target identity sync", "player", playerID, "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "state", targetState, "error", err)
+		return
+	}
+
+	slog.Info("Sent Alpha Orc Elite target identity sync", "player", playerID, "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "state", targetState, "opcode", opcode)
+}
+
 func (s *GatewayServer) sendInventorySync(conn net.Conn, playerID string, stats *combat.EntityStats, playerInv *inventory.PlayerInventory) {
 	items := playerInv.GetItems()
 	syncItems := make([]protocol.SyncItem, 0, len(items))
