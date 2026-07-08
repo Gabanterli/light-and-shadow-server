@@ -635,7 +635,7 @@ public partial class AlphaWorldEntryController : Control
         OnAlphaRightClickAttackRequested();
     }
 
-    private void OnAlphaRightClickAttackRequested()
+    private async void OnAlphaRightClickAttackRequested()
     {
         if (GatewayClient == null || !GatewayClient.IsConnected)
         {
@@ -649,6 +649,12 @@ public partial class AlphaWorldEntryController : Control
             return;
         }
 
+        if (_alphaBattleTargetState != "Alive")
+        {
+            SetAlphaCombatMessage("Cannot attack: target not ready.");
+            return;
+        }
+
         if (!HasAlphaSafeTargetIdentity())
         {
             SetAlphaCombatMessage("Cannot attack: target identity pending.");
@@ -656,8 +662,29 @@ public partial class AlphaWorldEntryController : Control
             return;
         }
 
-        SetAlphaCombatMessage("Right-click attack ready. Attack send remains gated for next task.");
-        GD.Print("Alpha right-click attack gesture captured with safe target identity. Attack packet send remains gated.");
+        if (_packetLoopCts == null || _packetLoopCts.IsCancellationRequested)
+        {
+            SetAlphaCombatMessage("Cannot attack: listener inactive.");
+            return;
+        }
+
+        try
+        {
+            SetAlphaCombatMessage("Sending right-click attack.");
+            await GatewayClient.SendAttackRequestAsync(_alphaOrcEliteRuntimeEntityId, "debug_sword", _packetLoopCts.Token);
+            SetAlphaCombatMessage("Attack request sent.");
+            GD.Print("Alpha right-click attack request sent with safe target identity.");
+        }
+        catch (OperationCanceledException)
+        {
+            SetAlphaCombatMessage("Attack cancelled.");
+            GD.Print("Alpha right-click attack request cancelled.");
+        }
+        catch (Exception ex)
+        {
+            SetAlphaCombatMessage($"Attack send failed: {ex.GetType().Name}.");
+            GD.PrintErr($"Alpha right-click attack request failed: {ex.Message}");
+        }
     }
 
     private void OnBackButtonPressed()
