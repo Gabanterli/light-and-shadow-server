@@ -46,6 +46,7 @@ public partial class AlphaWorldEntryController : Control
     private Vector2I _currentPlayerTilePosition;
 
     private string _alphaBattleTargetState = "Pending backend event";
+    private string _alphaOrcEliteRuntimeEntityId = string.Empty;
     private bool _pendingCombatRewardConfirmation;
 
     public override void _Ready()
@@ -466,6 +467,7 @@ public partial class AlphaWorldEntryController : Control
                 return;
             }
 
+            CallDeferred(nameof(ApplyAlphaSafeTargetIdentity), data.RuntimeEntityID);
             CallDeferred(nameof(ApplyAlphaBattleTargetState), "Dead", "Orc_Elite defeated.");
         }
         catch (Exception ex)
@@ -486,6 +488,7 @@ public partial class AlphaWorldEntryController : Control
                 return;
             }
 
+            CallDeferred(nameof(ApplyAlphaSafeTargetIdentity), data.RuntimeEntityID);
             CallDeferred(nameof(ApplyAlphaBattleTargetState), "Alive", "Orc_Elite respawned.");
         }
         catch (Exception ex)
@@ -493,6 +496,23 @@ public partial class AlphaWorldEntryController : Control
             GD.PrintErr($"Alpha CreatureRespawn decode failed: {ex.Message}");
             CallDeferred(nameof(SetAlphaSystemMessage), $"Target respawn sync decode failed: {ex.GetType().Name}");
         }
+    }
+
+    private void ApplyAlphaSafeTargetIdentity(string runtimeEntityId)
+    {
+        if (string.IsNullOrWhiteSpace(runtimeEntityId))
+        {
+            return;
+        }
+
+        _alphaOrcEliteRuntimeEntityId = runtimeEntityId.Trim();
+        SetAlphaCombatMessage("Target identity synced.");
+        GD.Print("Alpha safe target identity synced for Orc_Elite.");
+    }
+
+    private bool HasAlphaSafeTargetIdentity()
+    {
+        return !string.IsNullOrWhiteSpace(_alphaOrcEliteRuntimeEntityId);
     }
 
     private void ApplyAlphaBattleTargetState(string state, string feedbackMessage)
@@ -629,8 +649,15 @@ public partial class AlphaWorldEntryController : Control
             return;
         }
 
-        SetAlphaCombatMessage("Right-click attack requested. Waiting for safe target identity.");
-        GD.Print("Alpha right-click attack gesture captured. No attack packet sent until safe target identity is available.");
+        if (!HasAlphaSafeTargetIdentity())
+        {
+            SetAlphaCombatMessage("Cannot attack: target identity pending.");
+            GD.Print("Alpha right-click attack blocked: safe target identity is pending.");
+            return;
+        }
+
+        SetAlphaCombatMessage("Right-click attack ready. Attack send remains gated for next task.");
+        GD.Print("Alpha right-click attack gesture captured with safe target identity. Attack packet send remains gated.");
     }
 
     private void OnBackButtonPressed()
