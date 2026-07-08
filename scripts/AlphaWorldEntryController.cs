@@ -37,9 +37,12 @@ public partial class AlphaWorldEntryController : Control
         }
 
         var sessionState = Session != null ? "session received" : "session missing";
+        var characterState = Session?.IsCharacterSelected == true
+            ? Session.SelectedCharacterName
+            : "pending character selection";
         var clientState = GatewayClient?.IsConnected == true ? "client connected" : "client disconnected";
 
-        _topBarLabel.Text = $"Player: pending backend sync | Level: - | HP: - | Mana: - | {sessionState} | {clientState}";
+        _topBarLabel.Text = $"Player: {characterState} | Level: pending sync | HP: pending sync | Mana: pending sync | {sessionState} | {clientState}";
     }
 
     private void RefreshWorldShellState()
