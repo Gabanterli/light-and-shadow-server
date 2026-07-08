@@ -18,7 +18,10 @@ public partial class AlphaWorldEntryController : Control
 
     private const int MaxSystemFeedbackMessages = 5;
 
+    private readonly DebugChunkStore _chunkStore = new();
     private readonly Queue<string> _systemFeedbackMessages = new();
+    private readonly Queue<ChunkData> _pendingChunkData = new();
+    private readonly object _pendingChunkDataLock = new();
 
     private CancellationTokenSource? _packetLoopCts;
     private int _ignoredPacketCount;
@@ -30,6 +33,9 @@ public partial class AlphaWorldEntryController : Control
     private double _syncedMana;
     private double _syncedMaxMana;
     private int _syncedItemCount;
+
+    private bool _hasWorldChunks;
+    private int _syncedChunkCount;
 
     public override void _Ready()
     {
@@ -45,12 +51,17 @@ public partial class AlphaWorldEntryController : Control
             _backButton.Pressed += OnBackButtonPressed;
         }
 
+        if (_worldView != null)
+        {
+            _worldView.ChunkStore = _chunkStore;
+        }
+
         RefreshTopBarShellState();
         RefreshBackpackShellState();
         RefreshWorldShellState();
-        StartAlphaInventorySyncPacketLoop();
+        StartAlphaWorldBootstrapPacketLoop();
 
-        GD.Print("AlphaWorldEntryController loaded: InventorySync-only packet loop boundary active.");
+        GD.Print("AlphaWorldEntryController loaded: world bootstrap packet loop boundary active.");
     }
 
     public override void _ExitTree()
@@ -96,34 +107,35 @@ public partial class AlphaWorldEntryController : Control
         if (_worldStatusLabel != null)
         {
             var viewState = _worldView != null ? "world view mounted" : "world view missing";
-            _worldStatusLabel.Text = $"World sync pending. {viewState}. Alpha packet loop: InventorySync 4001 only.";
+            var chunkState = _hasWorldChunks ? $"{_syncedChunkCount} chunks synced" : "chunks pending sync";
+            _worldStatusLabel.Text = $"World sync: {chunkState}. {viewState}. Alpha packet loop: InventorySync + world chunks only.";
         }
     }
 
-    private async void StartAlphaInventorySyncPacketLoop()
+    private async void StartAlphaWorldBootstrapPacketLoop()
     {
         if (GatewayClient == null)
         {
-            SetAlphaSystemMessage("Alpha packet loop not started: client missing.");
+            SetAlphaSystemMessage("Alpha world bootstrap listener not started: client missing.");
             return;
         }
 
         if (!GatewayClient.IsConnected)
         {
-            SetAlphaSystemMessage("Alpha packet loop not started: client disconnected.");
+            SetAlphaSystemMessage("Alpha world bootstrap listener not started: client disconnected.");
             return;
         }
 
         if (_packetLoopCts != null && !_packetLoopCts.IsCancellationRequested)
         {
-            SetAlphaSystemMessage("Alpha packet loop already running.");
+            SetAlphaSystemMessage("Alpha world bootstrap listener already running.");
             return;
         }
 
         _packetLoopCts = new CancellationTokenSource();
         var token = _packetLoopCts.Token;
 
-        SetAlphaSystemMessage("Alpha InventorySync listener started. Waiting for opcode 4001.");
+        SetAlphaSystemMessage("Alpha world bootstrap listener started. Waiting for inventory and world chunks.");
 
         try
         {
@@ -135,24 +147,28 @@ public partial class AlphaWorldEntryController : Control
                 {
                     HandleAlphaInventorySyncPacket(packet);
                 }
+                else if (packet.Opcode == 2006)
+                {
+                    HandleAlphaChunkDataPacket(packet);
+                }
                 else
                 {
                     _ignoredPacketCount++;
                     if (_ignoredPacketCount == 1 || _ignoredPacketCount % 10 == 0)
                     {
-                        CallDeferred(nameof(SetAlphaSystemMessage), $"Alpha listener ignoring non-4001 packets. Ignored: {_ignoredPacketCount}");
+                        CallDeferred(nameof(SetAlphaSystemMessage), $"Alpha listener ignoring non-bootstrap packets. Ignored: {_ignoredPacketCount}");
                     }
                 }
             }
         }
         catch (OperationCanceledException)
         {
-            GD.Print("Alpha InventorySync listener stopped.");
+            GD.Print("Alpha world bootstrap listener stopped.");
         }
         catch (Exception ex)
         {
-            GD.PrintErr($"Alpha InventorySync listener stopped with error: {ex.Message}");
-            CallDeferred(nameof(SetAlphaSystemMessage), $"Alpha packet loop error: {ex.GetType().Name}");
+            GD.PrintErr($"Alpha world bootstrap listener stopped with error: {ex.Message}");
+            CallDeferred(nameof(SetAlphaSystemMessage), $"Alpha world bootstrap listener error: {ex.GetType().Name}");
         }
     }
 
@@ -189,6 +205,68 @@ public partial class AlphaWorldEntryController : Control
             GD.PrintErr($"Alpha InventorySync decode failed: {ex.Message}");
             CallDeferred(nameof(SetAlphaSystemMessage), $"InventorySync decode failed: {ex.GetType().Name}");
         }
+    }
+
+    private void HandleAlphaChunkDataPacket(Packet packet)
+    {
+        try
+        {
+            var chunkData = BinaryProtocol.DecodeChunkData(packet.Payload);
+
+            lock (_pendingChunkDataLock)
+            {
+                _pendingChunkData.Enqueue(chunkData);
+            }
+
+            CallDeferred(nameof(ApplyPendingChunkData));
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Alpha ChunkData decode failed: {ex.Message}");
+            CallDeferred(nameof(SetAlphaSystemMessage), $"World chunk sync decode failed: {ex.GetType().Name}");
+        }
+    }
+
+    private void ApplyPendingChunkData()
+    {
+        var appliedCount = 0;
+
+        while (true)
+        {
+            ChunkData? chunkData;
+
+            lock (_pendingChunkDataLock)
+            {
+                if (_pendingChunkData.Count == 0)
+                {
+                    break;
+                }
+
+                chunkData = _pendingChunkData.Dequeue();
+            }
+
+            _chunkStore.AddChunk(chunkData.ChunkX, chunkData.ChunkY, chunkData.Tiles);
+            appliedCount++;
+        }
+
+        if (appliedCount == 0)
+        {
+            return;
+        }
+
+        _hasWorldChunks = true;
+        _syncedChunkCount = _chunkStore.Chunks.Count;
+
+        RefreshWorldShellState();
+        RequestAlphaWorldViewRedraw();
+        SetAlphaSystemMessage($"World chunk sync received. Chunks synced: {_syncedChunkCount}");
+
+        GD.Print($"Alpha world chunks applied: applied={appliedCount}, total={_syncedChunkCount}");
+    }
+
+    private void RequestAlphaWorldViewRedraw()
+    {
+        _worldView?.QueueRedraw();
     }
 
     private void ApplyInventorySyncData(InventorySyncData data)
