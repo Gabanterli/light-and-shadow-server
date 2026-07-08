@@ -75,6 +75,8 @@ public partial class AlphaWorldEntryController : Control
             _worldView.MinimumFocusedViewportTilesWide = 24;
             _worldView.FocusedViewportTilesHigh = 18;
             _worldView.ShowFixedCombatDebugOverlay = false;
+            _worldView.MouseFilter = Control.MouseFilterEnum.Stop;
+            _worldView.GuiInput += OnAlphaWorldViewGuiInput;
         }
 
         RefreshTopBarShellState();
@@ -89,6 +91,11 @@ public partial class AlphaWorldEntryController : Control
 
     public override void _ExitTree()
     {
+        if (_worldView != null)
+        {
+            _worldView.GuiInput -= OnAlphaWorldViewGuiInput;
+        }
+
         StopAlphaPacketLoop();
         _packetLoopCts?.Dispose();
         _packetLoopCts = null;
@@ -591,6 +598,39 @@ public partial class AlphaWorldEntryController : Control
         RefreshCombatFeedbackState();
 
         GD.Print($"Alpha Combat: {message}");
+    }
+
+    private void OnAlphaWorldViewGuiInput(InputEvent inputEvent)
+    {
+        if (inputEvent is not InputEventMouseButton mouseButton)
+        {
+            return;
+        }
+
+        if (!mouseButton.Pressed || mouseButton.ButtonIndex != MouseButton.Right)
+        {
+            return;
+        }
+
+        OnAlphaRightClickAttackRequested();
+    }
+
+    private void OnAlphaRightClickAttackRequested()
+    {
+        if (GatewayClient == null || !GatewayClient.IsConnected)
+        {
+            SetAlphaCombatMessage("Cannot attack: client disconnected.");
+            return;
+        }
+
+        if (_alphaBattleTargetState == "Dead")
+        {
+            SetAlphaCombatMessage("Cannot attack: target is dead.");
+            return;
+        }
+
+        SetAlphaCombatMessage("Right-click attack requested. Waiting for safe target identity.");
+        GD.Print("Alpha right-click attack gesture captured. No attack packet sent until safe target identity is available.");
     }
 
     private void OnBackButtonPressed()
