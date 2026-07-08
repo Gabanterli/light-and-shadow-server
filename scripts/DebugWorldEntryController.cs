@@ -29,6 +29,9 @@ public partial class DebugWorldEntryController : Control
     private Label? _lastActionResultLabel; // Renamed for clarity
     private Button? _attackOrcEliteButton;
     private DebugTileWorldView? _worldView;
+    private Label? _alphaTargetFrameLabel;
+    private string _alphaTargetFrameState = "Unknown";
+    private string _alphaTargetFrameRuntimeEntityId = "pending backend sync";
 
     // Snapshot UI Node references
     private Label? _invSyncValueLabel;
@@ -72,6 +75,11 @@ public partial class DebugWorldEntryController : Control
         _lastActionResultLabel = GetNode<Label>("VBoxContainer/LastMoveResultLabel"); // Renamed for clarity
         _attackOrcEliteButton = GetNode<Button>("VBoxContainer/AttackOrcEliteButton");
         _worldView = GetNode<DebugTileWorldView>("VBoxContainer/DebugTileWorldView");
+
+        _alphaTargetFrameLabel = new Label();
+        _alphaTargetFrameLabel.Name = "AlphaTargetFrameLabel";
+        GetNode<VBoxContainer>("VBoxContainer").AddChild(_alphaTargetFrameLabel);
+        UpdateAlphaTargetFrame();
 
         // Get snapshot node references
         _invSyncValueLabel = GetNode<Label>("VBoxContainer/SnapshotGridContainer/InvSyncValueLabel");
@@ -536,6 +544,12 @@ public partial class DebugWorldEntryController : Control
                 _pendingAlphaRewardFeedbackAfterOrcEliteDeath = true;
                 CallDeferred(nameof(SetActionResultText), "Alpha Reward: Orc_Elite defeated - waiting for backend reward sync");
                 logMessage.AppendLine("  Alpha Reward Feedback: pending backend inventory/gold sync after Orc_Elite death.");
+
+                _alphaTargetFrameState = "Dead";
+                _alphaTargetFrameRuntimeEntityId = string.IsNullOrWhiteSpace(data.RuntimeEntityID)
+                    ? _alphaTargetFrameRuntimeEntityId
+                    : data.RuntimeEntityID;
+                CallDeferred(nameof(UpdateAlphaTargetFrame));
             }
 
             // If the specific debug target is dead, update its state and redraw the view.
@@ -572,6 +586,11 @@ public partial class DebugWorldEntryController : Control
             if (data.TargetID == "Orc_Elite" || (!string.IsNullOrWhiteSpace(data.RuntimeEntityID) && data.RuntimeEntityID == _orcEliteRuntimeEntityId))
             {
                 _orcEliteRuntimeEntityId = data.RuntimeEntityID;
+                _alphaTargetFrameState = "Alive";
+                _alphaTargetFrameRuntimeEntityId = string.IsNullOrWhiteSpace(data.RuntimeEntityID)
+                    ? _alphaTargetFrameRuntimeEntityId
+                    : data.RuntimeEntityID;
+                CallDeferred(nameof(UpdateAlphaTargetFrame));
                 _isOrcEliteDead = false;
                 if (_worldView != null)
                 {
@@ -595,6 +614,16 @@ public partial class DebugWorldEntryController : Control
         logMessage.AppendLine($"[RECV] Opcode: {packet.Opcode}, Size: {packet.Size}");
         logMessage.AppendLine($"  Type: Unknown (Opcode {packet.Opcode})");
         CallDeferred(nameof(LogPacketInfo), logMessage.ToString());
+    }
+
+    private void UpdateAlphaTargetFrame()
+    {
+        if (_alphaTargetFrameLabel == null)
+        {
+            return;
+        }
+
+        _alphaTargetFrameLabel.Text = $"Target: Orc_Elite | State: {_alphaTargetFrameState} | RuntimeEntityID: {_alphaTargetFrameRuntimeEntityId}";
     }
 
     private void SetActionResultText(string text) // Renamed for clarity
@@ -651,4 +680,5 @@ public partial class DebugWorldEntryController : Control
         _confirmedPosValueLabel!.Text = $"({_currentConfirmedPos.x}, {_currentConfirmedPos.y}, {_currentConfirmedPos.z})";
     }
 }
+
 
