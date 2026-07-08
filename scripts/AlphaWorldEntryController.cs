@@ -13,6 +13,7 @@ public partial class AlphaWorldEntryController : Control
     private Label? _topBarLabel;
     private Label? _worldStatusLabel;
     private Label? _systemFeedbackLabel;
+    private Label? _battleLabel;
     private Label? _backpackLabel;
     private DebugTileWorldView? _worldView;
 
@@ -41,11 +42,14 @@ public partial class AlphaWorldEntryController : Control
     private bool _hasLocalPlayerPosition;
     private Vector2I _currentPlayerTilePosition;
 
+    private string _alphaBattleTargetState = "Pending backend event";
+
     public override void _Ready()
     {
         _topBarLabel = GetNodeOrNull<Label>("Root/TopBar/TopBarHBox/TopBarLabel");
         _worldStatusLabel = GetNodeOrNull<Label>("Root/MainArea/WorldPanel/WorldVBox/WorldStatusLabel");
         _systemFeedbackLabel = GetNodeOrNull<Label>("Root/BottomTabs/System");
+        _battleLabel = GetNodeOrNull<Label>("Root/MainArea/SideTabs/Battle");
         _backpackLabel = GetNodeOrNull<Label>("Root/MainArea/SideTabs/Backpack");
         _worldView = GetNodeOrNull<DebugTileWorldView>("Root/MainArea/WorldPanel/WorldVBox/AlphaWorldView");
         _backButton = GetNodeOrNull<Button>("Root/TopBar/TopBarHBox/BackButton");
@@ -69,6 +73,7 @@ public partial class AlphaWorldEntryController : Control
         }
 
         RefreshTopBarShellState();
+        RefreshBattleTargetState();
         RefreshBackpackShellState();
         RefreshWorldShellState();
         StartAlphaWorldBootstrapPacketLoop();
@@ -101,6 +106,16 @@ public partial class AlphaWorldEntryController : Control
         var manaState = _hasInventorySync ? $"{_syncedMana:F0}/{_syncedMaxMana:F0}" : "pending sync";
 
         _topBarLabel.Text = $"Player: {characterState} | Level: {levelState} | HP: {hpState} | Mana: {manaState} | {sessionState} | {clientState}";
+    }
+
+    private void RefreshBattleTargetState()
+    {
+        if (_battleLabel == null)
+        {
+            return;
+        }
+
+        _battleLabel.Text = $"Battle\n\nTarget: Orc_Elite\nState: {_alphaBattleTargetState}\nHP: real backend only";
     }
 
     private void RefreshBackpackShellState()
@@ -148,7 +163,7 @@ public partial class AlphaWorldEntryController : Control
         _packetLoopCts = new CancellationTokenSource();
         var token = _packetLoopCts.Token;
 
-        SetAlphaSystemMessage("Alpha world bootstrap listener started. Waiting for inventory, world chunks, and player position.");
+        SetAlphaSystemMessage("Alpha world bootstrap listener started. Waiting for inventory, world chunks, player position, and target state.");
 
         try
         {
@@ -171,6 +186,14 @@ public partial class AlphaWorldEntryController : Control
                 else if (packet.Opcode == 2005)
                 {
                     HandleAlphaMoveConfirmPacket(packet);
+                }
+                else if (packet.Opcode == 3003)
+                {
+                    HandleAlphaTargetDeadPacket(packet);
+                }
+                else if (packet.Opcode == 3004)
+                {
+                    HandleAlphaCreatureRespawnPacket(packet);
                 }
                 else
                 {
@@ -362,6 +385,62 @@ public partial class AlphaWorldEntryController : Control
         SetAlphaSystemMessage(feedbackMessage);
 
         GD.Print($"Alpha local player marker synced: z={z}");
+    }
+
+    private void HandleAlphaTargetDeadPacket(Packet packet)
+    {
+        try
+        {
+            var data = BinaryProtocol.DecodeTargetDeadEvent(packet.Payload);
+
+            if (data.TargetID != "Orc_Elite")
+            {
+                return;
+            }
+
+            CallDeferred(nameof(ApplyAlphaBattleTargetState), "Dead", "Orc_Elite defeated.");
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Alpha TargetDead decode failed: {ex.Message}");
+            CallDeferred(nameof(SetAlphaSystemMessage), $"Target state sync decode failed: {ex.GetType().Name}");
+        }
+    }
+
+    private void HandleAlphaCreatureRespawnPacket(Packet packet)
+    {
+        try
+        {
+            var data = BinaryProtocol.DecodeCreatureRespawnEvent(packet.Payload);
+
+            if (data.TargetID != "Orc_Elite")
+            {
+                return;
+            }
+
+            CallDeferred(nameof(ApplyAlphaBattleTargetState), "Alive", "Orc_Elite respawned.");
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Alpha CreatureRespawn decode failed: {ex.Message}");
+            CallDeferred(nameof(SetAlphaSystemMessage), $"Target respawn sync decode failed: {ex.GetType().Name}");
+        }
+    }
+
+    private void ApplyAlphaBattleTargetState(string state, string feedbackMessage)
+    {
+        _alphaBattleTargetState = state;
+
+        if (_worldView != null)
+        {
+            _worldView.IsOrcEliteDead = state == "Dead";
+        }
+
+        RefreshBattleTargetState();
+        RequestAlphaWorldViewRedraw();
+        SetAlphaSystemMessage(feedbackMessage);
+
+        GD.Print($"Alpha Battle target state updated: Orc_Elite={state}");
     }
 
     private void ApplyInventorySyncData(InventorySyncData data)
