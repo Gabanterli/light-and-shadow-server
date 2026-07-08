@@ -12,6 +12,7 @@ public partial class AlphaWorldEntryController : Control
     private Label? _topBarLabel;
     private Label? _worldStatusLabel;
     private Label? _systemFeedbackLabel;
+    private Label? _backpackLabel;
     private DebugTileWorldView? _worldView;
 
     private CancellationTokenSource? _packetLoopCts;
@@ -30,6 +31,7 @@ public partial class AlphaWorldEntryController : Control
         _topBarLabel = GetNodeOrNull<Label>("Root/TopBar/TopBarHBox/TopBarLabel");
         _worldStatusLabel = GetNodeOrNull<Label>("Root/MainArea/WorldPanel/WorldVBox/WorldStatusLabel");
         _systemFeedbackLabel = GetNodeOrNull<Label>("Root/BottomTabs/System");
+        _backpackLabel = GetNodeOrNull<Label>("Root/MainArea/SideTabs/Backpack");
         _worldView = GetNodeOrNull<DebugTileWorldView>("Root/MainArea/WorldPanel/WorldVBox/AlphaWorldView");
         _backButton = GetNodeOrNull<Button>("Root/TopBar/TopBarHBox/BackButton");
 
@@ -39,6 +41,7 @@ public partial class AlphaWorldEntryController : Control
         }
 
         RefreshTopBarShellState();
+        RefreshBackpackShellState();
         RefreshWorldShellState();
         StartAlphaInventorySyncPacketLoop();
 
@@ -70,6 +73,17 @@ public partial class AlphaWorldEntryController : Control
         var manaState = _hasInventorySync ? $"{_syncedMana:F0}/{_syncedMaxMana:F0}" : "pending sync";
 
         _topBarLabel.Text = $"Player: {characterState} | Level: {levelState} | HP: {hpState} | Mana: {manaState} | {sessionState} | {clientState}";
+    }
+
+    private void RefreshBackpackShellState()
+    {
+        if (_backpackLabel == null)
+        {
+            return;
+        }
+
+        var itemCountState = _hasInventorySync ? $"{_syncedItemCount} synced" : "pending sync";
+        _backpackLabel.Text = $"Backpack\n\nItems: {itemCountState}\nReal inventory sync only.";
     }
 
     private void RefreshWorldShellState()
@@ -195,6 +209,7 @@ public partial class AlphaWorldEntryController : Control
         _syncedItemCount = itemCount;
 
         RefreshTopBarShellState();
+        RefreshBackpackShellState();
         SetAlphaSystemMessage($"InventorySync 4001 received. Items: {_syncedItemCount}");
 
         GD.Print($"Alpha inventory sync applied: level={_syncedLevel}, hp={_syncedHealth:F2}/{_syncedMaxHealth:F2}, mana={_syncedMana:F2}/{_syncedMaxMana:F2}, items={_syncedItemCount}");

@@ -76,7 +76,7 @@ text = "Battle\n\nTarget: none\nState: none\nHP: real backend only"
 
 [node name="Backpack" type="Label" parent="Root/MainArea/SideTabs"]
 layout_mode = 2
-text = "Backpack\n\nShell only.\nReal inventory sync only."
+text = "Backpack\n\nItems: pending sync\nReal inventory sync only."
 
 [node name="Equipment" type="Label" parent="Root/MainArea/SideTabs"]
 layout_mode = 2
