@@ -1,0 +1,122 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/AlphaTopBarPanel.cs" id="1_topbar"]
+[ext_resource type="Script" path="res://scripts/AlphaWorldPanel.cs" id="2_world"]
+[ext_resource type="Script" path="res://scripts/AlphaBattlePanel.cs" id="3_battle"]
+[ext_resource type="Script" path="res://scripts/AlphaBackpackPanel.cs" id="4_backpack"]
+[ext_resource type="Script" path="res://scripts/AlphaFeedbackLogPanel.cs" id="5_log"]
+
+[node name="AlphaHudLayout" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Root" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="TopBar" type="PanelContainer" parent="Root"]
+layout_mode = 2
+script = ExtResource("1_topbar")
+
+[node name="Content" type="HBoxContainer" parent="Root/TopBar"]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="Root/TopBar/Content"]
+layout_mode = 2
+text = "Name: -"
+
+[node name="LevelLabel" type="Label" parent="Root/TopBar/Content"]
+layout_mode = 2
+text = "Level: -"
+
+[node name="HealthLabel" type="Label" parent="Root/TopBar/Content"]
+layout_mode = 2
+text = "HP: -"
+
+[node name="ManaLabel" type="Label" parent="Root/TopBar/Content"]
+layout_mode = 2
+text = "Mana: -"
+
+[node name="Main" type="HBoxContainer" parent="Root"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="WorldPanel" type="PanelContainer" parent="Root/Main"]
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("2_world")
+
+[node name="WorldView" type="DebugTileWorldView" parent="Root/Main/WorldPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="SidePanel" type="VBoxContainer" parent="Root/Main"]
+layout_mode = 2
+custom_minimum_size = Vector2(260, 0)
+
+[node name="BattlePanel" type="PanelContainer" parent="Root/Main/SidePanel"]
+layout_mode = 2
+script = ExtResource("3_battle")
+
+[node name="Content" type="VBoxContainer" parent="Root/Main/SidePanel/BattlePanel"]
+layout_mode = 2
+
+[node name="TargetLabel" type="Label" parent="Root/Main/SidePanel/BattlePanel/Content"]
+layout_mode = 2
+text = "Target: -"
+
+[node name="StateLabel" type="Label" parent="Root/Main/SidePanel/BattlePanel/Content"]
+layout_mode = 2
+text = "State: -"
+
+[node name="BackpackPanel" type="PanelContainer" parent="Root/Main/SidePanel"]
+layout_mode = 2
+script = ExtResource("4_backpack")
+
+[node name="Content" type="VBoxContainer" parent="Root/Main/SidePanel/BackpackPanel"]
+layout_mode = 2
+
+[node name="SummaryLabel" type="Label" parent="Root/Main/SidePanel/BackpackPanel/Content"]
+layout_mode = 2
+text = "Backpack: -"
+
+[node name="Logs" type="HBoxContainer" parent="Root"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 140)
+
+[node name="CombatLogPanel" type="PanelContainer" parent="Root/Logs"]
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("5_log")
+
+[node name="Content" type="VBoxContainer" parent="Root/Logs/CombatLogPanel"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Root/Logs/CombatLogPanel/Content"]
+layout_mode = 2
+text = "Combat"
+
+[node name="MessagesLabel" type="Label" parent="Root/Logs/CombatLogPanel/Content"]
+layout_mode = 2
+text = "-"
+
+[node name="SystemLogPanel" type="PanelContainer" parent="Root/Logs"]
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("5_log")
+
+[node name="Content" type="VBoxContainer" parent="Root/Logs/SystemLogPanel"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Root/Logs/SystemLogPanel/Content"]
+layout_mode = 2
+text = "System"
+
+[node name="MessagesLabel" type="Label" parent="Root/Logs/SystemLogPanel/Content"]
+layout_mode = 2
+text = "-"
