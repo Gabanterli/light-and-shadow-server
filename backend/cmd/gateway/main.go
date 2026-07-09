@@ -1675,43 +1675,44 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				}
 
 				// Grant deterministic Alpha reward only after the spawn-state loot guard.
-            if shouldGrantDebugLoot {
-                s.inventoriesMu.RLock()
-                playerInv, hasInventory := s.inventories[playerID]
-                s.inventoriesMu.RUnlock()
+				if shouldGrantDebugLoot {
+					s.inventoriesMu.RLock()
+					playerInv, hasInventory := s.inventories[playerID]
+					s.inventoriesMu.RUnlock()
 
-                if hasInventory && playerInv != nil {
-                    playerStats, statsExist := s.combatManager.GetEntityStats(playerID)
-                    if statsExist && playerStats != nil {
-                        itemGranted := playerInv.AddItem(alphaOrcEliteRewardItemID, 1)
-                        goldGranted := playerInv.AddGold(alphaOrcEliteRewardGold)
-                        currentXP, leveledUp := applyAlphaOrcEliteXPReward(playerID, playerInv, playerStats, alphaOrcEliteRewardXP)
+					if hasInventory && playerInv != nil {
+						playerStats, statsExist := s.combatManager.GetEntityStats(playerID)
+						if statsExist && playerStats != nil {
+							itemGranted := playerInv.AddItem(alphaOrcEliteRewardItemID, 1)
+							goldGranted := playerInv.AddGold(alphaOrcEliteRewardGold)
+							currentXP, leveledUp := applyAlphaOrcEliteXPReward(playerID, playerInv, playerStats, alphaOrcEliteRewardXP)
 
-                        playerInv.SetDirty(true)
-                        s.sendInventorySync(conn, playerID, playerStats, playerInv)
-                        s.saveCharacterState(playerID)
+							playerInv.SetDirty(true)
+							s.sendInventorySync(conn, playerID, playerStats, playerInv)
+							s.saveCharacterState(playerID)
 
-                        slog.Info(
-                            "Alpha Orc Elite reward granted and persisted",
-                            "player", playerID,
-                            "target", resolvedTargetID,
-                            "item", alphaOrcEliteRewardItemID,
-                            "item_granted", itemGranted,
-                            "gold", alphaOrcEliteRewardGold,
-                            "gold_granted", goldGranted,
-                            "xp", alphaOrcEliteRewardXP,
-                            "current_xp", currentXP,
-                            "level", playerStats.Level,
-                            "leveled_up", leveledUp,
-                        )
-                    } else {
-                        slog.Warn("Cannot grant Alpha Orc Elite reward because player stats were not found", "player", playerID, "target", resolvedTargetID)
-                    }
-                } else {
-                    slog.Warn("Cannot grant Alpha Orc Elite reward because player inventory was not found", "player", playerID, "target", resolvedTargetID)
-                }
-            }
-        case protocol.CS_CAST_SKILL:
+							slog.Info(
+								"Alpha Orc Elite reward granted and persisted",
+								"player", playerID,
+								"target", resolvedTargetID,
+								"item", alphaOrcEliteRewardItemID,
+								"item_granted", itemGranted,
+								"gold", alphaOrcEliteRewardGold,
+								"gold_granted", goldGranted,
+								"xp", alphaOrcEliteRewardXP,
+								"current_xp", currentXP,
+								"level", playerStats.Level,
+								"leveled_up", leveledUp,
+							)
+						} else {
+							slog.Warn("Cannot grant Alpha Orc Elite reward because player stats were not found", "player", playerID, "target", resolvedTargetID)
+						}
+					} else {
+						slog.Warn("Cannot grant Alpha Orc Elite reward because player inventory was not found", "player", playerID, "target", resolvedTargetID)
+					}
+				}
+			}
+		case protocol.CS_CAST_SKILL:
 			if playerID == "" {
 				slog.Warn("Cast skill request received but player hasn't selected a character yet.")
 				break
@@ -2508,44 +2509,44 @@ const alphaOrcEliteRewardXP int64 = 120
 const alphaOrcEliteRewardItemID = "sword_t1_rusty"
 
 func applyAlphaOrcEliteXPReward(playerID string, playerInv *inventory.PlayerInventory, playerStats *combat.EntityStats, xpAmount int64) (int64, bool) {
-    if playerID == "" || playerInv == nil || playerStats == nil || xpAmount <= 0 {
-        return pve.GetPlayerXp(playerID), false
-    }
+	if playerID == "" || playerInv == nil || playerStats == nil || xpAmount <= 0 {
+		return pve.GetPlayerXp(playerID), false
+	}
 
-    currentXP := pve.GetPlayerXp(playerID) + xpAmount
-    leveledUp := false
+	currentXP := pve.GetPlayerXp(playerID) + xpAmount
+	leveledUp := false
 
-    xpNeeded := int64(playerStats.Level * playerStats.Level * 100)
-    if xpNeeded <= 0 {
-        xpNeeded = 100
-    }
+	xpNeeded := int64(playerStats.Level * playerStats.Level * 100)
+	if xpNeeded <= 0 {
+		xpNeeded = 100
+	}
 
-    for currentXP >= xpNeeded {
-        currentXP -= xpNeeded
-        playerStats.Level++
-        playerStats.MaxHealth += 20.0
-        playerStats.Health = playerStats.MaxHealth
-        playerStats.MaxMana += 5.0
-        playerStats.Mana = playerStats.MaxMana
-        playerStats.BaseAttack += 2.0
+	for currentXP >= xpNeeded {
+		currentXP -= xpNeeded
+		playerStats.Level++
+		playerStats.MaxHealth += 20.0
+		playerStats.Health = playerStats.MaxHealth
+		playerStats.MaxMana += 5.0
+		playerStats.Mana = playerStats.MaxMana
+		playerStats.BaseAttack += 2.0
 
-        playerInv.BaseStats.Level = playerStats.Level
-        playerInv.BaseStats.MaxHealth = playerStats.MaxHealth
-        playerInv.BaseStats.Health = playerStats.Health
-        playerInv.BaseStats.MaxMana = playerStats.MaxMana
-        playerInv.BaseStats.Mana = playerStats.Mana
-        playerInv.BaseStats.BaseAttack = playerStats.BaseAttack
+		playerInv.BaseStats.Level = playerStats.Level
+		playerInv.BaseStats.MaxHealth = playerStats.MaxHealth
+		playerInv.BaseStats.Health = playerStats.Health
+		playerInv.BaseStats.MaxMana = playerStats.MaxMana
+		playerInv.BaseStats.Mana = playerStats.Mana
+		playerInv.BaseStats.BaseAttack = playerStats.BaseAttack
 
-        leveledUp = true
-        xpNeeded = int64(playerStats.Level * playerStats.Level * 100)
-        if xpNeeded <= 0 {
-            break
-        }
-    }
+		leveledUp = true
+		xpNeeded = int64(playerStats.Level * playerStats.Level * 100)
+		if xpNeeded <= 0 {
+			break
+		}
+	}
 
-    pve.SetPlayerXp(playerID, currentXP)
-    playerInv.SetDirty(true)
-    return currentXP, leveledUp
+	pve.SetPlayerXp(playerID, currentXP)
+	playerInv.SetDirty(true)
+	return currentXP, leveledUp
 }
 func encodeAlphaOrcEliteTargetSyncPayload(targetID string, runtimeEntityID string, x float64, y float64, z int) []byte {
 	payload := protocol.EncodeTargetDeadEventWithRuntimeEntityID(targetID, runtimeEntityID)

@@ -288,7 +288,9 @@ public partial class AlphaWorldEntryController : Control
 
         if (_backpackLabel != null)
         {
-            _backpackLabel.Text = $"Backpack\n\nItems: {itemCountState}\nReal inventory sync only.";
+            var goldState = _hasAlphaProgressionSync ? _syncedGold.ToString() : "pending sync";
+            var xpState = _hasAlphaProgressionSync ? _syncedExperience.ToString() : "pending sync";
+            _backpackLabel.Text = $"Backpack\n\nItems: {itemCountState}\nGold: {goldState}\nXP: {xpState}\nReal inventory sync only.";
         }
 
         _editableBackpackPanel?.BindBackpackSummary(_hasInventorySync ? _syncedItemCount : 0);
@@ -409,7 +411,10 @@ public partial class AlphaWorldEntryController : Control
                 data.MaxHealth,
                 data.Mana,
                 data.MaxMana,
-                data.Items.Count
+                data.Items.Count,
+                data.HasAlphaProgression,
+                data.Gold,
+                data.Experience
             );
         }
         catch (Exception ex)
@@ -833,11 +838,14 @@ public partial class AlphaWorldEntryController : Control
             data.MaxHealth,
             data.Mana,
             data.MaxMana,
-            data.Items.Count
+            data.Items.Count,
+            data.HasAlphaProgression,
+            data.Gold,
+            data.Experience
         );
     }
 
-    private void ApplyInventorySyncValues(uint level, double health, double maxHealth, double mana, double maxMana, int itemCount)
+    private void ApplyInventorySyncValues(uint level, double health, double maxHealth, double mana, double maxMana, int itemCount, bool hasAlphaProgression, ulong gold, ulong experience)
     {
         _hasInventorySync = true;
         _syncedLevel = level;
@@ -846,6 +854,12 @@ public partial class AlphaWorldEntryController : Control
         _syncedMana = mana;
         _syncedMaxMana = maxMana;
         _syncedItemCount = itemCount;
+        _hasAlphaProgressionSync = hasAlphaProgression;
+        if (hasAlphaProgression)
+        {
+            _syncedGold = gold;
+            _syncedExperience = experience;
+        }
 
         RefreshTopBarShellState();
         RefreshBackpackShellState();
@@ -857,7 +871,7 @@ public partial class AlphaWorldEntryController : Control
             SetAlphaCombatMessage("Reward sync confirmed.");
         }
 
-        GD.Print($"Alpha inventory sync applied: level={_syncedLevel}, hp={_syncedHealth:F2}/{_syncedMaxHealth:F2}, mana={_syncedMana:F2}/{_syncedMaxMana:F2}, items={_syncedItemCount}");
+        GD.Print($"Alpha inventory sync applied: level={_syncedLevel}, hp={_syncedHealth:F2}/{_syncedMaxHealth:F2}, mana={_syncedMana:F2}/{_syncedMaxMana:F2}, items={_syncedItemCount}, hasProgression={_hasAlphaProgressionSync}, gold={_syncedGold}, xp={_syncedExperience}");
     }
 
     private void SetAlphaSystemMessage(string message)
