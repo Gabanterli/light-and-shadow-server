@@ -802,12 +802,12 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				ElementAttackBonus: 0.05,
 				ElementDefBonus:    0.10,
 				// HP baixo para validação técnica de morte/3003 (debug-only)
-				Health:    80.0,
-				MaxHealth: 80.0,
+				Health:    10.0,
+				MaxHealth: 10.0,
 			}, savedX+1.0, savedY)
 
 			if s.creatureSpawnManager != nil {
-				spawnState, err := s.creatureSpawnManager.RegisterSpawn("debug_orc_elite_001", "orc_elite", savedX+1.0, savedY, int(savedZ), 80.0)
+				spawnState, err := s.creatureSpawnManager.RegisterSpawn("debug_orc_elite_001", "orc_elite", savedX+1.0, savedY, int(savedZ), 10.0)
 				if err != nil {
 					slog.Warn("Failed to register Orc Elite creature spawn state", "error", err)
 				} else {
