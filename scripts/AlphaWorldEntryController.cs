@@ -19,6 +19,14 @@ public partial class AlphaWorldEntryController : Control
     private Label? _backpackLabel;
     private DebugTileWorldView? _worldView;
 
+    private Control? _editableHudRoot;
+    private AlphaTopBarPanel? _editableTopBarPanel;
+    private AlphaWorldPanel? _editableWorldPanel;
+    private AlphaBattlePanel? _editableBattlePanel;
+    private AlphaBackpackPanel? _editableBackpackPanel;
+    private AlphaFeedbackLogPanel? _editableCombatLogPanel;
+    private AlphaFeedbackLogPanel? _editableSystemLogPanel;
+
     private const int MaxSystemFeedbackMessages = 5;
     private const int MaxCombatFeedbackMessages = 5;
     private const int AlphaOrcEliteVisualOffsetX = 5;
@@ -70,6 +78,7 @@ public partial class AlphaWorldEntryController : Control
         _backpackLabel = GetNodeOrNull<Label>("Root/MainArea/SideTabs/Backpack");
         _worldView = GetNodeOrNull<DebugTileWorldView>("Root/MainArea/WorldPanel/WorldVBox/AlphaWorldView");
         _backButton = GetNodeOrNull<Button>("Root/TopBar/TopBarHBox/BackButton");
+        BindOptionalEditableHudComponents();
 
         if (_backButton != null)
         {
@@ -140,13 +149,48 @@ public partial class AlphaWorldEntryController : Control
         GetViewport().SetInputAsHandled();
     }
 
-    private void RefreshTopBarShellState()
+    private void BindOptionalEditableHudComponents()
     {
-        if (_topBarLabel == null)
+        _editableHudRoot =
+            GetNodeOrNull<Control>("Root/EditableAlphaHud") ??
+            GetNodeOrNull<Control>("Root/EditableHud") ??
+            GetNodeOrNull<Control>("EditableAlphaHud") ??
+            GetNodeOrNull<Control>("EditableHud") ??
+            GetNodeOrNull<Control>("AlphaHudLayout");
+
+        if (_editableHudRoot == null)
         {
             return;
         }
 
+        _editableTopBarPanel =
+            _editableHudRoot.GetNodeOrNull<AlphaTopBarPanel>("Root/TopBar") ??
+            _editableHudRoot.GetNodeOrNull<AlphaTopBarPanel>("TopBar");
+
+        _editableWorldPanel =
+            _editableHudRoot.GetNodeOrNull<AlphaWorldPanel>("Root/Main/WorldPanel") ??
+            _editableHudRoot.GetNodeOrNull<AlphaWorldPanel>("Main/WorldPanel");
+
+        _editableBattlePanel =
+            _editableHudRoot.GetNodeOrNull<AlphaBattlePanel>("Root/Main/SidePanel/BattlePanel") ??
+            _editableHudRoot.GetNodeOrNull<AlphaBattlePanel>("Main/SidePanel/BattlePanel");
+
+        _editableBackpackPanel =
+            _editableHudRoot.GetNodeOrNull<AlphaBackpackPanel>("Root/Main/SidePanel/BackpackPanel") ??
+            _editableHudRoot.GetNodeOrNull<AlphaBackpackPanel>("Main/SidePanel/BackpackPanel");
+
+        _editableCombatLogPanel =
+            _editableHudRoot.GetNodeOrNull<AlphaFeedbackLogPanel>("Root/Logs/CombatLogPanel") ??
+            _editableHudRoot.GetNodeOrNull<AlphaFeedbackLogPanel>("Logs/CombatLogPanel");
+
+        _editableSystemLogPanel =
+            _editableHudRoot.GetNodeOrNull<AlphaFeedbackLogPanel>("Root/Logs/SystemLogPanel") ??
+            _editableHudRoot.GetNodeOrNull<AlphaFeedbackLogPanel>("Logs/SystemLogPanel");
+
+        GD.Print("Alpha optional editable HUD bridge bound.");
+    }
+    private void RefreshTopBarShellState()
+    {
         var sessionState = Session != null ? "session received" : "session missing";
         var characterState = Session?.IsCharacterSelected == true
             ? Session.SelectedCharacterName
@@ -156,53 +200,63 @@ public partial class AlphaWorldEntryController : Control
         var hpState = _hasInventorySync ? $"{_syncedHealth:F0}/{_syncedMaxHealth:F0}" : "pending sync";
         var manaState = _hasInventorySync ? $"{_syncedMana:F0}/{_syncedMaxMana:F0}" : "pending sync";
 
-        _topBarLabel.Text = $"Player: {characterState} | Level: {levelState} | HP: {hpState} | Mana: {manaState} | {sessionState} | {clientState}";
-    }
+        if (_topBarLabel != null)
+        {
+            _topBarLabel.Text = $"Player: {characterState} | Level: {levelState} | HP: {hpState} | Mana: {manaState} | {sessionState} | {clientState}";
+        }
 
+        _editableTopBarPanel?.BindPlayerStatus(
+            characterState,
+            _hasInventorySync ? _syncedLevel : 0,
+            _hasInventorySync ? _syncedHealth : 0,
+            _hasInventorySync ? _syncedMaxHealth : 0,
+            _hasInventorySync ? _syncedMana : 0,
+            _hasInventorySync ? _syncedMaxMana : 0
+        );
+    }
     private void RefreshBattleTargetState()
     {
-        if (_battleLabel == null)
+        if (_battleLabel != null)
         {
-            return;
+            _battleLabel.Text = $"Battle\n\nTarget: Orc_Elite\nState: {_alphaBattleTargetState}\nHP: real backend only";
         }
 
-        _battleLabel.Text = $"Battle\n\nTarget: Orc_Elite\nState: {_alphaBattleTargetState}\nHP: real backend only";
+        _editableBattlePanel?.BindTargetState("Orc_Elite", _alphaBattleTargetState, _isAlphaOrcEliteSelected);
     }
-
     private void RefreshCombatFeedbackState()
     {
-        if (_combatFeedbackLabel == null)
+        if (_combatFeedbackLabel != null)
         {
-            return;
+            if (_combatFeedbackMessages.Count == 0)
+            {
+                _combatFeedbackLabel.Text = "Combat\n- No combat events yet\n- Real backend events only";
+            }
+            else
+            {
+                var lines = new List<string> { "Combat" };
+
+                foreach (var feedbackMessage in _combatFeedbackMessages)
+                {
+                    lines.Add($"- {feedbackMessage}");
+                }
+
+                _combatFeedbackLabel.Text = string.Join("\n", lines);
+            }
         }
 
-        if (_combatFeedbackMessages.Count == 0)
-        {
-            _combatFeedbackLabel.Text = "Combat\n- No combat events yet\n- Real backend events only";
-            return;
-        }
-
-        var lines = new List<string> { "Combat" };
-
-        foreach (var feedbackMessage in _combatFeedbackMessages)
-        {
-            lines.Add($"- {feedbackMessage}");
-        }
-
-        _combatFeedbackLabel.Text = string.Join("\n", lines);
+        _editableCombatLogPanel?.BindMessages("Combat", _combatFeedbackMessages);
     }
-
     private void RefreshBackpackShellState()
     {
-        if (_backpackLabel == null)
+        var itemCountState = _hasInventorySync ? $"{_syncedItemCount} synced" : "pending sync";
+
+        if (_backpackLabel != null)
         {
-            return;
+            _backpackLabel.Text = $"Backpack\n\nItems: {itemCountState}\nReal inventory sync only.";
         }
 
-        var itemCountState = _hasInventorySync ? $"{_syncedItemCount} synced" : "pending sync";
-        _backpackLabel.Text = $"Backpack\n\nItems: {itemCountState}\nReal inventory sync only.";
+        _editableBackpackPanel?.BindBackpackSummary(_hasInventorySync ? _syncedItemCount : 0);
     }
-
     private void RefreshWorldShellState()
     {
         if (_worldStatusLabel != null)
@@ -784,9 +838,10 @@ public partial class AlphaWorldEntryController : Control
             _systemFeedbackLabel.Text = string.Join("\n", lines);
         }
 
+        _editableSystemLogPanel?.BindMessages("System", _systemFeedbackMessages);
+
         GD.Print($"Alpha System: {message}");
     }
-
     private void SetAlphaCombatMessage(string message)
     {
         if (!string.IsNullOrWhiteSpace(message))

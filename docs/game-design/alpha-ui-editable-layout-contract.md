@@ -53,3 +53,13 @@ Gabriel may edit the future Alpha HUD scene visually in Godot, but gameplay stat
 It may seed fake visual data for layout editing, but it must not become gameplay authority.
 
 Runtime data must still flow through the active Alpha controller or a future presentation model.
+## Optional Runtime Bridge
+
+`AlphaWorldEntryController` may bind to editable HUD components when they are present in the active Alpha scene.
+
+The bridge is optional:
+
+- legacy labels remain active;
+- missing editable nodes are ignored through `GetNodeOrNull`;
+- no gameplay authority is moved into UI components;
+- runtime migration must remain fallback-safe.
