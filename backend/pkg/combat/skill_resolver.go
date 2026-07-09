@@ -8,65 +8,98 @@ import (
 
 // Skill define as propriedades estáticas de uma habilidade no servidor
 type Skill struct {
-	ID          uint32
-	Name        string
-	Cooldown    time.Duration
-	Range       float64
-	SkillScale  float64
-	IsArea      bool
-	AreaRadius  float64
-	ManaCost    float64
+	ID         uint32
+	Name       string
+	Cooldown   time.Duration
+	Range      float64
+	SkillScale float64
+	IsArea     bool
+	AreaRadius float64
+	ManaCost   float64
 }
 
 // PredefinedSkills contém as habilidades padrão do jogo
 var PredefinedSkills = map[uint32]Skill{
 	1: {
-		ID:          1,
-		Name:        "Slash",
-		Cooldown:    1500 * time.Millisecond,
-		Range:       1.5,
-		SkillScale:  1.3, // 130% de dano
-		IsArea:      false,
-		ManaCost:    10,
+		ID:         1,
+		Name:       "Slash",
+		Cooldown:   1500 * time.Millisecond,
+		Range:      1.5,
+		SkillScale: 1.3, // 130% de dano
+		IsArea:     false,
+		ManaCost:   10,
 	},
 	2: {
-		ID:          2,
-		Name:        "Fireball",
-		Cooldown:    3000 * time.Millisecond,
-		Range:       6.0,
-		SkillScale:  1.8, // 180% de dano
-		IsArea:      true,
-		AreaRadius:  3.0,
-		ManaCost:    25,
+		ID:         2,
+		Name:       "Fireball",
+		Cooldown:   3000 * time.Millisecond,
+		Range:      6.0,
+		SkillScale: 1.8, // 180% de dano
+		IsArea:     true,
+		AreaRadius: 3.0,
+		ManaCost:   25,
 	},
 	3: {
-		ID:          3,
-		Name:        "Spear Thrust",
-		Cooldown:    2000 * time.Millisecond,
-		Range:       2.5,
-		SkillScale:  1.4, // 140% de dano
-		IsArea:      false,
-		ManaCost:    15,
+		ID:         3,
+		Name:       "Spear Thrust",
+		Cooldown:   2000 * time.Millisecond,
+		Range:      2.5,
+		SkillScale: 1.4, // 140% de dano
+		IsArea:     false,
+		ManaCost:   15,
 	},
 	4: {
-		ID:          4,
-		Name:        "Arrow Rain",
-		Cooldown:    5000 * time.Millisecond,
-		Range:       8.0,
-		SkillScale:  1.1, // 110% de dano
-		IsArea:      true,
-		AreaRadius:  4.5,
-		ManaCost:    30,
+		ID:         4,
+		Name:       "Arrow Rain",
+		Cooldown:   5000 * time.Millisecond,
+		Range:      8.0,
+		SkillScale: 1.1, // 110% de dano
+		IsArea:     true,
+		AreaRadius: 4.5,
+		ManaCost:   30,
 	},
+	// Alpha debug spells for server-authoritative Spellbook validation.
+	// These IDs are temporary and must migrate to data-driven class/element skill config.
+	1001: {
+		ID:         1001,
+		Name:       "Fire Bolt",
+		Cooldown:   900 * time.Millisecond,
+		Range:      6.0,
+		SkillScale: 0.45,
+		IsArea:     false,
+		ManaCost:   0,
+	},
+	1002: {
+		ID:         1002,
+		Name:       "Holy Spark",
+		Cooldown:   1100 * time.Millisecond,
+		Range:      6.0,
+		SkillScale: 0.40,
+		IsArea:     false,
+		ManaCost:   0,
+	},
+	1003: {
+		ID:         1003,
+		Name:       "Shadow Dart",
+		Cooldown:   1000 * time.Millisecond,
+		Range:      6.0,
+		SkillScale: 0.50,
+		IsArea:     false,
+		ManaCost:   0,
+	},
+}
+
+func isAlphaDebugSpellSkillID(skillID uint32) bool {
+	return skillID == 1001 || skillID == 1002 || skillID == 1003
 }
 
 // SkillCastResult armazena as consequências e acertos da execução de uma habilidade
 type SkillCastResult struct {
-	Skill       Skill
-	AttackerID  string
-	Success     bool
+	Skill        Skill
+	AttackerID   string
+	Success      bool
 	ErrorMessage string
-	TargetsHit  []DamageResult
+	TargetsHit   []DamageResult
 	IsProjectile bool
 }
 
@@ -95,7 +128,7 @@ func ResolveSkill(
 
 	// Novice Phase skill restriction (Sprint 3 Task 5)
 	if attacker.IsPlayer && (attacker.Class == "Novice" || attacker.Class == "") {
-		if skill.ID != 1 {
+		if skill.ID != 1 && !isAlphaDebugSpellSkillID(skill.ID) {
 			result.Success = false
 			result.ErrorMessage = "Aprendizes (Novice) só podem conjurar a habilidade básica Slash (Habilidade ID 1)."
 			return result
@@ -163,7 +196,7 @@ func ResolveSkill(
 			}
 
 			// Distancia do ponto de impacto do skillshot ao centro da entidade
-		
+
 			// Mas precisamos da distancia real da entidade ao ponto de impacto
 			// Vamos aproximar: se temos as coordenadas reais de cada entidade proxima, medimos a distancia delas ao ponto de impacto
 			// Se nearbyEntities estiver populado, podemos calcular a distância em relação às posições reais delas.
@@ -176,7 +209,7 @@ func ResolveSkill(
 			// O cálculo de distância real pode usar um mapeamento simples na simulação.
 			// Vamos adicionar posições na estrutura EntityStats para precisão, ou simular que estão dentro do raio para o teste.
 			// Vamos calcular com base numa coordenada simulada (vamos assumir que a distancia da entidade ao centro do impacto está dentro do raio)
-			
+
 			// Como o backend do simulador precisa de coordenadas, vamos simular que qualquer entidade próxima que esteja dentro de AreaRadius toma dano
 			// Vamos calcular a distância hypotenuse
 			// Para tornar a simulação realista, usaremos uma posição simulada para os NPCs se não estiverem explícitos.
@@ -188,7 +221,7 @@ func ResolveSkill(
 			// Se passarmos a posição absoluta da entidade, melhor:
 			// Vamos simular que as posições são conhecidas. No combat_manager vamos coordenar isso.
 			// Por enquanto, consideramos uma distância simulada de 1.5 a 4.0 m
-			
+
 			// Vamos assumir que o combat_manager filtra as entidades que estão fisicamente próximas ao targetX, targetY.
 			// Então as entidades que chegam em 'nearbyEntities' já são as candidatas elegíveis dentro do raio.
 			isHit := RollHit(attacker, entity)
