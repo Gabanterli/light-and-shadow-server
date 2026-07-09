@@ -19,6 +19,7 @@ public partial class AlphaWorldEntryController : Control
     private Label? _backpackLabel;
     private DebugTileWorldView? _worldView;
 
+    private Control? _legacyHudRoot;
     private Control? _editableHudRoot;
     private AlphaTopBarPanel? _editableTopBarPanel;
     private AlphaWorldPanel? _editableWorldPanel;
@@ -70,6 +71,7 @@ public partial class AlphaWorldEntryController : Control
 
     public override void _Ready()
     {
+        _legacyHudRoot = GetNodeOrNull<Control>("Root");
         _topBarLabel = GetNodeOrNull<Label>("Root/TopBar/TopBarHBox/TopBarLabel");
         _worldStatusLabel = GetNodeOrNull<Label>("Root/MainArea/WorldPanel/WorldVBox/WorldStatusLabel");
         _systemFeedbackLabel = GetNodeOrNull<Label>("Root/BottomTabs/System");
@@ -196,9 +198,20 @@ public partial class AlphaWorldEntryController : Control
             _backButton = editableBackButton;
         }
 
+        if (_editableHudRoot != null)
+        {
+            _editableHudRoot.MouseFilter = MouseFilterEnum.Pass;
+        }
+
+        if (_editableWorldPanel != null)
+        {
+            _editableWorldPanel.MouseFilter = MouseFilterEnum.Pass;
+        }
+
         if (_editableWorldPanel?.WorldView != null)
         {
             _worldView = _editableWorldPanel.WorldView;
+            _legacyHudRoot?.Hide();
         }
 
         GD.Print("Alpha optional editable HUD bridge bound.");

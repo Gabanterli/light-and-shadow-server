@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/AlphaTopBarPanel.cs" id="1_topbar"]
 [ext_resource type="Script" path="res://scripts/AlphaWorldPanel.cs" id="2_world"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/AlphaFeedbackLogPanel.cs" id="5_log"]
 [ext_resource type="Script" path="res://scripts/AlphaHudLayoutController.cs" id="6_layout_controller"]
 
+[ext_resource type="Script" path="res://scripts/DebugTileWorldView.cs" id="7_debug_world_view"]
 [node name="AlphaHudLayout" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -56,7 +57,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 script = ExtResource("2_world")
 
-[node name="WorldView" type="DebugTileWorldView" parent="Root/Main/WorldPanel"]
+[node name="WorldView" type="Control" parent="Root/Main/WorldPanel"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
