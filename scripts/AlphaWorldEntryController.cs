@@ -73,6 +73,7 @@ public partial class AlphaWorldEntryController : Control
     private CancellationTokenSource? _alphaAutoAttackCts;
     private bool _isAlphaAttackRequestInFlight;
     private static readonly TimeSpan AlphaAutoAttackInterval = TimeSpan.FromMilliseconds(1000);
+    private const double AlphaDebugSwordPreviewRangeTiles = 1.05;
 
     public override void _Ready()
     {
@@ -690,17 +691,42 @@ public partial class AlphaWorldEntryController : Control
         _worldView.OrcElitePosition = _alphaOrcEliteVisualPosition;
     }
 
+    private static string BuildAlphaCombatFailureFeedback(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return "Combat action failed: server rejected attack.";
+        }
+
+        var trimmedReason = reason.Trim();
+        if (trimmedReason.Contains("fora de alcance", StringComparison.OrdinalIgnoreCase) || trimmedReason.Contains("out of range", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"Combat action failed: target out of debug sword range. Server: {trimmedReason}";
+        }
+
+        return $"Combat action failed: {trimmedReason}";
+    }
+
+    private void ApplyAlphaCombatFailureFeedback(string message)
+    {
+        var hasRunningAutoAttack = _alphaAutoAttackCts != null && !_alphaAutoAttackCts.IsCancellationRequested;
+        if (hasRunningAutoAttack)
+        {
+            StopAlphaAutoAttackLoop("server rejected attack");
+            SetAlphaCombatMessage($"{message} Auto-attack stopped.");
+            return;
+        }
+
+        SetAlphaCombatMessage(message);
+    }
+
     private void HandleAlphaDamageEventPacket(Packet packet)
     {
         try
         {
             var data = BinaryProtocol.DecodeDamageEvent(packet.Payload);
 
-            if (!data.Success)
-            {
-                CallDeferred(nameof(SetAlphaCombatMessage), "Combat action failed.");
-                return;
-            }
+            if (!data.Success)             {                 var failureMessage = BuildAlphaCombatFailureFeedback(data.SkillName);                 CallDeferred(nameof(ApplyAlphaCombatFailureFeedback), failureMessage);                 return;             }
 
             if (!data.IsHit)
             {
@@ -1116,6 +1142,22 @@ public partial class AlphaWorldEntryController : Control
         }
     }
 
+    private bool IsAlphaDebugSwordPreviewRangeReady(out double distance)
+    {
+        distance = 0;
+
+        if (!_hasLocalPlayerPosition)
+        {
+            return true;
+        }
+
+        var deltaX = _currentPlayerTilePosition.X - _alphaOrcEliteVisualPosition.X;
+        var deltaY = _currentPlayerTilePosition.Y - _alphaOrcEliteVisualPosition.Y;
+        distance = Math.Sqrt((deltaX * deltaX) + (deltaY * deltaY));
+
+        return distance <= AlphaDebugSwordPreviewRangeTiles;
+    }
+
     private async Task SendAlphaAttackOnceAsync(string source, CancellationToken cancellationToken = default)
     {
         if (GatewayClient == null || !GatewayClient.IsConnected)
@@ -1152,6 +1194,7 @@ public partial class AlphaWorldEntryController : Control
             return;
         }
 
+        if (!IsAlphaDebugSwordPreviewRangeReady(out var previewDistance))         {             var rangeMessage = $"Cannot attack: move into debug sword range. Distance: {previewDistance:F2}, Range: {AlphaDebugSwordPreviewRangeTiles:F2}.";              SetAlphaCombatMessage(rangeMessage);              if (source == "auto-attack")             {                 StopAlphaAutoAttackLoop("target outside debug sword preview range");             }              return;         }
         if (_isAlphaAttackRequestInFlight)
         {
             if (source == "right-click")
@@ -1167,9 +1210,9 @@ public partial class AlphaWorldEntryController : Control
         try
         {
             _isAlphaAttackRequestInFlight = true;
-            SetAlphaCombatMessage(source == "auto-attack" ? "Auto-attack swing." : "Sending right-click attack.");
+            if (source != "auto-attack")             {                 SetAlphaCombatMessage("Sending right-click attack.");             }
             await GatewayClient.SendAttackRequestAsync(_alphaOrcEliteRuntimeEntityId, AlphaRealAttackWeaponType, effectiveToken);
-            SetAlphaCombatMessage(source == "auto-attack" ? "Auto-attack request sent." : "Attack request sent.");
+            if (source != "auto-attack")             {                 SetAlphaCombatMessage("Attack request sent.");             }
             GD.Print($"Alpha {source} attack request sent with safe target identity.");
         }
         catch (OperationCanceledException)
