@@ -847,7 +847,7 @@ public partial class AlphaWorldEntryController : Control
 
     private void ApplyInventorySyncValues(uint level, double health, double maxHealth, double mana, double maxMana, int itemCount, bool hasAlphaProgression, ulong gold, ulong experience)
     {
-        var hadPreviousInventorySync = _hasInventorySync;         var previousLevel = _syncedLevel;         var previousItemCount = _syncedItemCount;         var hadPreviousAlphaProgressionSync = _hasAlphaProgressionSync;         var previousGold = _syncedGold;         var previousExperience = _syncedExperience; 
+        var hadPreviousInventorySync = _hasInventorySync;         var previousLevel = _syncedLevel;         var previousItemCount = _syncedItemCount;         var hadPreviousAlphaProgressionSync = _hasAlphaProgressionSync;         var previousGold = _syncedGold;         var previousExperience = _syncedExperience;
         _hasInventorySync = true;
         _syncedLevel = level;
         _syncedHealth = health;
