@@ -187,6 +187,20 @@ public partial class AlphaWorldEntryController : Control
             _editableHudRoot.GetNodeOrNull<AlphaFeedbackLogPanel>("Root/Logs/SystemLogPanel") ??
             _editableHudRoot.GetNodeOrNull<AlphaFeedbackLogPanel>("Logs/SystemLogPanel");
 
+        var editableBackButton =
+            _editableHudRoot.GetNodeOrNull<Button>("Root/TopBar/Content/BackButton") ??
+            _editableHudRoot.GetNodeOrNull<Button>("TopBar/Content/BackButton");
+
+        if (editableBackButton != null)
+        {
+            _backButton = editableBackButton;
+        }
+
+        if (_editableWorldPanel?.WorldView != null)
+        {
+            _worldView = _editableWorldPanel.WorldView;
+        }
+
         GD.Print("Alpha optional editable HUD bridge bound.");
     }
     private void RefreshTopBarShellState()

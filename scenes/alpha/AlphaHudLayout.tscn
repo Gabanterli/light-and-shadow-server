@@ -27,6 +27,10 @@ script = ExtResource("1_topbar")
 [node name="Content" type="HBoxContainer" parent="Root/TopBar"]
 layout_mode = 2
 
+[node name="BackButton" type="Button" parent="Root/TopBar/Content"]
+layout_mode = 2
+text = "Back"
+
 [node name="NameLabel" type="Label" parent="Root/TopBar/Content"]
 layout_mode = 2
 text = "Name: Gabriela"
