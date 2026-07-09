@@ -791,10 +791,10 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				Level:              42,
 				BaseAttack:         35.0,
 				WeaponDamage:       25.0,
-				Defense:            20.0,
-				Resistance:         5.0,
+				Defense:            0.0,
+				Resistance:         0.0,
 				Accuracy:           85.0,
-				Evasion:            12.0,
+				Evasion:            0.0,
 				CritChance:         0.05,
 				CritMultiplier:     1.50,
 				ArmorPenetration:   0.05,
@@ -802,12 +802,12 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				ElementAttackBonus: 0.05,
 				ElementDefBonus:    0.10,
 				// HP baixo para validação técnica de morte/3003 (debug-only)
-				Health:    10.0,
-				MaxHealth: 10.0,
+				Health:    1.0,
+				MaxHealth: 1.0,
 			}, savedX+1.0, savedY)
 
 			if s.creatureSpawnManager != nil {
-				spawnState, err := s.creatureSpawnManager.RegisterSpawn("debug_orc_elite_001", "orc_elite", savedX+1.0, savedY, int(savedZ), 10.0)
+				spawnState, err := s.creatureSpawnManager.RegisterSpawn("debug_orc_elite_001", "orc_elite", savedX+1.0, savedY, int(savedZ), 1.0)
 				if err != nil {
 					slog.Warn("Failed to register Orc Elite creature spawn state", "error", err)
 				} else {
@@ -1571,6 +1571,13 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 						}
 					}
 				}
+			}
+			if isDebugOrcEliteTarget && req.WeaponType == "alpha_probe" {
+				if playerX, playerY, exists := s.combatManager.GetEntityPosition(playerID); exists {
+					s.combatManager.UpdateEntityPosition(resolvedTargetID, playerX+1.0, playerY)
+					slog.Info("Alpha attack probe aligned Orc Elite combat position near player", "player", playerID, "target", resolvedTargetID, "x", playerX+1.0, "y", playerY)
+				}
+				req.WeaponType = "debug_sword"
 			}
 			damage, isCrit, isProj, err := s.combatManager.ProcessAttackRequest(playerID, resolvedTargetID, req.WeaponType)
 			if err != nil {
