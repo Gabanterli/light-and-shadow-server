@@ -34,6 +34,7 @@ const (
 	CS_CAST_SKILL     uint16 = 3001
 	SC_DAMAGE_EVENT   uint16 = 3002
 	SC_TARGET_DEAD    uint16 = 3003
+	SC_LOOT_RESULT    uint16 = 3005
 
 	// Inventory System Opcodes (Sprint 3 Task 1)
 	CS_INVENTORY_REQUEST uint16 = 4000
@@ -1515,6 +1516,28 @@ func DecodeDungeonClaimLoot(payload []byte) (string, string, error) {
 	return instanceID, itemID, nil
 }
 
+func EncodeLootResult(tableID string, itemID string, quantity uint32, dropped bool, granted bool, reason string) []byte {
+	size := 2 + len(tableID) + 2 + len(itemID) + 4 + 1 + 1 + 2 + len(reason)
+	buf := make([]byte, size)
+	offset := 0
+
+	WriteString(buf, tableID, &offset)
+	WriteString(buf, itemID, &offset)
+	WriteUint32(buf, quantity, &offset)
+
+	if dropped {
+		buf[offset] = 1
+	}
+	offset += 1
+
+	if granted {
+		buf[offset] = 1
+	}
+	offset += 1
+
+	WriteString(buf, reason, &offset)
+	return buf
+}
 func EncodeLootNotification(itemID string, qty uint32, rank uint32, canClaim uint8) []byte {
 	buf := make([]byte, 2+len(itemID)+4+4+1)
 	offset := 0

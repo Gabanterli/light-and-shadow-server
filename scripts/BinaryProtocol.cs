@@ -329,6 +329,34 @@ public static class BinaryProtocol
         };
     }
 
+
+    public static LootResultEventData DecodeLootResultEvent(byte[] payload)
+    {
+        var offset = 0;
+        var tableId = ReadStringUInt16(payload, offset, out offset);
+        var itemId = ReadStringUInt16(payload, offset, out offset);
+
+        if (offset + 6 > payload.Length)
+        {
+            throw new InvalidDataException("Buffer overflow while reading loot result event.");
+        }
+
+        var quantity = ReadUInt32LE(payload, offset);
+        offset += 4;
+        var dropped = payload[offset++] != 0;
+        var granted = payload[offset++] != 0;
+        var reason = offset < payload.Length ? ReadStringUInt16(payload, offset, out offset) : string.Empty;
+
+        return new LootResultEventData
+        {
+            TableID = tableId,
+            ItemID = itemId,
+            Quantity = quantity,
+            Dropped = dropped,
+            Granted = granted,
+            Reason = reason
+        };
+    }
     public static CreatureRespawnEventData DecodeCreatureRespawnEvent(byte[] payload)
     {
         var offset = 0;
@@ -636,6 +664,16 @@ public sealed class TargetDeadEventData
     public string RuntimeEntityID { get; set; } = string.Empty;
 }
 
+
+public sealed class LootResultEventData
+{
+    public string TableID { get; set; } = string.Empty;
+    public string ItemID { get; set; } = string.Empty;
+    public uint Quantity { get; set; }
+    public bool Dropped { get; set; }
+    public bool Granted { get; set; }
+    public string Reason { get; set; } = string.Empty;
+}
 public sealed class CreatureRespawnEventData
 {
     public string TargetID { get; set; } = string.Empty;

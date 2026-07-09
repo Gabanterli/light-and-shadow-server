@@ -366,6 +366,10 @@ public partial class AlphaWorldEntryController : Control
                 {
                     HandleAlphaCreatureRespawnPacket(packet);
                 }
+                else if (packet.Opcode == 3005)
+                {
+                    HandleAlphaLootResultPacket(packet);
+                }
                 else
                 {
                     _ignoredPacketCount++;
@@ -765,6 +769,46 @@ public partial class AlphaWorldEntryController : Control
         }
     }
 
+
+    private void HandleAlphaLootResultPacket(Packet packet)
+    {
+        try
+        {
+            var data = BinaryProtocol.DecodeLootResultEvent(packet.Payload);
+            var message = BuildAlphaLootResultFeedback(data);
+            CallDeferred(nameof(SetAlphaCombatMessage), message);
+            GD.Print($"Alpha LootResult received: table={data.TableID}, item={data.ItemID}, quantity={data.Quantity}, dropped={data.Dropped}, granted={data.Granted}, reason={data.Reason}");
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Alpha LootResult decode failed: {ex.Message}");
+            CallDeferred(nameof(SetAlphaCombatMessage), $"Loot feedback decode failed: {ex.GetType().Name}");
+        }
+    }
+
+    private static string BuildAlphaLootResultFeedback(LootResultEventData data)
+    {
+        var itemText = string.IsNullOrWhiteSpace(data.ItemID) ? "unknown item" : data.ItemID;
+        var quantityText = data.Quantity > 1 ? $" x{data.Quantity}" : string.Empty;
+
+        if (!data.Dropped)
+        {
+            return $"Loot result: no item dropped from {data.TableID}.";
+        }
+
+        if (data.Granted)
+        {
+            return $"Loot dropped: {itemText}{quantityText}. Loot granted to backpack.";
+        }
+
+        if (data.Reason == "inventory_full")
+        {
+            return $"Loot dropped: {itemText}{quantityText}. Loot blocked: inventory full.";
+        }
+
+        var reason = string.IsNullOrWhiteSpace(data.Reason) ? "unknown reason" : data.Reason;
+        return $"Loot dropped: {itemText}{quantityText}. Loot blocked: {reason}.";
+    }
     private void HandleAlphaCreatureRespawnPacket(Packet packet)
     {
         try

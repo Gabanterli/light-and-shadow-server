@@ -1683,13 +1683,14 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 					if hasInventory && playerInv != nil {
 						playerStats, statsExist := s.combatManager.GetEntityStats(playerID)
 						if statsExist && playerStats != nil {
-							lootTableFound, itemsDropped, itemsGranted := grantAlphaOrcEliteItemLoot(s.pveManager, playerInv, playerID, resolvedTargetID)
+							lootTableFound, itemsDropped, itemsGranted, lootResults := grantAlphaOrcEliteItemLoot(s.pveManager, playerInv, playerID, resolvedTargetID)
 							rewardProfile, rewardProfileFound := getAlphaOrcEliteRewardProfile(s.pveManager, playerID, resolvedTargetID)
 							goldGranted := playerInv.AddGold(rewardProfile.Gold)
 							currentXP, leveledUp := applyAlphaOrcEliteXPReward(playerID, playerInv, playerStats, rewardProfile.XP)
 
 							playerInv.SetDirty(true)
 							s.sendInventorySync(conn, playerID, playerStats, playerInv)
+							sendAlphaOrcEliteLootResults(conn, lootResults)
 							s.saveCharacterState(playerID)
 
 							slog.Info(
@@ -2508,6 +2509,15 @@ func (s *GatewayServer) startAutosaveLoop() {
 // Inicia o scheduler minimo de respawn de criatura para validacao R2.
 // Escopo atual: Orc_Elite debug spawn only.
 
+type alphaOrcEliteLootResult struct {
+	TableID  string
+	ItemID   string
+	Quantity uint32
+	Dropped  bool
+	Granted  bool
+	Reason   string
+}
+
 const alphaOrcEliteLootTableID = "alpha_orc_elite_loot"
 
 func getAlphaOrcEliteRewardProfile(pveMgr *pve.PveManager, playerID string, targetID string) (pve.LootRewardProfile, bool) {
@@ -2533,7 +2543,7 @@ func getAlphaOrcEliteRewardProfile(pveMgr *pve.PveManager, playerID string, targ
 	return rewardProfile, true
 }
 
-func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.PlayerInventory, playerID string, targetID string) (bool, int, int) {
+func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.PlayerInventory, playerID string, targetID string) (bool, int, int, []alphaOrcEliteLootResult) {
 
 	lootTableFound := false
 
@@ -2541,11 +2551,13 @@ func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.Pla
 
 	itemsGranted := 0
 
+	lootResults := make([]alphaOrcEliteLootResult, 0)
+
 	if pveMgr == nil {
 
 		slog.Warn("Cannot roll Alpha Orc Elite loot because PvE manager is not available", "player", playerID, "target", targetID, "loot_table", alphaOrcEliteLootTableID)
 
-		return lootTableFound, itemsDropped, itemsGranted
+		return lootTableFound, itemsDropped, itemsGranted, lootResults
 
 	}
 
@@ -2555,7 +2567,7 @@ func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.Pla
 
 		slog.Warn("Alpha Orc Elite loot table not found; item drops skipped", "player", playerID, "target", targetID, "loot_table", alphaOrcEliteLootTableID)
 
-		return lootTableFound, itemsDropped, itemsGranted
+		return lootTableFound, itemsDropped, itemsGranted, lootResults
 
 	}
 
@@ -2581,13 +2593,60 @@ func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.Pla
 
 		}
 
-		slog.Info("Alpha Orc Elite loot roll applied", "player", playerID, "target", targetID, "loot_table", alphaOrcEliteLootTableID, "item", lootRoll.ItemID, "quantity", lootRoll.Quantity, "chance", lootRoll.Chance, "roll", lootRoll.Roll, "item_granted", itemGranted, "reason", lootRoll.Reason)
+		resultReason := "none"
+		if !itemGranted {
+			resultReason = "inventory_full"
+		}
+
+		lootResults = append(lootResults, alphaOrcEliteLootResult{
+			TableID:  alphaOrcEliteLootTableID,
+			ItemID:   lootRoll.ItemID,
+			Quantity: uint32(lootRoll.Quantity),
+			Dropped:  true,
+			Granted:  itemGranted,
+			Reason:   resultReason,
+		})
+
+		slog.Info("Alpha Orc Elite loot roll applied", "player", playerID, "target", targetID, "loot_table", alphaOrcEliteLootTableID, "item", lootRoll.ItemID, "quantity", lootRoll.Quantity, "chance", lootRoll.Chance, "roll", lootRoll.Roll, "item_granted", itemGranted, "reason", lootRoll.Reason, "loot_result_reason", resultReason)
 
 	}
 
-	return lootTableFound, itemsDropped, itemsGranted
+	return lootTableFound, itemsDropped, itemsGranted, lootResults
 }
 
+func sendAlphaOrcEliteLootResults(conn net.Conn, lootResults []alphaOrcEliteLootResult) {
+	if conn == nil {
+		return
+	}
+
+	for _, result := range lootResults {
+		payload := protocol.EncodeLootResult(
+			result.TableID,
+			result.ItemID,
+			result.Quantity,
+			result.Dropped,
+			result.Granted,
+			result.Reason,
+		)
+
+		packet := &protocol.Packet{
+			Opcode:  protocol.SC_LOOT_RESULT,
+			Payload: payload,
+		}
+
+		conn.Write(packet.Serialize())
+		slog.Info(
+			"Alpha Orc Elite loot result packet emitted",
+			"loot_table", result.TableID,
+			"item", result.ItemID,
+			"quantity", result.Quantity,
+			"dropped", result.Dropped,
+			"granted", result.Granted,
+			"reason", result.Reason,
+			"opcode", protocol.SC_LOOT_RESULT,
+		)
+	}
+}
 func applyAlphaOrcEliteXPReward(playerID string, playerInv *inventory.PlayerInventory, playerStats *combat.EntityStats, xpAmount int64) (int64, bool) {
 	if playerID == "" || playerInv == nil || playerStats == nil || xpAmount <= 0 {
 		return pve.GetPlayerXp(playerID), false
