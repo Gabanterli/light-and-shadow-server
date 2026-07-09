@@ -848,7 +848,7 @@ public partial class AlphaWorldEntryController : Control
         try
         {
             SetAlphaCombatMessage("Sending right-click attack.");
-            await GatewayClient.SendAttackRequestAsync(_alphaOrcEliteRuntimeEntityId, "debug_sword", _packetLoopCts.Token);
+            await GatewayClient.SendAttackRequestAsync(_alphaOrcEliteRuntimeEntityId, "bow", _packetLoopCts.Token);
             SetAlphaCombatMessage("Attack request sent.");
             GD.Print("Alpha right-click attack request sent with safe target identity.");
         }
