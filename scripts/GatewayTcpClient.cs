@@ -131,6 +131,15 @@ public sealed class GatewayTcpClient : IDisposable
         await SendPacketAsync(packet, cancellationToken);
     }
 
+
+    public async Task SendCastSkillRequestAsync(uint skillId, string targetId, double targetX, double targetY, CancellationToken cancellationToken = default)
+    {
+        EnsureConnected();
+        var payload = BinaryProtocol.EncodeCastSkillRequest(skillId, targetId, targetX, targetY);
+        var packet = new Packet(3001, NextSequence(), payload);
+        await SendPacketAsync(packet, cancellationToken);
+    }
+
     public void Disconnect()
     {
         try

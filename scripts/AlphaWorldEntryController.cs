@@ -335,7 +335,7 @@ public partial class AlphaWorldEntryController : Control
         _alphaSpellbookStatusLabel = new Label
         {
             Name = "StatusLabel",
-            Text = "Select a target, then click a spell. Cast wiring pending A28.",
+            Text = "Select a target, then click a spell. Backend cast request enabled.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart
         };
 
@@ -384,7 +384,7 @@ public partial class AlphaWorldEntryController : Control
             ? "Target identity ready"
             : "Target identity pending";
 
-        _alphaSpellbookStatusLabel.Text = $"{targetState}. {identityState}. Spell cast wiring pending A28.";
+        _alphaSpellbookStatusLabel.Text = $"{targetState}. {identityState}. Spell cast sends CS_CAST_SKILL 3001.";
     }
 
     private void OnAlphaSpellbookSpellPressed(string spellName, uint skillId)
@@ -415,9 +415,63 @@ public partial class AlphaWorldEntryController : Control
             return;
         }
 
-        SetAlphaCombatMessage($"Spell selected: {spellName} [skill {skillId}]. Cast wiring pending A28.");
-        SetAlphaSystemMessage($"Alpha Spellbook click accepted locally: {spellName}. No packet sent yet.");
+        _ = SendAlphaCastSkillOnceAsync(spellName, skillId);
     }
+
+    private async Task SendAlphaCastSkillOnceAsync(string spellName, uint skillId, CancellationToken cancellationToken = default)
+    {
+        if (GatewayClient == null || !GatewayClient.IsConnected)
+        {
+            SetAlphaCombatMessage($"Cannot cast {spellName}: client disconnected.");
+            return;
+        }
+
+        if (_packetLoopCts == null || _packetLoopCts.IsCancellationRequested)
+        {
+            SetAlphaCombatMessage($"Cannot cast {spellName}: listener inactive.");
+            return;
+        }
+
+        if (!HasAlphaSafeTargetIdentity())
+        {
+            SetAlphaCombatMessage($"Cannot cast {spellName}: target identity pending.");
+            return;
+        }
+
+        var linkedToken = cancellationToken == default
+            ? _packetLoopCts.Token
+            : cancellationToken;
+
+        var targetX = _hasAlphaOrcEliteVisualPosition ? _alphaOrcEliteVisualPosition.X : 0;
+        var targetY = _hasAlphaOrcEliteVisualPosition ? _alphaOrcEliteVisualPosition.Y : 0;
+
+        SetAlphaCombatMessage($"Casting {spellName} [skill {skillId}] on Orc_Elite.");
+        SetAlphaSystemMessage($"CS_CAST_SKILL 3001 queued: {spellName} -> {_alphaOrcEliteRuntimeEntityId}");
+
+        try
+        {
+            await GatewayClient.SendCastSkillRequestAsync(
+                skillId,
+                _alphaOrcEliteRuntimeEntityId,
+                targetX,
+                targetY,
+                linkedToken
+            );
+
+            SetAlphaCombatMessage($"Cast request sent: {spellName}. Waiting for server result.");
+            GD.Print($"Alpha spell cast sent: spell={spellName}, skill={skillId}, target={_alphaOrcEliteRuntimeEntityId}, targetX={targetX}, targetY={targetY}");
+        }
+        catch (OperationCanceledException)
+        {
+            SetAlphaCombatMessage($"Cast cancelled: {spellName}.");
+        }
+        catch (Exception ex)
+        {
+            SetAlphaCombatMessage($"Cast failed locally: {spellName} ({ex.GetType().Name}).");
+            GD.PrintErr($"Alpha spell cast send failed: {ex.Message}");
+        }
+    }
+
     private void RefreshBackpackShellState()
     {
         var itemCountState = _hasInventorySync ? $"{_syncedItemCount} synced" : "pending sync";

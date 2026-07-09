@@ -1739,10 +1739,35 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 
-			res, err := s.combatManager.ProcessCastSkillRequest(playerID, req.SkillID, req.TargetID, req.TargetX, req.TargetY)
+			requestedTargetID := req.TargetID
+			resolvedTargetID := req.TargetID
+			isDebugOrcEliteTarget := req.TargetID == "Orc_Elite"
+
+			if !isDebugOrcEliteTarget && s.creatureSpawnManager != nil {
+				if spawnState, exists := s.creatureSpawnManager.GetSpawnByRuntimeEntityID(req.TargetID); exists && spawnState.SpawnID == "debug_orc_elite_001" {
+					resolvedTargetID = "Orc_Elite"
+					isDebugOrcEliteTarget = true
+					slog.Info("Resolved debug Orc Elite cast target by runtime entity id", "player", playerID, "skill_id", req.SkillID, "requested_target", requestedTargetID, "resolved_target", resolvedTargetID, "runtime_entity_id", spawnState.RuntimeEntityID)
+				}
+			}
+
+			debugOrcEliteRuntimePrefix := "creature:debug_orc_elite_001:"
+			if !isDebugOrcEliteTarget && len(req.TargetID) > len(debugOrcEliteRuntimePrefix) && req.TargetID[:len(debugOrcEliteRuntimePrefix)] == debugOrcEliteRuntimePrefix {
+				slog.Warn("Rejected stale debug Orc Elite runtime cast target", "player", playerID, "skill_id", req.SkillID, "requested_target", requestedTargetID)
+				errPayload := protocol.EncodeDamageEvent(playerID, requestedTargetID, 0, false, false, false, "stale target")
+				errPacket := &protocol.Packet{
+					Opcode:   protocol.SC_DAMAGE_EVENT,
+					Sequence: packet.Sequence,
+					Payload:  errPayload,
+				}
+				conn.Write(errPacket.Serialize())
+				break
+			}
+
+			res, err := s.combatManager.ProcessCastSkillRequest(playerID, req.SkillID, resolvedTargetID, req.TargetX, req.TargetY)
 			if err != nil {
 				slog.Warn("Failed to process cast skill", "error", err)
-				errPayload := protocol.EncodeDamageEvent(playerID, req.TargetID, 0, false, false, false, err.Error())
+				errPayload := protocol.EncodeDamageEvent(playerID, resolvedTargetID, 0, false, false, false, err.Error())
 				errPacket := &protocol.Packet{
 					Opcode:   protocol.SC_DAMAGE_EVENT,
 					Sequence: packet.Sequence,
@@ -1767,7 +1792,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 
 			if res.IsProjectile {
 				// Habilidade de projÃ©til agendada. Broadcast de efeito visual via BroadcastEffects
-				spawnPayload := protocol.EncodeDamageEvent(playerID, req.TargetID, 0, false, false, true, res.Skill.Name)
+				spawnPayload := protocol.EncodeDamageEvent(playerID, resolvedTargetID, 0, false, false, true, res.Skill.Name)
 				s.aoiManager.BroadcastEffects(playerID, protocol.SC_DAMAGE_EVENT, spawnPayload)
 				break
 			}
