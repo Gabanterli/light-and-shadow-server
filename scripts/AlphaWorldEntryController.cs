@@ -160,8 +160,9 @@ public partial class AlphaWorldEntryController : Control
             GetNodeOrNull<Control>("EditableHud") ??
             GetNodeOrNull<Control>("AlphaHudLayout");
 
-        if (_editableHudRoot == null)
+        if (_editableHudRoot == null || !_editableHudRoot.Visible)
         {
+            _editableHudRoot = null;
             return;
         }
 
