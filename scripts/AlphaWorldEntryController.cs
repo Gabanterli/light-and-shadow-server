@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 public partial class AlphaWorldEntryController : Control
 {
+    private bool _isAlphaOrcEliteSelected;
     public AuthSession? Session { get; set; }
     public GatewayTcpClient? GatewayClient { get; set; }
 
@@ -695,9 +696,15 @@ public partial class AlphaWorldEntryController : Control
     {
         _alphaBattleTargetState = state;
 
+        if (state == "Dead")
+        {
+            _isAlphaOrcEliteSelected = false;
+        }
+
         if (_worldView != null)
         {
             _worldView.IsOrcEliteDead = state == "Dead";
+            _worldView.IsOrcEliteSelected = _isAlphaOrcEliteSelected && state == "Alive";
             SyncAlphaOrcEliteNearbyVisualMarker();
         }
 
@@ -804,12 +811,57 @@ public partial class AlphaWorldEntryController : Control
             return;
         }
 
-        if (!mouseButton.Pressed || mouseButton.ButtonIndex != MouseButton.Right)
+        if (!mouseButton.Pressed)
         {
             return;
         }
 
-        OnAlphaRightClickAttackRequested();
+        if (mouseButton.ButtonIndex == MouseButton.Left)
+        {
+            OnAlphaLeftClickTargetSelectionRequested();
+            return;
+        }
+
+        if (mouseButton.ButtonIndex == MouseButton.Right)
+        {
+            OnAlphaRightClickAttackRequested();
+        }
+    }
+
+    private void OnAlphaLeftClickTargetSelectionRequested()
+    {
+        if (_alphaBattleTargetState == "Dead")
+        {
+            _isAlphaOrcEliteSelected = false;
+
+            if (_worldView != null)
+            {
+                _worldView.IsOrcEliteSelected = false;
+                RequestAlphaWorldViewRedraw();
+            }
+
+            SetAlphaCombatMessage("Cannot select target: Orc_Elite is dead.");
+            return;
+        }
+
+        if (_alphaBattleTargetState != "Alive")
+        {
+            SetAlphaCombatMessage("Cannot select target: Orc_Elite is not ready.");
+            return;
+        }
+
+        _isAlphaOrcEliteSelected = true;
+
+        if (_worldView != null)
+        {
+            _worldView.IsOrcEliteSelected = true;
+            SyncAlphaOrcEliteNearbyVisualMarker();
+            RequestAlphaWorldViewRedraw();
+        }
+
+        RefreshBattleTargetState();
+        SetAlphaCombatMessage("Target selected: Orc_Elite.");
+        SetAlphaSystemMessage("Alpha target selected.");
     }
 
     private async void OnAlphaRightClickAttackRequested()

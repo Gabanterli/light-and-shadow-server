@@ -8,6 +8,7 @@ public partial class DebugTileWorldView : Control
     public Vector2I? PlayerTilePosition { get; set; }
     // Technical visualization for combat validation. Not final art.
     public bool IsOrcEliteDead { get; set; }
+    public bool IsOrcEliteSelected { get; set; }
     public Vector2I? OrcElitePosition { get; set; }
     public Vector2I? TargetPosition { get; set; }
 
@@ -103,6 +104,11 @@ public partial class DebugTileWorldView : Control
             // Use a strong red color for the enemy marker with a white border for contrast.
             var orcColor = IsOrcEliteDead ? new Color(0.2f, 0.2f, 0.2f) : new Color(0.9f, 0.1f, 0.1f);
             DrawDebugMarker(OrcElitePosition.Value, orcColor, Colors.White, minPixelX, minPixelY, visibleRect);
+
+            if (IsOrcEliteSelected && !IsOrcEliteDead)
+            {
+                DrawDebugSelectionOutline(OrcElitePosition.Value, minPixelX, minPixelY, visibleRect);
+            }
         }
 
         // Draw movement target marker on top
@@ -187,6 +193,11 @@ public partial class DebugTileWorldView : Control
         {
             var orcColor = IsOrcEliteDead ? new Color(0.2f, 0.2f, 0.2f) : new Color(0.9f, 0.1f, 0.1f);
             DrawFocusedDebugMarker(OrcElitePosition.Value, orcColor, Colors.White, startTileX, startTileY, tileSize, visibleRect);
+
+            if (IsOrcEliteSelected && !IsOrcEliteDead)
+            {
+                DrawFocusedDebugSelectionOutline(OrcElitePosition.Value, startTileX, startTileY, tileSize, visibleRect);
+            }
         }
 
         if (TargetPosition.HasValue)
@@ -292,6 +303,38 @@ public partial class DebugTileWorldView : Control
         }
     }
 
+    private void DrawFocusedDebugSelectionOutline(
+        Vector2I tilePosition,
+        int startTileX,
+        int startTileY,
+        float tileSize,
+        Rect2 visibleRect)
+    {
+        var markerTileSize = UseOneTileEntityMarkers ? tileSize : tileSize * 3;
+        var markerOffset = UseOneTileEntityMarkers ? 0 : tileSize;
+        var drawX = (tilePosition.X - startTileX) * tileSize - markerOffset - 3.0f;
+        var drawY = (tilePosition.Y - startTileY) * tileSize - markerOffset - 3.0f;
+        var markerRect = new Rect2(drawX, drawY, markerTileSize + 6.0f, markerTileSize + 6.0f);
+
+        if (visibleRect.Intersects(markerRect))
+        {
+            DrawRect(markerRect, new Color(1.0f, 0.0f, 0.0f, 0.95f), false, 4.0f);
+        }
+    }
+
+    private void DrawDebugSelectionOutline(Vector2I tilePosition, long minPixelX, long minPixelY, Rect2 visibleRect)
+    {
+        var markerTileSize = UseOneTileEntityMarkers ? TileSize : TileSize * 3;
+        var markerOffset = UseOneTileEntityMarkers ? 0 : TileSize;
+        var drawX = (tilePosition.X * TileSize) - minPixelX - markerOffset - 2;
+        var drawY = (tilePosition.Y * TileSize) - minPixelY - markerOffset - 2;
+        var markerRect = new Rect2(drawX, drawY, markerTileSize + 4, markerTileSize + 4);
+
+        if (visibleRect.Intersects(markerRect))
+        {
+            DrawRect(markerRect, new Color(1.0f, 0.0f, 0.0f, 0.95f), false, 4.0f);
+        }
+    }
     private void DrawTile(Rect2 tileRect, byte tileType, int globalTileX, int globalTileY, Rect2 visibleRect)
     {
         if (!visibleRect.Intersects(tileRect))
