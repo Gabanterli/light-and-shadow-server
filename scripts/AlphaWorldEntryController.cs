@@ -524,6 +524,27 @@ public partial class AlphaWorldEntryController : Control
         _worldView.AddAlphaOrcEliteFloatingCombatText("Miss", false, true);
         RequestAlphaWorldViewRedraw();
     }
+
+    private void ApplyAlphaConfirmedSpellVisualFeedback(string skillName)
+    {
+        if (_worldView == null || !IsAlphaConfirmedSpellSkillName(skillName))
+        {
+            return;
+        }
+
+        GD.Print($"Alpha confirmed spell visual feedback: {skillName}");
+        _worldView.AddAlphaConfirmedSpellVisual(skillName.Trim());
+        RequestAlphaWorldViewRedraw();
+    }
+
+    private static bool IsAlphaConfirmedSpellSkillName(string skillName)
+    {
+        var normalizedSkillName = skillName?.Trim() ?? string.Empty;
+
+        return string.Equals(normalizedSkillName, "Fire Bolt", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(normalizedSkillName, "Holy Spark", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(normalizedSkillName, "Shadow Dart", StringComparison.OrdinalIgnoreCase);
+    }
     private void RefreshWorldShellState()
     {
         if (_worldStatusLabel != null)
@@ -957,8 +978,16 @@ public partial class AlphaWorldEntryController : Control
         try
         {
             var data = BinaryProtocol.DecodeDamageEvent(packet.Payload);
+            GD.Print($"Alpha damage event decoded: target={data.TargetID}, skill={data.SkillName}, success={data.Success}, hit={data.IsHit}, damage={data.Damage:F0}");
 
             if (!data.Success)             {                 var failureMessage = BuildAlphaCombatFailureFeedback(data.SkillName);                 CallDeferred(nameof(ApplyAlphaCombatFailureFeedback), failureMessage);                 return;             }
+
+            var isAlphaConfirmedSpell = data.TargetID == "Orc_Elite" && IsAlphaConfirmedSpellSkillName(data.SkillName);
+
+            if (isAlphaConfirmedSpell)
+            {
+                CallDeferred(nameof(ApplyAlphaConfirmedSpellVisualFeedback), data.SkillName);
+            }
 
             if (!data.IsHit)
             {

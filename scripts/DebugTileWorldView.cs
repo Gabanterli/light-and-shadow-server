@@ -47,8 +47,19 @@ public partial class DebugTileWorldView : Control
         public float HorizontalOffset { get; set; }
     }
 
+    private sealed class AlphaConfirmedSpellVisual
+    {
+        public Vector2I FromTilePosition { get; set; }
+        public Vector2I ToTilePosition { get; set; }
+        public string SkillName { get; set; } = string.Empty;
+        public float AgeSeconds { get; set; }
+        public float DurationSeconds { get; set; } = 1.15f;
+    }
+
     private const int MaxAlphaFloatingCombatTexts = 8;
+    private const int MaxAlphaConfirmedSpellVisuals = 4;
     private readonly System.Collections.Generic.List<AlphaFloatingCombatText> _alphaFloatingCombatTexts = new();
+    private readonly System.Collections.Generic.List<AlphaConfirmedSpellVisual> _alphaConfirmedSpellVisuals = new();
 
     private Texture2D? _grassTileTexture;
     private Texture2D? _dirtTileTexture;
@@ -57,7 +68,7 @@ public partial class DebugTileWorldView : Control
 
     public override void _Process(double delta)
     {
-        if (_alphaFloatingCombatTexts.Count == 0)
+        if (_alphaFloatingCombatTexts.Count == 0 && _alphaConfirmedSpellVisuals.Count == 0)
         {
             return;
         }
@@ -69,6 +80,16 @@ public partial class DebugTileWorldView : Control
             if (_alphaFloatingCombatTexts[i].AgeSeconds >= _alphaFloatingCombatTexts[i].DurationSeconds)
             {
                 _alphaFloatingCombatTexts.RemoveAt(i);
+            }
+        }
+
+        for (var i = _alphaConfirmedSpellVisuals.Count - 1; i >= 0; i--)
+        {
+            _alphaConfirmedSpellVisuals[i].AgeSeconds += (float)delta;
+
+            if (_alphaConfirmedSpellVisuals[i].AgeSeconds >= _alphaConfirmedSpellVisuals[i].DurationSeconds)
+            {
+                _alphaConfirmedSpellVisuals.RemoveAt(i);
             }
         }
 
@@ -97,6 +118,28 @@ public partial class DebugTileWorldView : Control
         while (_alphaFloatingCombatTexts.Count > MaxAlphaFloatingCombatTexts)
         {
             _alphaFloatingCombatTexts.RemoveAt(0);
+        }
+
+        QueueRedraw();
+    }
+
+    public void AddAlphaConfirmedSpellVisual(string skillName)
+    {
+        if (!PlayerTilePosition.HasValue || !OrcElitePosition.HasValue || string.IsNullOrWhiteSpace(skillName))
+        {
+            return;
+        }
+
+        _alphaConfirmedSpellVisuals.Add(new AlphaConfirmedSpellVisual
+        {
+            FromTilePosition = PlayerTilePosition.Value,
+            ToTilePosition = OrcElitePosition.Value,
+            SkillName = skillName.Trim()
+        });
+
+        while (_alphaConfirmedSpellVisuals.Count > MaxAlphaConfirmedSpellVisuals)
+        {
+            _alphaConfirmedSpellVisuals.RemoveAt(0);
         }
 
         QueueRedraw();
@@ -291,6 +334,9 @@ public partial class DebugTileWorldView : Control
                 DrawRect(targetRect, _targetColor);
             }
         }
+
+        // A30-R1: draw confirmed spell visual on top so it is not hidden by debug markers.
+        DrawFocusedAlphaConfirmedSpellVisuals(startTileX, startTileY, tileSize, visibleRect);
     }
 
 
@@ -403,6 +449,66 @@ public partial class DebugTileWorldView : Control
 
         DrawString(font, position, text, HorizontalAlignment.Left, -1.0f, 11, color);
     }
+    private void DrawFocusedAlphaConfirmedSpellVisuals(int startTileX, int startTileY, float tileSize, Rect2 visibleRect)
+    {
+        if (_alphaConfirmedSpellVisuals.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var spellVisual in _alphaConfirmedSpellVisuals)
+        {
+            var progress = spellVisual.DurationSeconds <= 0.0f
+                ? 1.0f
+                : Mathf.Clamp(spellVisual.AgeSeconds / spellVisual.DurationSeconds, 0.0f, 1.0f);
+
+            var opacity = 1.0f - progress;
+            var from = GetFocusedTileCenter(spellVisual.FromTilePosition, startTileX, startTileY, tileSize);
+            var to = GetFocusedTileCenter(spellVisual.ToTilePosition, startTileX, startTileY, tileSize);
+
+            var bounds = new Rect2(
+                Mathf.Min(from.X, to.X) - 16.0f,
+                Mathf.Min(from.Y, to.Y) - 16.0f,
+                Mathf.Abs(to.X - from.X) + 32.0f,
+                Mathf.Abs(to.Y - from.Y) + 32.0f
+            );
+
+            if (!visibleRect.Intersects(bounds))
+            {
+                continue;
+            }
+
+            var color = GetAlphaSpellVisualColor(spellVisual.SkillName, opacity);
+            DrawLine(from, to, color, 4.0f);
+
+            var pulsePosition = from.Lerp(to, progress);
+            DrawCircle(pulsePosition, 8.0f + 6.0f * progress, color);
+            DrawCircle(to, 10.0f * opacity, color);
+        }
+    }
+
+    private Vector2 GetFocusedTileCenter(Vector2I tilePosition, int startTileX, int startTileY, float tileSize)
+    {
+        var markerTileSize = UseOneTileEntityMarkers ? tileSize : tileSize * 3;
+        var markerOffset = UseOneTileEntityMarkers ? 0.0f : tileSize;
+
+        return new Vector2(
+            (tilePosition.X - startTileX) * tileSize - markerOffset + markerTileSize / 2.0f,
+            (tilePosition.Y - startTileY) * tileSize - markerOffset + markerTileSize / 2.0f
+        );
+    }
+
+    private static Color GetAlphaSpellVisualColor(string skillName, float opacity)
+    {
+        return skillName switch
+        {
+            "Fire Bolt" => new Color(1.0f, 0.35f, 0.05f, opacity),
+            "Holy Spark" => new Color(1.0f, 0.95f, 0.55f, opacity),
+            "Shadow Dart" => new Color(0.55f, 0.25f, 1.0f, opacity),
+            _ => new Color(0.7f, 0.9f, 1.0f, opacity)
+        };
+    }
+
     private void DrawFocusedAlphaFloatingCombatTexts(int startTileX, int startTileY, float tileSize, Rect2 visibleRect)
     {
         if (_alphaFloatingCombatTexts.Count == 0)
