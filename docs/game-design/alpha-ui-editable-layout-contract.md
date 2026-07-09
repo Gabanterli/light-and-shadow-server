@@ -46,3 +46,10 @@ They only render state provided by the controller or future client-side presenta
 ## Editing Rule
 
 Gabriel may edit the future Alpha HUD scene visually in Godot, but gameplay state flow must continue through explicit binding APIs.
+## Editable Preview Controller
+
+`AlphaHudLayoutController` exists only to make the editable HUD scene previewable in Godot.
+
+It may seed fake visual data for layout editing, but it must not become gameplay authority.
+
+Runtime data must still flow through the active Alpha controller or a future presentation model.
