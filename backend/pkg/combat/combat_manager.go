@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"log/slog"
 	"github.com/light-and-shadow/backend/pkg/movement"
+	"log/slog"
 )
 
 // WeaponConfig mapeia a velocidade, alcance e multiplicador de escalonamento de cada arma
@@ -60,8 +60,8 @@ type CombatManager struct {
 	mu             sync.RWMutex
 	entities       map[string]*EntityStats
 	entityPos      map[string]struct{ X, Y float64 }
-	aggroTables    map[string]*AggroTable // NPC ID -> AggroTable
-	nextAttackTime map[string]time.Time   // ID -> Próximo momento de ataque permitido
+	aggroTables    map[string]*AggroTable          // NPC ID -> AggroTable
+	nextAttackTime map[string]time.Time            // ID -> Próximo momento de ataque permitido
 	skillCooldowns map[string]map[uint32]time.Time // ID -> SkillID -> Próximo momento de uso
 	scheduler      *CombatScheduler
 	hpCounter      float64
@@ -410,7 +410,7 @@ func (cm *CombatManager) ProcessAttackRequest(attackerID, targetID, weaponType s
 		wConfig = WeaponConfigs["sword"] // Fallback padrão
 	}
 
-	dist := math.Hypot(tarPos.X-attPos.X, tarPos.Y-attPos.Y)
+	dist := math.Max(math.Abs(tarPos.X-attPos.X), math.Abs(tarPos.Y-attPos.Y))
 	if dist > wConfig.Range {
 		return 0, false, false, fmt.Errorf("alvo fora de alcance para %s. Distância: %.2fm, Alcance: %.2fm", wConfig.Name, dist, wConfig.Range)
 	}
@@ -666,7 +666,7 @@ func (cm *CombatManager) ProcessCastSkillRequest(attackerID string, skillID uint
 	cm.mu.Lock()
 	cm.skillCooldowns[attackerID][skillID] = now.Add(skill.Cooldown)
 	attacker.LastCombatTime = now
-	
+
 	for _, dmg := range result.TargetsHit {
 		tEnt, ok := cm.entities[dmg.TargetID]
 		if ok {
@@ -689,7 +689,7 @@ func (cm *CombatManager) ProcessCastSkillRequest(attackerID string, skillID uint
 						atTable.AddThreat(attackerID, dmg.Damage)
 					}
 				}
-				
+
 				if tEnt.Health <= 0 {
 					go cm.handleEntityDeath(tEnt.ID)
 				}

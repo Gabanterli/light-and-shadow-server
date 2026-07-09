@@ -1153,7 +1153,7 @@ public partial class AlphaWorldEntryController : Control
 
         var deltaX = _currentPlayerTilePosition.X - _alphaOrcEliteVisualPosition.X;
         var deltaY = _currentPlayerTilePosition.Y - _alphaOrcEliteVisualPosition.Y;
-        distance = Math.Sqrt((deltaX * deltaX) + (deltaY * deltaY));
+        distance = Math.Max(Math.Abs(deltaX), Math.Abs(deltaY));
 
         return distance <= AlphaDebugSwordPreviewRangeTiles;
     }
