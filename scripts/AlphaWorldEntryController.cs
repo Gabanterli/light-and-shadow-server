@@ -105,6 +105,7 @@ public partial class AlphaWorldEntryController : Control
             _worldView.FocusedViewportTilesHigh = 18;
             _worldView.ShowFixedCombatDebugOverlay = false;
             _worldView.UseOneTileEntityMarkers = true;
+            _worldView.ShowAlphaCombatReadabilityHud = true;
             _worldView.MouseFilter = Control.MouseFilterEnum.Stop;
             _worldView.GuiInput += OnAlphaWorldViewGuiInput;
         }
@@ -295,6 +296,32 @@ public partial class AlphaWorldEntryController : Control
         }
 
         _editableBackpackPanel?.BindBackpackSummary(_hasInventorySync ? _syncedItemCount : 0);
+    }
+
+    private void SyncAlphaPlayerVitalsHud()
+    {
+        if (_worldView == null)
+        {
+            return;
+        }
+
+        _worldView.HasPlayerVitals = _hasInventorySync;
+        _worldView.PlayerHealth = _syncedHealth;
+        _worldView.PlayerMaxHealth = _syncedMaxHealth;
+        _worldView.PlayerMana = _syncedMana;
+        _worldView.PlayerMaxMana = _syncedMaxMana;
+        RequestAlphaWorldViewRedraw();
+    }
+
+    private void ApplyAlphaOrcEliteDamageHudFeedback(double damage)
+    {
+        if (_worldView == null)
+        {
+            return;
+        }
+
+        _worldView.OrcEliteHealthStateText = $"HP sync pending | -{damage:F0}";
+        RequestAlphaWorldViewRedraw();
     }
     private void RefreshWorldShellState()
     {
@@ -739,6 +766,11 @@ public partial class AlphaWorldEntryController : Control
             }
 
             var critText = data.IsCrit ? " Critical." : string.Empty;
+            if (data.TargetID == "Orc_Elite")
+            {
+                CallDeferred(nameof(ApplyAlphaOrcEliteDamageHudFeedback), data.Damage);
+            }
+
             CallDeferred(nameof(SetAlphaCombatMessage), $"Combat event: {data.Damage:F0} damage.{critText}");
         }
         catch (Exception ex)
@@ -880,6 +912,7 @@ public partial class AlphaWorldEntryController : Control
         {
             _worldView.IsOrcEliteDead = state == "Dead";
             _worldView.IsOrcEliteSelected = _isAlphaOrcEliteSelected && state == "Alive";
+            _worldView.OrcEliteHealthStateText = state == "Dead" ? "HP 0" : "HP sync pending";
             SyncAlphaOrcEliteNearbyVisualMarker();
         }
 
@@ -933,6 +966,7 @@ public partial class AlphaWorldEntryController : Control
         }
 
         RefreshTopBarShellState();
+        SyncAlphaPlayerVitalsHud();
         RefreshBackpackShellState();
         SetAlphaSystemMessage($"InventorySync 4001 received. Items: {_syncedItemCount}");
 

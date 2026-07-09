@@ -18,6 +18,13 @@ public partial class DebugTileWorldView : Control
     public int FocusedViewportTilesHigh { get; set; } = 18;
     public bool ShowFixedCombatDebugOverlay { get; set; } = true;
     public bool UseOneTileEntityMarkers { get; set; }
+    public bool ShowAlphaCombatReadabilityHud { get; set; }
+    public bool HasPlayerVitals { get; set; }
+    public double PlayerHealth { get; set; }
+    public double PlayerMaxHealth { get; set; }
+    public double PlayerMana { get; set; }
+    public double PlayerMaxMana { get; set; }
+    public string OrcEliteHealthStateText { get; set; } = "HP sync pending";
 
     private const int TileSize = 8;
     private const int ChunkWidthInTiles = 32;
@@ -187,12 +194,20 @@ public partial class DebugTileWorldView : Control
         if (PlayerTilePosition.HasValue)
         {
             DrawFocusedDebugMarker(PlayerTilePosition.Value, _playerColor, Colors.Black, startTileX, startTileY, tileSize, visibleRect);
+            if (ShowAlphaCombatReadabilityHud)
+            {
+                DrawFocusedPlayerVitalsHud(PlayerTilePosition.Value, startTileX, startTileY, tileSize, visibleRect);
+            }
         }
 
         if (OrcElitePosition.HasValue)
         {
             var orcColor = IsOrcEliteDead ? new Color(0.2f, 0.2f, 0.2f) : new Color(0.9f, 0.1f, 0.1f);
             DrawFocusedDebugMarker(OrcElitePosition.Value, orcColor, Colors.White, startTileX, startTileY, tileSize, visibleRect);
+            if (ShowAlphaCombatReadabilityHud)
+            {
+                DrawFocusedOrcHealthHud(OrcElitePosition.Value, startTileX, startTileY, tileSize, visibleRect);
+            }
 
             if (IsOrcEliteSelected && !IsOrcEliteDead)
             {
@@ -216,6 +231,116 @@ public partial class DebugTileWorldView : Control
         }
     }
 
+
+    private void DrawFocusedPlayerVitalsHud(Vector2I tilePosition, int startTileX, int startTileY, float tileSize, Rect2 visibleRect)
+    {
+        if (!HasPlayerVitals)
+        {
+            return;
+        }
+
+        var markerTileSize = UseOneTileEntityMarkers ? tileSize : tileSize * 3;
+        var markerOffset = UseOneTileEntityMarkers ? 0.0f : tileSize;
+        var drawX = (tilePosition.X - startTileX) * tileSize - markerOffset;
+        var drawY = (tilePosition.Y - startTileY) * tileSize - markerOffset;
+        var markerRect = new Rect2(drawX, drawY, markerTileSize, markerTileSize);
+
+        if (!visibleRect.Intersects(markerRect))
+        {
+            return;
+        }
+
+        var hpBarRect = new Rect2(markerRect.Position.X - 10.0f, markerRect.Position.Y, 6.0f, markerRect.Size.Y);
+        var manaBarRect = new Rect2(markerRect.Position.X + markerRect.Size.X + 4.0f, markerRect.Position.Y, 6.0f, markerRect.Size.Y);
+
+        DrawVerticalVitalBar(hpBarRect, PlayerHealth, PlayerMaxHealth, new Color(0.1f, 0.9f, 0.2f, 0.75f), visibleRect);
+        DrawVerticalVitalBar(manaBarRect, PlayerMana, PlayerMaxMana, new Color(0.2f, 0.45f, 1.0f, 0.75f), visibleRect);
+
+        DrawSmallDebugLabel(new Vector2(hpBarRect.Position.X - 18.0f, hpBarRect.Position.Y - 4.0f), $"{PlayerHealth:F0}", Colors.White, visibleRect);
+        DrawSmallDebugLabel(new Vector2(manaBarRect.Position.X + 8.0f, manaBarRect.Position.Y - 4.0f), $"{PlayerMana:F0}", Colors.White, visibleRect);
+    }
+
+    private void DrawFocusedOrcHealthHud(Vector2I tilePosition, int startTileX, int startTileY, float tileSize, Rect2 visibleRect)
+    {
+        var markerTileSize = UseOneTileEntityMarkers ? tileSize : tileSize * 3;
+        var markerOffset = UseOneTileEntityMarkers ? 0.0f : tileSize;
+        var drawX = (tilePosition.X - startTileX) * tileSize - markerOffset;
+        var drawY = (tilePosition.Y - startTileY) * tileSize - markerOffset;
+        var markerRect = new Rect2(drawX, drawY, markerTileSize, markerTileSize);
+
+        if (!visibleRect.Intersects(markerRect))
+        {
+            return;
+        }
+
+        var hudWidth = Math.Max(markerRect.Size.X, 96.0f);
+        var hudPosition = new Vector2(markerRect.GetCenter().X - hudWidth / 2.0f, markerRect.Position.Y - 26.0f);
+        var backgroundRect = new Rect2(hudPosition, new Vector2(hudWidth, 18.0f));
+        var barRect = new Rect2(hudPosition.X + 4.0f, hudPosition.Y + 11.0f, hudWidth - 8.0f, 4.0f);
+
+        DrawRect(backgroundRect, new Color(0.0f, 0.0f, 0.0f, 0.45f));
+
+        var healthRatio = IsOrcEliteDead ? 0.0f : 1.0f;
+        DrawRect(barRect, new Color(0.15f, 0.0f, 0.0f, 0.75f));
+        DrawRect(new Rect2(barRect.Position, new Vector2(barRect.Size.X * healthRatio, barRect.Size.Y)), new Color(0.9f, 0.1f, 0.1f, 0.85f));
+
+        var stateText = IsOrcEliteDead ? "Orc_Elite HP 0" : $"Orc_Elite {OrcEliteHealthStateText}";
+        DrawSmallDebugLabel(new Vector2(hudPosition.X + 4.0f, hudPosition.Y + 9.0f), stateText, Colors.White, visibleRect);
+    }
+
+    private void DrawVerticalVitalBar(Rect2 barRect, double current, double max, Color fillColor, Rect2 visibleRect)
+    {
+        if (!visibleRect.Intersects(barRect))
+        {
+            return;
+        }
+
+        var ratio = CalculateVitalRatio(current, max);
+        DrawRect(barRect, new Color(0.0f, 0.0f, 0.0f, 0.45f));
+
+        var fillHeight = barRect.Size.Y * ratio;
+        var fillRect = new Rect2(
+            barRect.Position.X,
+            barRect.Position.Y + barRect.Size.Y - fillHeight,
+            barRect.Size.X,
+            fillHeight
+        );
+
+        DrawRect(fillRect, fillColor);
+        DrawRect(barRect, Colors.Black, false, 1.0f);
+    }
+
+    private static float CalculateVitalRatio(double current, double max)
+    {
+        if (max <= 0)
+        {
+            return 0.0f;
+        }
+
+        return Mathf.Clamp((float)(current / max), 0.0f, 1.0f);
+    }
+
+    private void DrawSmallDebugLabel(Vector2 position, string text, Color color, Rect2 visibleRect)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        var labelRect = new Rect2(position.X, position.Y - 12.0f, Math.Max(64.0f, text.Length * 7.0f), 14.0f);
+        if (!visibleRect.Intersects(labelRect))
+        {
+            return;
+        }
+
+        var font = GetThemeDefaultFont();
+        if (font == null)
+        {
+            return;
+        }
+
+        DrawString(font, position, text, HorizontalAlignment.Left, -1.0f, 11, color);
+    }
     private Vector2I GetFallbackFocusedViewportCenterTile()
     {
         long minGlobalTileX = long.MaxValue;
