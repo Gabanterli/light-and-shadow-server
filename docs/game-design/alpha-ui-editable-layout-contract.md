@@ -63,3 +63,10 @@ The bridge is optional:
 - missing editable nodes are ignored through `GetNodeOrNull`;
 - no gameplay authority is moved into UI components;
 - runtime migration must remain fallback-safe.
+## Editor-Time Preview
+
+The editable Alpha HUD scene may show preview data directly in the Godot editor.
+
+Preview values such as `Gabriela`, `Orc_Elite`, HP, mana, combat messages, and system messages are non-authoritative layout helpers.
+
+Runtime values still come from `AlphaWorldEntryController` or a future presentation model.

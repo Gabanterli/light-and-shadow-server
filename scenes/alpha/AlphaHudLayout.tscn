@@ -29,19 +29,19 @@ layout_mode = 2
 
 [node name="NameLabel" type="Label" parent="Root/TopBar/Content"]
 layout_mode = 2
-text = "Name: -"
+text = "Name: Gabriela"
 
 [node name="LevelLabel" type="Label" parent="Root/TopBar/Content"]
 layout_mode = 2
-text = "Level: -"
+text = "Level: 1"
 
 [node name="HealthLabel" type="Label" parent="Root/TopBar/Content"]
 layout_mode = 2
-text = "HP: -"
+text = "HP: 100/100"
 
 [node name="ManaLabel" type="Label" parent="Root/TopBar/Content"]
 layout_mode = 2
-text = "Mana: -"
+text = "Mana: 50/50"
 
 [node name="Main" type="HBoxContainer" parent="Root"]
 layout_mode = 2
@@ -70,11 +70,11 @@ layout_mode = 2
 
 [node name="TargetLabel" type="Label" parent="Root/Main/SidePanel/BattlePanel/Content"]
 layout_mode = 2
-text = "Target: -"
+text = "Target: Orc_Elite [selected]"
 
 [node name="StateLabel" type="Label" parent="Root/Main/SidePanel/BattlePanel/Content"]
 layout_mode = 2
-text = "State: -"
+text = "State: Alive"
 
 [node name="BackpackPanel" type="PanelContainer" parent="Root/Main/SidePanel"]
 layout_mode = 2
@@ -85,7 +85,7 @@ layout_mode = 2
 
 [node name="SummaryLabel" type="Label" parent="Root/Main/SidePanel/BackpackPanel/Content"]
 layout_mode = 2
-text = "Backpack: -"
+text = "Backpack: 0 item(s)"
 
 [node name="Logs" type="HBoxContainer" parent="Root"]
 layout_mode = 2
@@ -105,7 +105,7 @@ text = "Combat"
 
 [node name="MessagesLabel" type="Label" parent="Root/Logs/CombatLogPanel/Content"]
 layout_mode = 2
-text = "-"
+text = "- Target selected: Orc_Elite.\n- Ready for Alpha combat probe."
 
 [node name="SystemLogPanel" type="PanelContainer" parent="Root/Logs"]
 layout_mode = 2
@@ -121,4 +121,4 @@ text = "System"
 
 [node name="MessagesLabel" type="Label" parent="Root/Logs/SystemLogPanel/Content"]
 layout_mode = 2
-text = "-"
+text = "- Editable Alpha HUD preview.\n- Runtime binding remains controller-authoritative."
