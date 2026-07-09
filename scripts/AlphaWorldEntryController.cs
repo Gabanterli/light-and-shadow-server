@@ -17,6 +17,11 @@ public partial class AlphaWorldEntryController : Control
     private Label? _combatFeedbackLabel;
     private Label? _battleLabel;
     private Label? _backpackLabel;
+    private PanelContainer? _alphaSpellbookPanel;
+    private Label? _alphaSpellbookStatusLabel;
+    private Button? _alphaFireBoltButton;
+    private Button? _alphaHolySparkButton;
+    private Button? _alphaShadowDartButton;
     private DebugTileWorldView? _worldView;
 
     private Control? _legacyHudRoot;
@@ -113,7 +118,9 @@ public partial class AlphaWorldEntryController : Control
         RefreshTopBarShellState();
         RefreshBattleTargetState();
         RefreshCombatFeedbackState();
+        MountAlphaSpellbookShell();
         RefreshBackpackShellState();
+        RefreshAlphaSpellbookShellState();
         RefreshWorldShellState();
         StartAlphaWorldBootstrapPacketLoop();
 
@@ -260,6 +267,7 @@ public partial class AlphaWorldEntryController : Control
         }
 
         _editableBattlePanel?.BindTargetState("Orc_Elite", _alphaBattleTargetState, _isAlphaOrcEliteSelected);
+        RefreshAlphaSpellbookShellState();
     }
     private void RefreshCombatFeedbackState()
     {
@@ -283,6 +291,132 @@ public partial class AlphaWorldEntryController : Control
         }
 
         _editableCombatLogPanel?.BindMessages("Combat", _combatFeedbackMessages);
+    }
+
+    private void MountAlphaSpellbookShell()
+    {
+        if (_alphaSpellbookPanel != null)
+        {
+            return;
+        }
+
+        var sidePanel =
+            _editableHudRoot?.GetNodeOrNull<Control>("Root/Main/SidePanel") ??
+            _editableHudRoot?.GetNodeOrNull<Control>("Main/SidePanel") ??
+            GetNodeOrNull<Control>("Root/MainArea/SideTabs");
+
+        if (sidePanel == null)
+        {
+            GD.PrintErr("Alpha Spellbook shell skipped: side panel node not found.");
+            return;
+        }
+
+        _alphaSpellbookPanel = new PanelContainer
+        {
+            Name = "AlphaSpellbookPanel",
+            MouseFilter = MouseFilterEnum.Stop,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ShrinkBegin
+        };
+
+        var content = new VBoxContainer
+        {
+            Name = "Content",
+            SizeFlagsHorizontal = SizeFlags.ExpandFill
+        };
+
+        var titleLabel = new Label
+        {
+            Name = "TitleLabel",
+            Text = "Spellbook",
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+
+        _alphaSpellbookStatusLabel = new Label
+        {
+            Name = "StatusLabel",
+            Text = "Select a target, then click a spell. Cast wiring pending A28.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+
+        _alphaFireBoltButton = CreateAlphaSpellButton("Fire Bolt");
+        _alphaHolySparkButton = CreateAlphaSpellButton("Holy Spark");
+        _alphaShadowDartButton = CreateAlphaSpellButton("Shadow Dart");
+
+        _alphaFireBoltButton.Pressed += () => OnAlphaSpellbookSpellPressed("Fire Bolt", 1001);
+        _alphaHolySparkButton.Pressed += () => OnAlphaSpellbookSpellPressed("Holy Spark", 1002);
+        _alphaShadowDartButton.Pressed += () => OnAlphaSpellbookSpellPressed("Shadow Dart", 1003);
+
+        content.AddChild(titleLabel);
+        content.AddChild(_alphaSpellbookStatusLabel);
+        content.AddChild(_alphaFireBoltButton);
+        content.AddChild(_alphaHolySparkButton);
+        content.AddChild(_alphaShadowDartButton);
+
+        _alphaSpellbookPanel.AddChild(content);
+        sidePanel.AddChild(_alphaSpellbookPanel);
+
+        GD.Print("Alpha Spellbook shell mounted.");
+    }
+
+    private static Button CreateAlphaSpellButton(string spellName)
+    {
+        return new Button
+        {
+            Text = spellName,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            FocusMode = FocusModeEnum.None
+        };
+    }
+
+    private void RefreshAlphaSpellbookShellState()
+    {
+        if (_alphaSpellbookStatusLabel == null)
+        {
+            return;
+        }
+
+        var targetState = _isAlphaOrcEliteSelected
+            ? $"Target: Orc_Elite ({_alphaBattleTargetState})"
+            : $"Target: not selected ({_alphaBattleTargetState})";
+
+        var identityState = HasAlphaSafeTargetIdentity()
+            ? "Target identity ready"
+            : "Target identity pending";
+
+        _alphaSpellbookStatusLabel.Text = $"{targetState}. {identityState}. Spell cast wiring pending A28.";
+    }
+
+    private void OnAlphaSpellbookSpellPressed(string spellName, uint skillId)
+    {
+        RefreshAlphaSpellbookShellState();
+
+        if (_alphaBattleTargetState == "Dead")
+        {
+            SetAlphaCombatMessage($"Cannot cast {spellName}: target is dead.");
+            return;
+        }
+
+        if (_alphaBattleTargetState != "Alive")
+        {
+            SetAlphaCombatMessage($"Cannot cast {spellName}: target is not ready.");
+            return;
+        }
+
+        if (!_isAlphaOrcEliteSelected)
+        {
+            SetAlphaCombatMessage($"Cannot cast {spellName}: select Orc_Elite first.");
+            return;
+        }
+
+        if (!HasAlphaSafeTargetIdentity())
+        {
+            SetAlphaCombatMessage($"Cannot cast {spellName}: target identity pending.");
+            return;
+        }
+
+        SetAlphaCombatMessage($"Spell selected: {spellName} [skill {skillId}]. Cast wiring pending A28.");
+        SetAlphaSystemMessage($"Alpha Spellbook click accepted locally: {spellName}. No packet sent yet.");
     }
     private void RefreshBackpackShellState()
     {
@@ -1139,6 +1273,7 @@ public partial class AlphaWorldEntryController : Control
         }
 
         RefreshBattleTargetState();
+        RefreshAlphaSpellbookShellState();
         SetAlphaCombatMessage("Target selected: Orc_Elite.");
         SetAlphaSystemMessage("Alpha target selected.");
         StartAlphaAutoAttackLoop();
