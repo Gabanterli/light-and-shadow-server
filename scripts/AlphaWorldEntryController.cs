@@ -48,6 +48,9 @@ public partial class AlphaWorldEntryController : Control
     private double _syncedMana;
     private double _syncedMaxMana;
     private int _syncedItemCount;
+    private bool _hasAlphaProgressionSync;
+    private ulong _syncedGold;
+    private ulong _syncedExperience;
 
     private bool _hasWorldChunks;
     private int _syncedChunkCount;
@@ -230,10 +233,12 @@ public partial class AlphaWorldEntryController : Control
         var levelState = _hasInventorySync ? _syncedLevel.ToString() : "pending sync";
         var hpState = _hasInventorySync ? $"{_syncedHealth:F0}/{_syncedMaxHealth:F0}" : "pending sync";
         var manaState = _hasInventorySync ? $"{_syncedMana:F0}/{_syncedMaxMana:F0}" : "pending sync";
+        var goldState = _hasAlphaProgressionSync ? _syncedGold.ToString() : "pending sync";
+        var xpState = _hasAlphaProgressionSync ? _syncedExperience.ToString() : "pending sync";
 
         if (_topBarLabel != null)
         {
-            _topBarLabel.Text = $"Player: {characterState} | Level: {levelState} | HP: {hpState} | Mana: {manaState} | {sessionState} | {clientState}";
+            _topBarLabel.Text = $"Player: {characterState} | Level: {levelState} | XP: {xpState} | Gold: {goldState} | HP: {hpState} | Mana: {manaState} | {sessionState} | {clientState}";
         }
 
         _editableTopBarPanel?.BindPlayerStatus(

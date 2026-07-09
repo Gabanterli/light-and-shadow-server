@@ -1674,32 +1674,44 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 					s.aoiManager.BroadcastCombat(playerID, protocol.SC_TARGET_DEAD, deadPayload)
 				}
 
-				// Grant debug loot only for the specific debug target after spawn-state loot guard.
-				if shouldGrantDebugLoot {
-					s.inventoriesMu.RLock()
-					playerInv, hasInventory := s.inventories[playerID]
-					s.inventoriesMu.RUnlock()
-					if hasInventory && playerInv != nil {
-						if playerInv.AddItem("sword_t1_rusty", 1) {
-							playerInv.SetDirty(true)
-							if playerStats, statsExist := s.combatManager.GetEntityStats(playerID); statsExist {
-								s.sendInventorySync(conn, playerID, playerStats, playerInv)
-							}
-							slog.Info("Debug loot granted after target death", "player", playerID, "target", resolvedTargetID, "item", "sword_t1_rusty", "quantity", 1)
-						} else if playerInv.AddGold(25) {
-							if playerStats, statsExist := s.combatManager.GetEntityStats(playerID); statsExist {
-								s.sendInventorySync(conn, playerID, playerStats, playerInv)
-							}
-							slog.Info("Debug loot fallback gold granted after target death", "player", playerID, "target", resolvedTargetID, "item", "sword_t1_rusty", "fallback_gold", 25)
-						} else {
-							slog.Warn("Failed to grant debug loot after target death", "player", playerID, "target", resolvedTargetID, "item", "sword_t1_rusty")
-						}
-					} else {
-						slog.Warn("Cannot grant debug loot because player inventory was not found", "player", playerID, "target", resolvedTargetID)
-					}
-				}
-			}
-		case protocol.CS_CAST_SKILL:
+				// Grant deterministic Alpha reward only after the spawn-state loot guard.
+            if shouldGrantDebugLoot {
+                s.inventoriesMu.RLock()
+                playerInv, hasInventory := s.inventories[playerID]
+                s.inventoriesMu.RUnlock()
+
+                if hasInventory && playerInv != nil {
+                    playerStats, statsExist := s.combatManager.GetEntityStats(playerID)
+                    if statsExist && playerStats != nil {
+                        itemGranted := playerInv.AddItem(alphaOrcEliteRewardItemID, 1)
+                        goldGranted := playerInv.AddGold(alphaOrcEliteRewardGold)
+                        currentXP, leveledUp := applyAlphaOrcEliteXPReward(playerID, playerInv, playerStats, alphaOrcEliteRewardXP)
+
+                        playerInv.SetDirty(true)
+                        s.sendInventorySync(conn, playerID, playerStats, playerInv)
+                        s.saveCharacterState(playerID)
+
+                        slog.Info(
+                            "Alpha Orc Elite reward granted and persisted",
+                            "player", playerID,
+                            "target", resolvedTargetID,
+                            "item", alphaOrcEliteRewardItemID,
+                            "item_granted", itemGranted,
+                            "gold", alphaOrcEliteRewardGold,
+                            "gold_granted", goldGranted,
+                            "xp", alphaOrcEliteRewardXP,
+                            "current_xp", currentXP,
+                            "level", playerStats.Level,
+                            "leveled_up", leveledUp,
+                        )
+                    } else {
+                        slog.Warn("Cannot grant Alpha Orc Elite reward because player stats were not found", "player", playerID, "target", resolvedTargetID)
+                    }
+                } else {
+                    slog.Warn("Cannot grant Alpha Orc Elite reward because player inventory was not found", "player", playerID, "target", resolvedTargetID)
+                }
+            }
+        case protocol.CS_CAST_SKILL:
 			if playerID == "" {
 				slog.Warn("Cast skill request received but player hasn't selected a character yet.")
 				break
@@ -2491,6 +2503,50 @@ func (s *GatewayServer) startAutosaveLoop() {
 // Inicia o scheduler minimo de respawn de criatura para validacao R2.
 // Escopo atual: Orc_Elite debug spawn only.
 
+const alphaOrcEliteRewardGold int64 = 25
+const alphaOrcEliteRewardXP int64 = 120
+const alphaOrcEliteRewardItemID = "sword_t1_rusty"
+
+func applyAlphaOrcEliteXPReward(playerID string, playerInv *inventory.PlayerInventory, playerStats *combat.EntityStats, xpAmount int64) (int64, bool) {
+    if playerID == "" || playerInv == nil || playerStats == nil || xpAmount <= 0 {
+        return pve.GetPlayerXp(playerID), false
+    }
+
+    currentXP := pve.GetPlayerXp(playerID) + xpAmount
+    leveledUp := false
+
+    xpNeeded := int64(playerStats.Level * playerStats.Level * 100)
+    if xpNeeded <= 0 {
+        xpNeeded = 100
+    }
+
+    for currentXP >= xpNeeded {
+        currentXP -= xpNeeded
+        playerStats.Level++
+        playerStats.MaxHealth += 20.0
+        playerStats.Health = playerStats.MaxHealth
+        playerStats.MaxMana += 5.0
+        playerStats.Mana = playerStats.MaxMana
+        playerStats.BaseAttack += 2.0
+
+        playerInv.BaseStats.Level = playerStats.Level
+        playerInv.BaseStats.MaxHealth = playerStats.MaxHealth
+        playerInv.BaseStats.Health = playerStats.Health
+        playerInv.BaseStats.MaxMana = playerStats.MaxMana
+        playerInv.BaseStats.Mana = playerStats.Mana
+        playerInv.BaseStats.BaseAttack = playerStats.BaseAttack
+
+        leveledUp = true
+        xpNeeded = int64(playerStats.Level * playerStats.Level * 100)
+        if xpNeeded <= 0 {
+            break
+        }
+    }
+
+    pve.SetPlayerXp(playerID, currentXP)
+    playerInv.SetDirty(true)
+    return currentXP, leveledUp
+}
 func encodeAlphaOrcEliteTargetSyncPayload(targetID string, runtimeEntityID string, x float64, y float64, z int) []byte {
 	payload := protocol.EncodeTargetDeadEventWithRuntimeEntityID(targetID, runtimeEntityID)
 	payload = appendFixed32LE(payload, x)
@@ -2688,7 +2744,17 @@ func (s *GatewayServer) sendInventorySync(conn net.Conn, playerID string, stats 
 		CritChance:   stats.CritChance,
 	}
 
-	payload := protocol.EncodeInventorySync(event)
+	gold := playerInv.GetGold()
+	if gold < 0 {
+		gold = 0
+	}
+
+	experience := pve.GetPlayerXp(playerID)
+	if experience < 0 {
+		experience = 0
+	}
+
+	payload := protocol.EncodeInventorySyncWithAlphaProgression(event, uint64(gold), uint64(experience))
 	pkt := &protocol.Packet{
 		Opcode:   protocol.SC_INVENTORY_SYNC,
 		Sequence: 0,

@@ -538,6 +538,17 @@ func EncodeInventorySync(event *InventorySyncEvent) []byte {
 	return buf
 }
 
+// EncodeInventorySyncWithAlphaProgression appends Alpha-only Gold/XP fields after
+// the existing InventorySync payload. Older clients can safely ignore the tail.
+func EncodeInventorySyncWithAlphaProgression(event *InventorySyncEvent, gold uint64, experience uint64) []byte {
+	base := EncodeInventorySync(event)
+	buf := make([]byte, len(base)+16)
+	copy(buf, base)
+	binary.LittleEndian.PutUint64(buf[len(base):len(base)+8], gold)
+	binary.LittleEndian.PutUint64(buf[len(base)+8:len(base)+16], experience)
+	return buf
+}
+
 type EquipItemRequest struct {
 	FromSlot uint16
 	ToSlot   uint16

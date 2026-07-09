@@ -211,7 +211,7 @@ public static class BinaryProtocol
             items.Add(new InventoryItemData { ItemId = itemId, Quantity = quantity, Durability = durability, SlotIndex = slotIndex });
         }
 
-        return new InventorySyncData
+        var syncData = new InventorySyncData
         {
             Items = items,
             Level = ReadUInt32LE(payload, offset, out offset),
@@ -225,6 +225,15 @@ public static class BinaryProtocol
             Resistance = ReadFloat64LE(payload, offset, out offset),
             CritChance = ReadFloat64LE(payload, offset, out offset)
         };
+
+        if (offset + 16 <= payload.Length)
+        {
+            syncData.Gold = ReadUInt64LE(payload, offset, out offset);
+            syncData.Experience = ReadUInt64LE(payload, offset, out offset);
+            syncData.HasAlphaProgression = true;
+        }
+
+        return syncData;
     }
 
     public static ChunkData DecodeChunkData(byte[] payload)
@@ -459,6 +468,26 @@ public static class BinaryProtocol
         return Encoding.UTF8.GetString(buffer, offset, length);
     }
 
+    public static ulong ReadUInt64LE(byte[] buffer, int offset, out int nextOffset)
+    {
+        if (offset + 8 > buffer.Length)
+        {
+            throw new InvalidDataException("Buffer overflow while reading uint64.");
+        }
+
+        var value =
+            (ulong)buffer[offset] |
+            ((ulong)buffer[offset + 1] << 8) |
+            ((ulong)buffer[offset + 2] << 16) |
+            ((ulong)buffer[offset + 3] << 24) |
+            ((ulong)buffer[offset + 4] << 32) |
+            ((ulong)buffer[offset + 5] << 40) |
+            ((ulong)buffer[offset + 6] << 48) |
+            ((ulong)buffer[offset + 7] << 56);
+
+        nextOffset = offset + 8;
+        return value;
+    }
     public static double ReadFloat64LE(byte[] buffer, int offset, out int nextOffset)
     {
         if (offset + 8 > buffer.Length)
@@ -564,6 +593,9 @@ public sealed class InventorySyncData
     public double Defense { get; set; }
     public double Resistance { get; set; }
     public double CritChance { get; set; }
+    public bool HasAlphaProgression { get; set; }
+    public ulong Gold { get; set; }
+    public ulong Experience { get; set; }
 }
 
 public sealed class ChunkData
