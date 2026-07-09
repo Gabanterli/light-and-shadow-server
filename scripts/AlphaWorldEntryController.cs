@@ -30,8 +30,7 @@ public partial class AlphaWorldEntryController : Control
 
     private const int MaxSystemFeedbackMessages = 5;
     private const int MaxCombatFeedbackMessages = 5;
-    private const int AlphaOrcEliteVisualOffsetX = 5;
-    private const int AlphaOrcEliteVisualOffsetY = 0;
+    private const string AlphaRealAttackWeaponType = "debug_sword";
 
     private readonly DebugChunkStore _chunkStore = new();
     private readonly Queue<string> _systemFeedbackMessages = new();
@@ -68,6 +67,9 @@ public partial class AlphaWorldEntryController : Control
     private Vector2I _alphaOrcEliteVisualPosition;
     private string _alphaOrcEliteRuntimeEntityId = string.Empty;
     private bool _pendingCombatRewardConfirmation;
+    private CancellationTokenSource? _alphaAutoAttackCts;
+    private bool _isAlphaAttackRequestInFlight;
+    private static readonly TimeSpan AlphaAutoAttackInterval = TimeSpan.FromMilliseconds(1000);
 
     public override void _Ready()
     {
@@ -115,6 +117,7 @@ public partial class AlphaWorldEntryController : Control
 
     public override void _ExitTree()
     {
+        StopAlphaAutoAttackLoop("scene exit");
         if (_worldView != null)
         {
             _worldView.GuiInput -= OnAlphaWorldViewGuiInput;
@@ -669,19 +672,9 @@ public partial class AlphaWorldEntryController : Control
 
     private void SyncAlphaOrcEliteNearbyVisualMarker()
     {
-        if (_worldView == null || !_hasLocalPlayerPosition)
+        if (_worldView == null || !_hasAlphaOrcEliteVisualPosition)
         {
             return;
-        }
-
-        if (!_hasAlphaOrcEliteVisualPosition)
-        {
-            _alphaOrcEliteVisualPosition = new Vector2I(
-                _currentPlayerTilePosition.X + AlphaOrcEliteVisualOffsetX,
-                _currentPlayerTilePosition.Y + AlphaOrcEliteVisualOffsetY
-            );
-            _hasAlphaOrcEliteVisualPosition = true;
-            SetAlphaSystemMessage("Orc_Elite visual marker anchored near initial player position.");
         }
 
         _worldView.OrcElitePosition = _alphaOrcEliteVisualPosition;
@@ -748,6 +741,7 @@ public partial class AlphaWorldEntryController : Control
             }
 
             CallDeferred(nameof(ApplyAlphaSafeTargetIdentity), data.RuntimeEntityID);
+            CallDeferred(nameof(ApplyAlphaOrcEliteBackendPosition), data.HasPosition, data.X, data.Y, data.Z);
             CallDeferred(nameof(ApplyAlphaBattleTargetState), "Alive", "Orc_Elite respawned.");
         }
         catch (Exception ex)
@@ -757,6 +751,24 @@ public partial class AlphaWorldEntryController : Control
         }
     }
 
+    private void ApplyAlphaOrcEliteBackendPosition(bool hasPosition, double x, double y, int z)
+    {
+        if (!hasPosition)
+        {
+            return;
+        }
+
+        _alphaOrcEliteVisualPosition = new Vector2I((int)Math.Round(x), (int)Math.Round(y));
+        _hasAlphaOrcEliteVisualPosition = true;
+
+        if (_worldView != null)
+        {
+            _worldView.OrcElitePosition = _alphaOrcEliteVisualPosition;
+        }
+
+        SetAlphaSystemMessage($"Orc_Elite backend position synced: {_alphaOrcEliteVisualPosition.X},{_alphaOrcEliteVisualPosition.Y},z={z}.");
+        RequestAlphaWorldViewRedraw();
+    }
     private void ApplyAlphaSafeTargetIdentity(string runtimeEntityId)
     {
         if (string.IsNullOrWhiteSpace(runtimeEntityId))
@@ -780,6 +792,7 @@ public partial class AlphaWorldEntryController : Control
 
         if (state == "Dead")
         {
+            StopAlphaAutoAttackLoop("target dead");
             _isAlphaOrcEliteSelected = false;
         }
 
@@ -945,19 +958,111 @@ public partial class AlphaWorldEntryController : Control
         RefreshBattleTargetState();
         SetAlphaCombatMessage("Target selected: Orc_Elite.");
         SetAlphaSystemMessage("Alpha target selected.");
+        StartAlphaAutoAttackLoop();
     }
 
-    private async void OnAlphaRightClickAttackRequested()
+    private void OnAlphaRightClickAttackRequested()
+    {
+        _ = SendAlphaAttackOnceAsync("right-click");
+    }
+
+    private void StartAlphaAutoAttackLoop()
+    {
+        if (_alphaBattleTargetState != "Alive")
+        {
+            SetAlphaCombatMessage("Cannot auto-attack: target not ready.");
+            return;
+        }
+
+        if (!_isAlphaOrcEliteSelected)
+        {
+            SetAlphaCombatMessage("Cannot auto-attack: target not selected.");
+            return;
+        }
+
+        if (!HasAlphaSafeTargetIdentity())
+        {
+            SetAlphaCombatMessage("Cannot auto-attack: target identity pending.");
+            return;
+        }
+
+        if (_alphaAutoAttackCts != null && !_alphaAutoAttackCts.IsCancellationRequested)
+        {
+            SetAlphaCombatMessage("Auto-attack already running.");
+            return;
+        }
+
+        _alphaAutoAttackCts?.Dispose();
+        _alphaAutoAttackCts = new CancellationTokenSource();
+
+        SetAlphaCombatMessage("Auto-attack started.");
+        GD.Print("Alpha auto-attack loop started for Orc_Elite.");
+        _ = RunAlphaAutoAttackLoopAsync(_alphaAutoAttackCts.Token);
+    }
+
+    private void StopAlphaAutoAttackLoop(string reason)
+    {
+        if (_alphaAutoAttackCts == null)
+        {
+            return;
+        }
+
+        if (!_alphaAutoAttackCts.IsCancellationRequested)
+        {
+            _alphaAutoAttackCts.Cancel();
+        }
+
+        _alphaAutoAttackCts.Dispose();
+        _alphaAutoAttackCts = null;
+        _isAlphaAttackRequestInFlight = false;
+
+        if (!string.IsNullOrWhiteSpace(reason))
+        {
+            GD.Print($"Alpha auto-attack loop stopped: {reason}");
+        }
+    }
+
+    private async Task RunAlphaAutoAttackLoopAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                if (!_isAlphaOrcEliteSelected || _alphaBattleTargetState != "Alive")
+                {
+                    StopAlphaAutoAttackLoop("target no longer attackable");
+                    return;
+                }
+
+                await SendAlphaAttackOnceAsync("auto-attack", cancellationToken);
+                await Task.Delay(AlphaAutoAttackInterval, cancellationToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            GD.Print("Alpha auto-attack loop cancelled.");
+        }
+        catch (Exception ex)
+        {
+            SetAlphaCombatMessage($"Auto-attack stopped: {ex.GetType().Name}.");
+            GD.PrintErr($"Alpha auto-attack loop failed: {ex.Message}");
+            StopAlphaAutoAttackLoop("loop error");
+        }
+    }
+
+    private async Task SendAlphaAttackOnceAsync(string source, CancellationToken cancellationToken = default)
     {
         if (GatewayClient == null || !GatewayClient.IsConnected)
         {
             SetAlphaCombatMessage("Cannot attack: client disconnected.");
+            StopAlphaAutoAttackLoop("client disconnected");
             return;
         }
 
         if (_alphaBattleTargetState == "Dead")
         {
             SetAlphaCombatMessage("Cannot attack: target is dead.");
+            StopAlphaAutoAttackLoop("target dead");
             return;
         }
 
@@ -970,32 +1075,50 @@ public partial class AlphaWorldEntryController : Control
         if (!HasAlphaSafeTargetIdentity())
         {
             SetAlphaCombatMessage("Cannot attack: target identity pending.");
-            GD.Print("Alpha right-click attack blocked: safe target identity is pending.");
+            GD.Print("Alpha attack blocked: safe target identity is pending.");
             return;
         }
 
         if (_packetLoopCts == null || _packetLoopCts.IsCancellationRequested)
         {
             SetAlphaCombatMessage("Cannot attack: listener inactive.");
+            StopAlphaAutoAttackLoop("listener inactive");
             return;
         }
 
+        if (_isAlphaAttackRequestInFlight)
+        {
+            if (source == "right-click")
+            {
+                SetAlphaCombatMessage("Attack already in flight.");
+            }
+
+            return;
+        }
+
+        var effectiveToken = cancellationToken.CanBeCanceled ? cancellationToken : _packetLoopCts.Token;
+
         try
         {
-            SetAlphaCombatMessage("Sending right-click attack.");
-            await GatewayClient.SendAttackRequestAsync(_alphaOrcEliteRuntimeEntityId, "alpha_probe", _packetLoopCts.Token);
-            SetAlphaCombatMessage("Attack request sent.");
-            GD.Print("Alpha right-click attack request sent with safe target identity.");
+            _isAlphaAttackRequestInFlight = true;
+            SetAlphaCombatMessage(source == "auto-attack" ? "Auto-attack swing." : "Sending right-click attack.");
+            await GatewayClient.SendAttackRequestAsync(_alphaOrcEliteRuntimeEntityId, AlphaRealAttackWeaponType, effectiveToken);
+            SetAlphaCombatMessage(source == "auto-attack" ? "Auto-attack request sent." : "Attack request sent.");
+            GD.Print($"Alpha {source} attack request sent with safe target identity.");
         }
         catch (OperationCanceledException)
         {
             SetAlphaCombatMessage("Attack cancelled.");
-            GD.Print("Alpha right-click attack request cancelled.");
+            GD.Print($"Alpha {source} attack request cancelled.");
         }
         catch (Exception ex)
         {
             SetAlphaCombatMessage($"Attack send failed: {ex.GetType().Name}.");
-            GD.PrintErr($"Alpha right-click attack request failed: {ex.Message}");
+            GD.PrintErr($"Alpha {source} attack request failed: {ex.Message}");
+        }
+        finally
+        {
+            _isAlphaAttackRequestInFlight = false;
         }
     }
 

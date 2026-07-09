@@ -1572,13 +1572,6 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 					}
 				}
 			}
-			if isDebugOrcEliteTarget && req.WeaponType == "alpha_probe" {
-				if playerX, playerY, exists := s.combatManager.GetEntityPosition(playerID); exists {
-					s.combatManager.UpdateEntityPosition(resolvedTargetID, playerX+1.0, playerY)
-					slog.Info("Alpha attack probe aligned Orc Elite combat position near player", "player", playerID, "target", resolvedTargetID, "x", playerX+1.0, "y", playerY)
-				}
-				req.WeaponType = "debug_sword"
-			}
 			damage, isCrit, isProj, err := s.combatManager.ProcessAttackRequest(playerID, resolvedTargetID, req.WeaponType)
 			if err != nil {
 				slog.Warn("Failed to process basic attack", "error", err)
@@ -2497,6 +2490,25 @@ func (s *GatewayServer) startAutosaveLoop() {
 // Varre todos os inventÃ¡rios ativos cadastrados e os persiste no PostgreSQL
 // Inicia o scheduler minimo de respawn de criatura para validacao R2.
 // Escopo atual: Orc_Elite debug spawn only.
+
+func encodeAlphaOrcEliteTargetSyncPayload(targetID string, runtimeEntityID string, x float64, y float64, z int) []byte {
+	payload := protocol.EncodeTargetDeadEventWithRuntimeEntityID(targetID, runtimeEntityID)
+	payload = appendFixed32LE(payload, x)
+	payload = appendFixed32LE(payload, y)
+	payload = appendInt32LE(payload, int32(z))
+	return payload
+}
+
+func appendFixed32LE(payload []byte, value float64) []byte {
+	fixedValue := int32(math.Round(value * 1000.0))
+	return appendInt32LE(payload, fixedValue)
+}
+
+func appendInt32LE(payload []byte, value int32) []byte {
+	var buffer [4]byte
+	binary.LittleEndian.PutUint32(buffer[:], uint32(value))
+	return append(payload, buffer[:]...)
+}
 func (s *GatewayServer) startCreatureRespawnSchedulerLoop() {
 	ticker := time.NewTicker(1 * time.Second)
 	go func() {
@@ -2521,8 +2533,7 @@ func (s *GatewayServer) startCreatureRespawnSchedulerLoop() {
 				if s.combatManager.ReviveEntity("Orc_Elite") {
 					slog.Info("Orc Elite creature spawn scheduler respawned", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "version", spawnState.Version, "spawned_at", spawnState.SpawnedAt)
 
-					respawnPayload := protocol.EncodeTargetDeadEvent("Orc_Elite")
-					respawnPayload = append(respawnPayload, protocol.EncodeTargetDeadEvent(spawnState.RuntimeEntityID)...)
+					respawnPayload := encodeAlphaOrcEliteTargetSyncPayload("Orc_Elite", spawnState.RuntimeEntityID, spawnState.X, spawnState.Y, spawnState.Z)
 
 					respawnPacket := &protocol.Packet{
 						Opcode:  3004, // SC_CREATURE_RESPAWN debug bridge
@@ -2636,7 +2647,7 @@ func (s *GatewayServer) sendAlphaOrcEliteTargetIdentitySync(conn net.Conn, playe
 		targetState = "alive"
 	}
 
-	payload := protocol.EncodeTargetDeadEventWithRuntimeEntityID("Orc_Elite", spawnState.RuntimeEntityID)
+	payload := encodeAlphaOrcEliteTargetSyncPayload("Orc_Elite", spawnState.RuntimeEntityID, spawnState.X, spawnState.Y, spawnState.Z)
 	packet := &protocol.Packet{
 		Opcode:   opcode,
 		Sequence: 0,

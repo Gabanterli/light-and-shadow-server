@@ -326,10 +326,27 @@ public static class BinaryProtocol
         var targetId = ReadStringUInt16(payload, offset, out offset);
         var runtimeEntityId = offset < payload.Length ? ReadStringUInt16(payload, offset, out offset) : string.Empty;
 
+        var hasPosition = false;
+        var x = 0.0;
+        var y = 0.0;
+        var z = 0;
+
+        if (offset + 12 <= payload.Length)
+        {
+            x = ReadFixed32LE(payload, offset, out offset);
+            y = ReadFixed32LE(payload, offset, out offset);
+            z = ReadInt32LE(payload, offset, out offset);
+            hasPosition = true;
+        }
+
         return new CreatureRespawnEventData
         {
             TargetID = targetId,
-            RuntimeEntityID = runtimeEntityId
+            RuntimeEntityID = runtimeEntityId,
+            HasPosition = hasPosition,
+            X = x,
+            Y = y,
+            Z = z
         };
     }
     public static void WriteUInt16LE(byte[] buffer, int offset, ushort value)
@@ -456,6 +473,17 @@ public static class BinaryProtocol
         return BitConverter.ToDouble(buffer, offset);
     }
 
+    public static int ReadInt32LE(byte[] buffer, int offset, out int nextOffset)
+    {
+        if (offset + 4 > buffer.Length)
+        {
+            throw new InvalidDataException("Buffer overflow while reading int32.");
+        }
+
+        var value = buffer[offset] | (buffer[offset + 1] << 8) | (buffer[offset + 2] << 16) | (buffer[offset + 3] << 24);
+        nextOffset = offset + 4;
+        return value;
+    }
     public static void WriteFixed32LE(byte[] buffer, int offset, double value)
     {
         if (offset + 4 > buffer.Length)
@@ -580,6 +608,10 @@ public sealed class CreatureRespawnEventData
 {
     public string TargetID { get; set; } = string.Empty;
     public string RuntimeEntityID { get; set; } = string.Empty;
+    public bool HasPosition { get; set; }
+    public double X { get; set; }
+    public double Y { get; set; }
+    public int Z { get; set; }
 }
 
 public sealed class PlayerUpdateData
