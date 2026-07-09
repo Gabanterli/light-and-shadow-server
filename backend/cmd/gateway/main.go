@@ -1684,8 +1684,9 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 						playerStats, statsExist := s.combatManager.GetEntityStats(playerID)
 						if statsExist && playerStats != nil {
 							lootTableFound, itemsDropped, itemsGranted := grantAlphaOrcEliteItemLoot(s.pveManager, playerInv, playerID, resolvedTargetID)
-							goldGranted := playerInv.AddGold(alphaOrcEliteRewardGold)
-							currentXP, leveledUp := applyAlphaOrcEliteXPReward(playerID, playerInv, playerStats, alphaOrcEliteRewardXP)
+							rewardProfile, rewardProfileFound := getAlphaOrcEliteRewardProfile(s.pveManager, playerID, resolvedTargetID)
+							goldGranted := playerInv.AddGold(rewardProfile.Gold)
+							currentXP, leveledUp := applyAlphaOrcEliteXPReward(playerID, playerInv, playerStats, rewardProfile.XP)
 
 							playerInv.SetDirty(true)
 							s.sendInventorySync(conn, playerID, playerStats, playerInv)
@@ -1697,11 +1698,12 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 								"target", resolvedTargetID,
 								"loot_table", alphaOrcEliteLootTableID,
 								"loot_table_found", lootTableFound,
+								"reward_profile_found", rewardProfileFound,
 								"items_dropped", itemsDropped,
 								"items_granted", itemsGranted,
-								"gold", alphaOrcEliteRewardGold,
+								"gold", rewardProfile.Gold,
 								"gold_granted", goldGranted,
-								"xp", alphaOrcEliteRewardXP,
+								"xp", rewardProfile.XP,
 								"current_xp", currentXP,
 								"level", playerStats.Level,
 								"leveled_up", leveledUp,
@@ -2506,9 +2508,30 @@ func (s *GatewayServer) startAutosaveLoop() {
 // Inicia o scheduler minimo de respawn de criatura para validacao R2.
 // Escopo atual: Orc_Elite debug spawn only.
 
-const alphaOrcEliteRewardGold int64 = 25
-const alphaOrcEliteRewardXP int64 = 120
 const alphaOrcEliteLootTableID = "alpha_orc_elite_loot"
+
+func getAlphaOrcEliteRewardProfile(pveMgr *pve.PveManager, playerID string, targetID string) (pve.LootRewardProfile, bool) {
+
+	if pveMgr == nil {
+
+		slog.Warn("Cannot resolve Alpha Orc Elite reward profile because PvE manager is not available", "player", playerID, "target", targetID, "loot_table", alphaOrcEliteLootTableID)
+
+		return pve.LootRewardProfile{LootTableID: alphaOrcEliteLootTableID}, false
+
+	}
+
+	rewardProfile, found := pveMgr.GetLootRewardProfile(alphaOrcEliteLootTableID)
+
+	if !found {
+
+		slog.Warn("Alpha Orc Elite reward profile not found; Gold/XP skipped", "player", playerID, "target", targetID, "loot_table", alphaOrcEliteLootTableID)
+
+		return pve.LootRewardProfile{LootTableID: alphaOrcEliteLootTableID}, false
+
+	}
+
+	return rewardProfile, true
+}
 
 func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.PlayerInventory, playerID string, targetID string) (bool, int, int) {
 

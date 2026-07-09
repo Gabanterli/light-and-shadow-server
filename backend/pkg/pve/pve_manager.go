@@ -64,8 +64,10 @@ type LootItem struct {
 
 // LootTable representa uma tabela de drops de monstros
 type LootTable struct {
-	ID    string     `json:"ID"`
-	Items []LootItem `json:"Items"`
+	ID         string     `json:"ID"`
+	GoldReward int64      `json:"GoldReward"`
+	XPReward   int64      `json:"XPReward"`
+	Items      []LootItem `json:"Items"`
 }
 
 // MonsterInstance representa a instância viva e autoritativa de um monstro no mundo
@@ -834,6 +836,16 @@ func SetPlayerXp(playerID string, xp int64) {
 // LootRollResult describes one backend-authoritative roll against a loaded loot table.
 // It is intentionally separated from inventory mutation so callers can apply capacity,
 // persistence, audit logging and duplicate-loot guards in their own authoritative flow.
+// LootRewardProfile describes deterministic non-item rewards attached to a loot profile.
+// It keeps Gold/XP in backend-authoritative reward data instead of gateway-local constants.
+type LootRewardProfile struct {
+	LootTableID string
+
+	Gold int64
+
+	XP int64
+}
+
 type LootRollResult struct {
 	ItemID   string
 	Quantity int
@@ -845,6 +857,33 @@ type LootRollResult struct {
 
 // RollLootTable rolls a loaded loot table without mutating inventory state.
 // Returns false when the table is missing, allowing callers to log and fall back safely.
+// GetLootRewardProfile returns deterministic non-item rewards attached to a loaded loot table.
+func (pm *PveManager) GetLootRewardProfile(tableID string) (LootRewardProfile, bool) {
+
+	if pm == nil || tableID == "" {
+
+		return LootRewardProfile{}, false
+
+	}
+
+	lootTable, exists := pm.lootTables[tableID]
+
+	if !exists {
+
+		return LootRewardProfile{}, false
+
+	}
+
+	return LootRewardProfile{
+
+		LootTableID: lootTable.ID,
+
+		Gold: lootTable.GoldReward,
+
+		XP: lootTable.XPReward,
+	}, true
+}
+
 func (pm *PveManager) RollLootTable(tableID string) ([]LootRollResult, bool) {
 	if pm == nil || tableID == "" {
 		return nil, false
