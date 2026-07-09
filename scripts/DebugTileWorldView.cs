@@ -36,10 +36,71 @@ public partial class DebugTileWorldView : Control
     private readonly Color _playerColor = new(0.9f, 0.9f, 0.2f);
     private readonly Color _targetColor = new(1.0f, 0.5f, 0.2f, 0.5f);
 
+    private sealed class AlphaFloatingCombatText
+    {
+        public Vector2I TilePosition { get; set; }
+        public string Text { get; set; } = string.Empty;
+        public bool IsCritical { get; set; }
+        public bool IsMiss { get; set; }
+        public float AgeSeconds { get; set; }
+        public float DurationSeconds { get; set; } = 0.95f;
+        public float HorizontalOffset { get; set; }
+    }
+
+    private const int MaxAlphaFloatingCombatTexts = 8;
+    private readonly System.Collections.Generic.List<AlphaFloatingCombatText> _alphaFloatingCombatTexts = new();
+
     private Texture2D? _grassTileTexture;
     private Texture2D? _dirtTileTexture;
     private Texture2D? _stoneBlockedTileTexture;
     private Texture2D? _waterTileTexture;
+
+    public override void _Process(double delta)
+    {
+        if (_alphaFloatingCombatTexts.Count == 0)
+        {
+            return;
+        }
+
+        for (var i = _alphaFloatingCombatTexts.Count - 1; i >= 0; i--)
+        {
+            _alphaFloatingCombatTexts[i].AgeSeconds += (float)delta;
+
+            if (_alphaFloatingCombatTexts[i].AgeSeconds >= _alphaFloatingCombatTexts[i].DurationSeconds)
+            {
+                _alphaFloatingCombatTexts.RemoveAt(i);
+            }
+        }
+
+        QueueRedraw();
+    }
+
+    public void AddAlphaOrcEliteFloatingCombatText(string text, bool isCritical, bool isMiss)
+    {
+        if (!OrcElitePosition.HasValue || string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        var offsetSlot = _alphaFloatingCombatTexts.Count % 3;
+        var horizontalOffset = (offsetSlot - 1) * 12.0f;
+
+        _alphaFloatingCombatTexts.Add(new AlphaFloatingCombatText
+        {
+            TilePosition = OrcElitePosition.Value,
+            Text = text.Trim(),
+            IsCritical = isCritical,
+            IsMiss = isMiss,
+            HorizontalOffset = horizontalOffset
+        });
+
+        while (_alphaFloatingCombatTexts.Count > MaxAlphaFloatingCombatTexts)
+        {
+            _alphaFloatingCombatTexts.RemoveAt(0);
+        }
+
+        QueueRedraw();
+    }
 
     public override void _Ready()
     {
@@ -207,6 +268,7 @@ public partial class DebugTileWorldView : Control
             if (ShowAlphaCombatReadabilityHud)
             {
                 DrawFocusedOrcHealthHud(OrcElitePosition.Value, startTileX, startTileY, tileSize, visibleRect);
+                DrawFocusedAlphaFloatingCombatTexts(startTileX, startTileY, tileSize, visibleRect);
             }
 
             if (IsOrcEliteSelected && !IsOrcEliteDead)
@@ -341,6 +403,49 @@ public partial class DebugTileWorldView : Control
 
         DrawString(font, position, text, HorizontalAlignment.Left, -1.0f, 11, color);
     }
+    private void DrawFocusedAlphaFloatingCombatTexts(int startTileX, int startTileY, float tileSize, Rect2 visibleRect)
+    {
+        if (_alphaFloatingCombatTexts.Count == 0)
+        {
+            return;
+        }
+
+        var markerTileSize = UseOneTileEntityMarkers ? tileSize : tileSize * 3;
+        var markerOffset = UseOneTileEntityMarkers ? 0.0f : tileSize;
+
+        foreach (var floatingText in _alphaFloatingCombatTexts)
+        {
+            var drawX = (floatingText.TilePosition.X - startTileX) * tileSize - markerOffset;
+            var drawY = (floatingText.TilePosition.Y - startTileY) * tileSize - markerOffset;
+            var markerRect = new Rect2(drawX, drawY, markerTileSize, markerTileSize);
+
+            if (!visibleRect.Intersects(markerRect))
+            {
+                continue;
+            }
+
+            var progress = floatingText.DurationSeconds <= 0.0f
+                ? 1.0f
+                : Mathf.Clamp(floatingText.AgeSeconds / floatingText.DurationSeconds, 0.0f, 1.0f);
+
+            var opacity = 1.0f - progress;
+            var verticalRise = 34.0f * progress;
+
+            var color = floatingText.IsMiss
+                ? new Color(0.9f, 0.9f, 0.9f, opacity)
+                : floatingText.IsCritical
+                    ? new Color(1.0f, 0.75f, 0.1f, opacity)
+                    : new Color(1.0f, 1.0f, 1.0f, opacity);
+
+            var textPosition = new Vector2(
+                markerRect.GetCenter().X - 22.0f + floatingText.HorizontalOffset,
+                markerRect.Position.Y - 18.0f - verticalRise
+            );
+
+            DrawSmallDebugLabel(textPosition, floatingText.Text, color, visibleRect);
+        }
+    }
+
     private Vector2I GetFallbackFocusedViewportCenterTile()
     {
         long minGlobalTileX = long.MaxValue;

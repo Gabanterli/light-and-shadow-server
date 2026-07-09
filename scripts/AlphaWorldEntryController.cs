@@ -313,14 +313,27 @@ public partial class AlphaWorldEntryController : Control
         RequestAlphaWorldViewRedraw();
     }
 
-    private void ApplyAlphaOrcEliteDamageHudFeedback(double damage)
+    private void ApplyAlphaOrcEliteDamageHudFeedback(double damage, bool isCritical)
     {
         if (_worldView == null)
         {
             return;
         }
 
-        _worldView.OrcEliteHealthStateText = $"HP sync pending | -{damage:F0}";
+        var critText = isCritical ? " CRIT" : string.Empty;
+        _worldView.OrcEliteHealthStateText = $"HP sync pending | -{damage:F0}{critText}";
+        _worldView.AddAlphaOrcEliteFloatingCombatText($"-{damage:F0}{critText}", isCritical, false);
+        RequestAlphaWorldViewRedraw();
+    }
+
+    private void ApplyAlphaOrcEliteMissFloatingText()
+    {
+        if (_worldView == null)
+        {
+            return;
+        }
+
+        _worldView.AddAlphaOrcEliteFloatingCombatText("Miss", false, true);
         RequestAlphaWorldViewRedraw();
     }
     private void RefreshWorldShellState()
@@ -768,7 +781,7 @@ public partial class AlphaWorldEntryController : Control
             var critText = data.IsCrit ? " Critical." : string.Empty;
             if (data.TargetID == "Orc_Elite")
             {
-                CallDeferred(nameof(ApplyAlphaOrcEliteDamageHudFeedback), data.Damage);
+                CallDeferred(nameof(ApplyAlphaOrcEliteDamageHudFeedback), data.Damage, data.IsCrit);
             }
 
             CallDeferred(nameof(SetAlphaCombatMessage), $"Combat event: {data.Damage:F0} damage.{critText}");
