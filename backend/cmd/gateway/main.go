@@ -1689,14 +1689,47 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			res, err := s.combatManager.ProcessCastSkillRequest(playerID, req.SkillID, resolvedTargetID, req.TargetX, req.TargetY)
 			if err != nil {
 				slog.Warn("Failed to process cast skill", "error", err)
-				errPayload := protocol.EncodeDamageEvent(playerID, resolvedTargetID, 0, false, false, false, err.Error())
-				errPacket := &protocol.Packet{
-					Opcode:   protocol.SC_DAMAGE_EVENT,
-					Sequence: packet.Sequence,
-					Payload:  errPayload,
+				playerStats, statsExist := s.combatManager.GetEntityStats(playerID)
+				currentMana := 0.0
+				maxMana := 0.0
+				if statsExist {
+					currentMana = playerStats.Mana
+					maxMana = playerStats.MaxMana
 				}
-				conn.Write(errPacket.Serialize())
+				resultPayload := protocol.EncodeCastSkillResult(req.SkillID, false, err.Error(), 0, 0, currentMana, maxMana)
+				conn.Write((&protocol.Packet{Opcode: protocol.SC_CAST_SKILL_RESULT, Sequence: packet.Sequence, Payload: resultPayload}).Serialize())
 				break
+			}
+
+			// Ação autorizada. Agora, enviar confirmação.
+			slog.Info("Cast skill authorized and processed", "player", playerID, "skill_id", req.SkillID, "mana_cost", res.Skill.ManaCost)
+
+			// Envia resultado de sucesso
+			playerStats, statsExist := s.combatManager.GetEntityStats(playerID)
+			currentMana := 0.0
+			maxMana := 0.0
+			if statsExist && playerStats != nil {
+				currentMana = playerStats.Mana
+				maxMana = playerStats.MaxMana
+			}
+
+			resultPayload := protocol.EncodeCastSkillResult(
+				req.SkillID,
+				true,
+				res.Skill.Name,
+				uint32(res.Skill.Cooldown.Milliseconds()),
+				uint32(res.Skill.ManaCost),
+				currentMana,
+				maxMana,
+			)
+			conn.Write((&protocol.Packet{Opcode: protocol.SC_CAST_SKILL_RESULT, Sequence: packet.Sequence, Payload: resultPayload}).Serialize())
+
+			// Envia sync de inventário para atualizar mana no HUD principal
+			s.inventoriesMu.RLock()
+			playerInv, invExists := s.inventories[playerID]
+			s.inventoriesMu.RUnlock()
+			if invExists && statsExist && playerInv != nil && playerStats != nil {
+				s.sendInventorySync(conn, playerID, playerStats, playerInv)
 			}
 
 			// Dispara o evento de habilidade conjurada para fins de ganho de afinidade (Sprint 3 Task 5)

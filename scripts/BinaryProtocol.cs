@@ -8,6 +8,7 @@ namespace LightAndShadow.Client;
 
 public static class BinaryProtocol
 {
+    public const ushort SC_CAST_SKILL_RESULT = 3006;
     public static byte[] EncodeLoginRequest(string username, string password)
     {
         var payload = new byte[4 + Encoding.UTF8.GetByteCount(username) + Encoding.UTF8.GetByteCount(password)];
@@ -313,6 +314,29 @@ public static class BinaryProtocol
             IsHit = isHit,
             Success = success,
             SkillName = skillName
+        };
+    }
+
+    public static CastSkillResultData DecodeCastSkillResult(byte[] payload)
+    {
+        var offset = 0;
+        var skillId = ReadUInt32LE(payload, offset, out offset);
+        var success = payload[offset++] != 0;
+        var reason = ReadStringUInt16(payload, offset, out offset);
+        var cooldownMs = ReadUInt32LE(payload, offset, out offset);
+        var manaCost = ReadUInt32LE(payload, offset, out offset);
+        var currentMana = ReadFixed32LE(payload, offset, out offset);
+        var maxMana = ReadFixed32LE(payload, offset, out offset);
+
+        return new CastSkillResultData
+        {
+            SkillId = skillId,
+            Success = success,
+            Reason = reason,
+            CooldownRemainingMs = cooldownMs,
+            ManaCost = manaCost,
+            CurrentMana = currentMana,
+            MaxMana = maxMana,
         };
     }
 
@@ -662,6 +686,17 @@ public sealed class TargetDeadEventData
 {
     public string TargetID { get; set; } = string.Empty;
     public string RuntimeEntityID { get; set; } = string.Empty;
+}
+
+public sealed class CastSkillResultData
+{
+    public uint SkillId { get; set; }
+    public bool Success { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public uint CooldownRemainingMs { get; set; }
+    public uint ManaCost { get; set; }
+    public double CurrentMana { get; set; }
+    public double MaxMana { get; set; }
 }
 
 

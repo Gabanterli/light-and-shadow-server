@@ -30,11 +30,12 @@ const (
 	SC_CHUNK_DATA   uint16 = 2006
 
 	// Combat System Opcodes (Sprint 2 Task 5)
-	CS_ATTACK_REQUEST uint16 = 3000
-	CS_CAST_SKILL     uint16 = 3001
-	SC_DAMAGE_EVENT   uint16 = 3002
-	SC_TARGET_DEAD    uint16 = 3003
-	SC_LOOT_RESULT    uint16 = 3005
+	CS_ATTACK_REQUEST    uint16 = 3000
+	CS_CAST_SKILL        uint16 = 3001
+	SC_DAMAGE_EVENT      uint16 = 3002
+	SC_TARGET_DEAD       uint16 = 3003
+	SC_LOOT_RESULT       uint16 = 3005
+	SC_CAST_SKILL_RESULT uint16 = 3006
 
 	// Inventory System Opcodes (Sprint 3 Task 1)
 	CS_INVENTORY_REQUEST uint16 = 4000
@@ -450,6 +451,31 @@ func EncodeDamageEvent(attackerID, targetID string, damage float64, isCrit, isHi
 	offset += 3
 	WriteString(buf, skillName, &offset)
 	return buf
+}
+
+func EncodeCastSkillResult(skillID uint32, success bool, reason string, cooldownMs uint32, manaCost uint32, currentMana float64, maxMana float64) []byte {
+	reasonBytes := []byte(reason)
+	// skillID(4) + success(1) + reason_len(2) + reason_bytes + cooldown(4) + mana_cost(4) + current_mana(4) + max_mana(4)
+	payload := make([]byte, 4+1+2+len(reasonBytes)+4+4+4+4)
+	offset := 0
+
+	WriteUint32(payload, skillID, &offset)
+
+	if success {
+		payload[offset] = 1
+	} else {
+		payload[offset] = 0
+	}
+	offset++
+
+	WriteString(payload, reason, &offset)
+
+	WriteUint32(payload, cooldownMs, &offset)
+	WriteUint32(payload, manaCost, &offset)
+	WriteFixed32(payload, currentMana, &offset)
+	WriteFixed32(payload, maxMana, &offset)
+
+	return payload
 }
 
 type TargetDeadEvent struct {

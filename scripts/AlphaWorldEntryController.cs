@@ -619,6 +619,10 @@ public partial class AlphaWorldEntryController : Control
                 {
                     HandleAlphaLootResultPacket(packet);
                 }
+                else if (packet.Opcode == BinaryProtocol.SC_CAST_SKILL_RESULT)
+                {
+                    HandleAlphaCastSkillResultPacket(packet);
+                }
                 else
                 {
                     _ignoredPacketCount++;
@@ -1031,6 +1035,30 @@ public partial class AlphaWorldEntryController : Control
         }
     }
 
+    private void HandleAlphaCastSkillResultPacket(Packet packet)
+    {
+        try
+        {
+            var data = BinaryProtocol.DecodeCastSkillResult(packet.Payload);
+            if (data.Success)
+            {
+                var message = $"Cast confirmed: {data.Reason}.";
+                CallDeferred(nameof(SetAlphaCombatMessage), message);
+                GD.Print($"Alpha cast success: skill={data.SkillId}, reason='{data.Reason}', cooldown={data.CooldownRemainingMs}ms");
+            }
+            else
+            {
+                var message = $"Cast failed: {data.Reason}.";
+                CallDeferred(nameof(SetAlphaCombatMessage), message);
+                GD.Print($"Alpha cast failed: skill={data.SkillId}, reason='{data.Reason}', cooldown={data.CooldownRemainingMs}ms");
+            }
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Alpha CastSkillResult decode failed: {ex.Message}");
+            CallDeferred(nameof(SetAlphaCombatMessage), $"Cast feedback decode failed: {ex.GetType().Name}");
+        }
+    }
 
     private void HandleAlphaLootResultPacket(Packet packet)
     {
