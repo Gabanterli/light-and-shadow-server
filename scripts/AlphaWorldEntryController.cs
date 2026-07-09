@@ -847,6 +847,7 @@ public partial class AlphaWorldEntryController : Control
 
     private void ApplyInventorySyncValues(uint level, double health, double maxHealth, double mana, double maxMana, int itemCount, bool hasAlphaProgression, ulong gold, ulong experience)
     {
+        var hadPreviousInventorySync = _hasInventorySync;         var previousLevel = _syncedLevel;         var previousItemCount = _syncedItemCount;         var hadPreviousAlphaProgressionSync = _hasAlphaProgressionSync;         var previousGold = _syncedGold;         var previousExperience = _syncedExperience; 
         _hasInventorySync = true;
         _syncedLevel = level;
         _syncedHealth = health;
@@ -865,13 +866,59 @@ public partial class AlphaWorldEntryController : Control
         RefreshBackpackShellState();
         SetAlphaSystemMessage($"InventorySync 4001 received. Items: {_syncedItemCount}");
 
-        if (_pendingCombatRewardConfirmation)
-        {
-            _pendingCombatRewardConfirmation = false;
-            SetAlphaCombatMessage("Reward sync confirmed.");
-        }
+        if (_pendingCombatRewardConfirmation)         {             _pendingCombatRewardConfirmation = false;             var rewardMessage = BuildAlphaRewardSyncFeedback(                 hadPreviousInventorySync,                 previousLevel,                 previousItemCount,                 hadPreviousAlphaProgressionSync,                 previousGold,                 previousExperience,                 level,                 itemCount,                 hasAlphaProgression,                 gold,                 experience             );             SetAlphaCombatMessage(rewardMessage);         }
 
         GD.Print($"Alpha inventory sync applied: level={_syncedLevel}, hp={_syncedHealth:F2}/{_syncedMaxHealth:F2}, mana={_syncedMana:F2}/{_syncedMaxMana:F2}, items={_syncedItemCount}, hasProgression={_hasAlphaProgressionSync}, gold={_syncedGold}, xp={_syncedExperience}");
+    }
+
+    private static string BuildAlphaRewardSyncFeedback(
+        bool hadPreviousInventorySync,
+        uint previousLevel,
+        int previousItemCount,
+        bool hadPreviousAlphaProgressionSync,
+        ulong previousGold,
+        ulong previousExperience,
+        uint level,
+        int itemCount,
+        bool hasAlphaProgression,
+        ulong gold,
+        ulong experience)
+    {
+        var parts = new List<string> { "Reward sync confirmed." };
+
+        if (hasAlphaProgression && hadPreviousAlphaProgressionSync)
+        {
+            parts.Add(gold >= previousGold ? $"Gold +{gold - previousGold}" : $"Gold synced: {gold}");
+            parts.Add(experience >= previousExperience ? $"XP +{experience - previousExperience}" : $"XP synced: {experience}");
+        }
+        else if (hasAlphaProgression)
+        {
+            parts.Add($"Gold: {gold}");
+            parts.Add($"XP: {experience}");
+        }
+        else
+        {
+            parts.Add("Gold/XP pending sync");
+        }
+
+        if (hadPreviousInventorySync)
+        {
+            if (level > previousLevel)
+            {
+                parts.Add($"Level {previousLevel}->{level}");
+            }
+
+            if (itemCount > previousItemCount)
+            {
+                parts.Add($"Item slots +{itemCount - previousItemCount}");
+            }
+            else if (itemCount == previousItemCount)
+            {
+                parts.Add("No new item slot synced");
+            }
+        }
+
+        return string.Join(" | ", parts);
     }
 
     private void SetAlphaSystemMessage(string message)
