@@ -89,23 +89,23 @@ type MonsterInstance struct {
 
 // PveManager gerencia todo o ecossistema PvE do servidor de forma centralizada e thread-safe
 type PveManager struct {
-	mu             sync.RWMutex
-	spatialIndex   *movement.SpatialIndex
-	aoiManager     *movement.AOIManager
-	combatManager  *combat.CombatManager
-	inventories    map[string]*inventory.PlayerInventory // Ponteiro compartilhado de inventários ativos
-	
-	monsters       map[string]MonsterTemplate
-	spawns         []SpawnPoint
-	lootTables     map[string]LootTable
-	
+	mu            sync.RWMutex
+	spatialIndex  *movement.SpatialIndex
+	aoiManager    *movement.AOIManager
+	combatManager *combat.CombatManager
+	inventories   map[string]*inventory.PlayerInventory // Ponteiro compartilhado de inventários ativos
+
+	monsters   map[string]MonsterTemplate
+	spawns     []SpawnPoint
+	lootTables map[string]LootTable
+
 	activeMonsters map[string]*MonsterInstance
 	spawnCounts    map[string]int // spawnPointID -> número atual de mobs vivos
 	stopChan       chan struct{}
-	
-	onPlayerLevelUp func(playerID string, level int, stats *combat.EntityStats) // Callback para sincronização e broadcast de level up
-	onMonsterKilled func(playerID string, monsterTemplateID string)
-	onItemLooted    func(playerID string, itemID string, qty int)
+
+	onPlayerLevelUp   func(playerID string, level int, stats *combat.EntityStats) // Callback para sincronização e broadcast de level up
+	onMonsterKilled   func(playerID string, monsterTemplateID string)
+	onItemLooted      func(playerID string, itemID string, qty int)
 	onGetPartyMembers func(playerID string, x, y float64) []string
 }
 
@@ -126,7 +126,7 @@ func NewPveManager(si *movement.SpatialIndex, aoi *movement.AOIManager, cm *comb
 		spawnCounts:    make(map[string]int),
 		stopChan:       make(chan struct{}),
 	}
-	
+
 	pm.loadConfigs()
 	return pm
 }
@@ -155,7 +155,7 @@ func (pm *PveManager) RegisterItemLootedCallback(cb func(string, string, int)) {
 // loadConfigs busca e carrega as definições de arquivos JSON de forma resiliente
 func (pm *PveManager) loadConfigs() {
 	paths := []string{"backend/config/", "config/", "../config/"}
-	
+
 	// 1. Monstros
 	for _, p := range paths {
 		filePath := p + "monsters.json"
@@ -212,7 +212,7 @@ func (pm *PveManager) loadConfigs() {
 // Start inicializa o ciclo contínuo da máquina de estados do PvE e re-spawns
 func (pm *PveManager) Start() {
 	pm.InitializeSpawns()
-	
+
 	// AI Tick loop a cada 500ms
 	go func() {
 		ticker := time.NewTicker(500 * time.Millisecond)
@@ -254,7 +254,7 @@ func (pm *PveManager) spawnMonsterLocked(s SpawnPoint, index int) {
 	}
 
 	monsterID := fmt.Sprintf("mob_%s_%s_%d", s.ID, s.MonsterID, index)
-	
+
 	// Determina a posição inicial com base no SpawnRadius
 	var x, y float64
 	if s.SpawnRadius > 0 {
@@ -351,13 +351,13 @@ func (pm *PveManager) processMonsterAI(m *MonsterInstance) {
 		if m.State != "Dead" {
 			m.State = "Dead"
 			m.RespawnAt = now.Add(60 * time.Second)
-			
+
 			// Executa recompensas de XP e Loot (Tagged loot ownership, Party split)
 			go pm.handleMonsterDeath(m)
-			
+
 			// Remove o monstro temporariamente do mapa espacial para que suma dos AOIs
 			pm.spatialIndex.RemoveEntity(m.ID)
-			
+
 			// Envia Despawn para vizinhos próximos na AOI
 			packet := &protocol.Packet{
 				Opcode:  protocol.SC_DESPAWN_ENTITY,
@@ -467,7 +467,7 @@ func (pm *PveManager) processMonsterAI(m *MonsterInstance) {
 
 		// Range check para ataque Melee ou Skill
 		distToPlayer := math.Hypot(m.X-px, m.Y-py)
-		
+
 		// Decisão se ataca ou se continua a perseguir
 		if distToPlayer <= 1.5 {
 			m.State = "Attack"
@@ -513,7 +513,7 @@ func (pm *PveManager) processMonsterAI(m *MonsterInstance) {
 		if err == nil {
 			slog.Debug("Monster auto-attacked player", "id", m.ID, "target", m.CurrentTarget)
 		}
-		
+
 		m.State = "Chase"
 		m.LastActionTime = now
 
@@ -551,7 +551,7 @@ func (pm *PveManager) processMonsterAI(m *MonsterInstance) {
 	case "ReturnHome":
 		// Cura completamente o monstro enquanto retorna para ficar invulnerável
 		m.Stats.Health = m.Template.MaxHealth
-		
+
 		distToHome := math.Hypot(m.X-m.HomeX, m.Y-m.HomeY)
 		step := m.Template.ChaseSpeed * 0.5
 		if distToHome <= step {
@@ -608,7 +608,7 @@ func (pm *PveManager) TickRespawn() {
 // findNearestPlayer busca o jogador mais próximo na área visível
 func (pm *PveManager) findNearestPlayer(x, y float64, radius float64, z int) string {
 	entities := pm.spatialIndex.GetEntitiesInRegion(x, y, radius, z)
-	
+
 	var nearestID string
 	minDist := radius + 1.0
 
@@ -628,7 +628,7 @@ func (pm *PveManager) findNearestPlayer(x, y float64, radius float64, z int) str
 // broadcastNpcMovement envia a nova coordenada para os jogadores que observam o NPC
 func (pm *PveManager) broadcastNpcMovement(npcID string, x, y float64, z int) {
 	pm.spatialIndex.UpdateEntityPosition(npcID, x, y, z)
-	
+
 	payload, _ := json.Marshal(struct {
 		PlayerID string  `json:"id"`
 		X        float64 `json:"x"`
@@ -640,7 +640,7 @@ func (pm *PveManager) broadcastNpcMovement(npcID string, x, y float64, z int) {
 		Y:        y,
 		Dir:      1,
 	})
-	
+
 	pm.aoiManager.BroadcastMove(npcID, x, y, z, payload)
 }
 
@@ -653,8 +653,8 @@ func (pm *PveManager) handleMonsterDeath(m *MonsterInstance) {
 	}
 
 	// Coleta jogador elegível para XP/loot.
-    // Build stabilization: usa o top threat como participante válido sem acessar internals do SpatialIndex.
-    eligiblePlayers := []string{topThreatPlayerID}
+	// Build stabilization: usa o top threat como participante válido sem acessar internals do SpatialIndex.
+	eligiblePlayers := []string{topThreatPlayerID}
 
 	if len(eligiblePlayers) == 0 {
 		eligiblePlayers = append(eligiblePlayers, topThreatPlayerID)
@@ -723,12 +723,12 @@ func (pm *PveManager) handleMonsterDeath(m *MonsterInstance) {
 				if drop.MaxQty > drop.MinQty {
 					qty = drop.MinQty + rand.Intn(drop.MaxQty-drop.MinQty+1)
 				}
-				
+
 				// Adiciona ao inventário de forma segura
 				success := playerInv.AddItem(drop.ItemID, qty)
 				if success {
 					slog.Info("Rare/Weighted drop added to player inventory", "player", topThreatPlayerID, "item", drop.ItemID, "qty", qty)
-					
+
 					pm.mu.RLock()
 					lootedCb := pm.onItemLooted
 					pm.mu.RUnlock()
@@ -765,10 +765,10 @@ func (pm *PveManager) awardXp(playerID string, xp int64) {
 	// Como a tabela character possui 'experience', podemos armazenar lá temporariamente
 	// Vamos usar o campo LastCombatTime ou uma propriedade em memória estática, ou carregar dinamicamente.
 	// Vamos guardar o XP acumulado de forma local em memória e fazer o level up
-	
+
 	// Vamos definir a fórmula de XP necessário: Level * Level * 100
 	xpNeeded := int64(pStats.Level * pStats.Level * 100)
-	
+
 	// Carrega XP atual em memória
 	// Como o banco characters já grava a coluna 'experience', vamos adicionar o XP
 	// e salvar. Para fazer isso, guardamos no BaseStats (podemos ler ou embutir um contador temporário).
@@ -776,20 +776,20 @@ func (pm *PveManager) awardXp(playerID string, xp int64) {
 	pveXpMu.Lock()
 	currentXp := playerXpRegistry[playerID]
 	currentXp += xp
-	
+
 	leveledUp := false
 	for currentXp >= xpNeeded {
 		currentXp -= xpNeeded
 		pStats.Level++
 		playerInv.BaseStats.Level++
-		
+
 		// Incremento estrito de Atributos de Combate no Level Up
 		pStats.MaxHealth += 20.0
 		pStats.Health = pStats.MaxHealth
 		pStats.MaxMana += 5.0
 		pStats.Mana = pStats.MaxMana
 		pStats.BaseAttack += 2.0
-		
+
 		playerInv.BaseStats.MaxHealth = pStats.MaxHealth
 		playerInv.BaseStats.Health = pStats.Health
 		playerInv.BaseStats.MaxMana = pStats.MaxMana
@@ -813,8 +813,8 @@ func (pm *PveManager) awardXp(playerID string, xp int64) {
 
 // Variáveis estáticas de controle de XP em memória para evitar quebras de retrocompatibilidade com EntityStats
 var (
-	pveXpMu            sync.Mutex
-	playerXpRegistry   = make(map[string]int64)
+	pveXpMu          sync.Mutex
+	playerXpRegistry = make(map[string]int64)
 )
 
 // GetPlayerXp retorna o XP em memória do jogador
@@ -829,4 +829,77 @@ func SetPlayerXp(playerID string, xp int64) {
 	pveXpMu.Lock()
 	defer pveXpMu.Unlock()
 	playerXpRegistry[playerID] = xp
+}
+
+// LootRollResult describes one backend-authoritative roll against a loaded loot table.
+// It is intentionally separated from inventory mutation so callers can apply capacity,
+// persistence, audit logging and duplicate-loot guards in their own authoritative flow.
+type LootRollResult struct {
+	ItemID   string
+	Quantity int
+	Chance   float64
+	Roll     float64
+	Dropped  bool
+	Reason   string
+}
+
+// RollLootTable rolls a loaded loot table without mutating inventory state.
+// Returns false when the table is missing, allowing callers to log and fall back safely.
+func (pm *PveManager) RollLootTable(tableID string) ([]LootRollResult, bool) {
+	if pm == nil || tableID == "" {
+		return nil, false
+	}
+
+	lootTable, exists := pm.lootTables[tableID]
+	if !exists {
+		return nil, false
+	}
+
+	results := make([]LootRollResult, 0, len(lootTable.Items))
+	for _, drop := range lootTable.Items {
+		result := LootRollResult{
+			ItemID:  drop.ItemID,
+			Chance:  drop.Chance,
+			Dropped: false,
+			Reason:  "roll_missed",
+		}
+
+		if drop.ItemID == "" {
+			result.Reason = "invalid_item_id"
+			results = append(results, result)
+			continue
+		}
+
+		if drop.Chance <= 0 {
+			result.Reason = "zero_or_negative_chance"
+			results = append(results, result)
+			continue
+		}
+
+		minQty := drop.MinQty
+		if minQty <= 0 {
+			minQty = 1
+		}
+
+		maxQty := drop.MaxQty
+		if maxQty < minQty {
+			maxQty = minQty
+		}
+
+		result.Roll = rand.Float64()
+		if result.Roll <= drop.Chance {
+			qty := minQty
+			if maxQty > minQty {
+				qty = rand.Intn(maxQty-minQty+1) + minQty
+			}
+
+			result.Quantity = qty
+			result.Dropped = true
+			result.Reason = "dropped"
+		}
+
+		results = append(results, result)
+	}
+
+	return results, true
 }

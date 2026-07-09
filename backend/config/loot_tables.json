@@ -170,4 +170,17 @@
       }
     ]
   }
+,
+  {
+    "ID": "alpha_orc_elite_loot",
+    "Description": "Alpha Orc Elite baseline loot table. Preserves A17/A18 validated sword reward while moving item drops into backend-authoritative loot config.",
+    "Items": [
+      {
+        "ItemID": "sword_t1_rusty",
+        "Chance": 1.00,
+        "MinQty": 1,
+        "MaxQty": 1
+      }
+    ]
+  }
 ]
