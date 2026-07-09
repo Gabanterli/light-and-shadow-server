@@ -2505,6 +2505,7 @@ func (s *GatewayServer) startAutosaveLoop() {
 
 const alphaOrcEliteRewardGold int64 = 25
 const alphaOrcEliteRewardXP int64 = 120
+const alphaOrcEliteLootTableID = "alpha_orc_elite_loot"
 
 func applyAlphaOrcEliteXPReward(playerID string, playerInv *inventory.PlayerInventory, playerStats *combat.EntityStats, xpAmount int64) (int64, bool) {
 	if playerID == "" || playerInv == nil || playerStats == nil || xpAmount <= 0 {
