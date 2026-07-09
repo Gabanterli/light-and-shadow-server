@@ -801,10 +801,21 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				Element:            "Shadow",
 				ElementAttackBonus: 0.05,
 				ElementDefBonus:    0.10,
-				// HP baixo para validação técnica de morte/3003 (debug-only)
-				Health:    1.0,
-				MaxHealth: 1.0,
+				// HP temporário de validação Alpha para testar cadência, HUD e magias target.
+				Health:    alphaOrcEliteCombatTestHealth,
+				MaxHealth: alphaOrcEliteCombatTestHealth,
 			}, savedX+1.0, savedY)
+
+			if targetStats, exists := s.combatManager.GetEntityStats("Orc_Elite"); exists && targetStats != nil {
+				slog.Info(
+					"Registered Orc Elite combat stats",
+					"target", targetStats.ID,
+					"health", targetStats.Health,
+					"max_health", targetStats.MaxHealth,
+					"x", savedX+1.0,
+					"y", savedY,
+				)
+			}
 
 			if s.creatureSpawnManager != nil {
 				spawnState, err := s.creatureSpawnManager.RegisterSpawn("debug_orc_elite_001", "orc_elite", savedX+1.0, savedY, int(savedZ), 1.0)
@@ -2519,6 +2530,7 @@ type alphaOrcEliteLootResult struct {
 }
 
 const alphaOrcEliteLootTableID = "alpha_orc_elite_loot"
+const alphaOrcEliteCombatTestHealth = 5000.0
 
 func getAlphaOrcEliteRewardProfile(pveMgr *pve.PveManager, playerID string, targetID string) (pve.LootRewardProfile, bool) {
 
