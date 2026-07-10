@@ -2458,28 +2458,16 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			if playerID == "" {
 				break
 			}
-			vocation, err := protocol.DecodeChooseVocationRequest(packet.Payload)
-			if err != nil {
-				slog.Error("Failed to decode choose vocation request", "error", err)
-				break
-			}
-			err = s.progressionManager.ChooseVocation(playerID, vocation)
-			var respPayload []byte
-			if err != nil {
-				slog.Warn("Choose vocation rejected", "player", playerID, "vocation", vocation, "error", err)
-				respPayload = protocol.EncodeChooseVocationResponse(false, err.Error(), "")
-			} else {
-				slog.Info("Choose vocation succeeded", "player", playerID, "vocation", vocation)
-				respPayload = protocol.EncodeChooseVocationResponse(true, "", vocation)
 
-				// Sync inventory immediately to client to reflect new vocation stats
-				s.inventoriesMu.RLock()
-				playerInv, existsInv := s.inventories[playerID]
-				s.inventoriesMu.RUnlock()
-				if stats, existsStats := s.combatManager.GetEntityStats(playerID); existsStats && existsInv {
-					s.sendInventorySync(conn, playerID, stats, playerInv)
-				}
+			requestedVocation := ""
+			if vocation, err := protocol.DecodeChooseVocationRequest(packet.Payload); err != nil {
+				slog.Warn("Direct choose vocation request rejected because payload is invalid", "player", playerID, "error", err)
+			} else {
+				requestedVocation = vocation
 			}
+
+			slog.Warn("Direct choose vocation request rejected; class selection must go through NPC dialogue", "player", playerID, "requested_vocation", requestedVocation)
+			respPayload := protocol.EncodeChooseVocationResponse(false, "escolha de classe deve ser feita com Mentor Arion", "")
 			conn.Write((&protocol.Packet{
 				Opcode:   protocol.SC_CHOOSE_VOCATION_RESP,
 				Sequence: packet.Sequence,
