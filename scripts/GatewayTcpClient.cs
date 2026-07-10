@@ -130,7 +130,13 @@ public sealed class GatewayTcpClient : IDisposable
         var packet = new Packet(BinaryProtocol.CS_NPC_INTERACT, NextSequence(), payload);
         await SendPacketAsync(packet, cancellationToken);
     }
-    public async Task SendAttackRequestAsync(string targetId, string weaponType, CancellationToken cancellationToken = default)
+
+    public async Task SendDialogueResponseRequestAsync(string npcId, string nodeId, string nextNodeId, CancellationToken cancellationToken = default)
+    {
+        var payload = BinaryProtocol.EncodeDialogueResponseRequest(npcId, nodeId, nextNodeId);
+        var packet = new Packet(BinaryProtocol.CS_DIALOGUE_RESPONSE, NextSequence(), payload);
+        await SendPacketAsync(packet, cancellationToken);
+    }    public async Task SendAttackRequestAsync(string targetId, string weaponType, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
         var payload = BinaryProtocol.EncodeAttackRequest(targetId, weaponType);

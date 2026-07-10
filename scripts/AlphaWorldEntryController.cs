@@ -54,6 +54,7 @@ public partial class AlphaWorldEntryController : Control
     private int _ignoredPacketCount;
     private bool _isAlphaDialogueOpen;
     private string _openAlphaDialogueNpcId = string.Empty;
+    private string _openAlphaDialogueNodeId = string.Empty;
 
     private bool _hasInventorySync;
     private uint _syncedLevel;
@@ -446,6 +447,7 @@ content.AddChild(_alphaDialogueTextLabel);
 
         _isAlphaDialogueOpen = true;
         _openAlphaDialogueNpcId = npcId;
+        _openAlphaDialogueNodeId = nodeId;
         _alphaDialoguePanel.Visible = true;
         _alphaDialoguePanel.Show();
 
@@ -498,16 +500,100 @@ content.AddChild(_alphaDialogueTextLabel);
                 SizeFlagsHorizontal = SizeFlags.ExpandFill
             };
 
+            var parsedChoice = ParseAlphaDialogueChoice(optionText);
+            var choiceNextNodeId = parsedChoice.NextNodeId;
+            var choiceDisplayText = parsedChoice.Text;
+            optionButton.Text = $"Choice: {choiceDisplayText}";
+
             optionButton.Pressed += () =>
             {
-                SetAlphaSystemMessage($"Dialogue option selected visually: {optionText}. Response packet comes next.");
-                SetAlphaCombatMessage("Dialogue response preview only. CS_DIALOGUE_RESPONSE comes next.");
+                _ = SendAlphaDialogueResponseAsync(choiceNextNodeId, choiceDisplayText);
             };
 
             _alphaDialogueChoicesContainer.AddChild(optionButton);
         }
 
         GD.Print($"Alpha dialogue window opened: npc={npcId}, node={nodeId}, choices={choiceCount}, text={nodeText}, rawChoices={choicesText}");
+    }
+
+    private static (string NextNodeId, string Text) ParseAlphaDialogueChoice(string rawChoice)
+    {
+        var safeRawChoice = rawChoice ?? string.Empty;
+        var separatorIndex = safeRawChoice.IndexOf(": ", StringComparison.Ordinal);
+
+        if (separatorIndex <= 0)
+        {
+            var fallback = safeRawChoice.Trim();
+            return (fallback, fallback);
+        }
+
+        var nextNodeId = safeRawChoice.Substring(0, separatorIndex).Trim();
+        var text = safeRawChoice.Substring(separatorIndex + 2).Trim();
+
+        return (nextNodeId, text);
+    }
+
+    private async Task SendAlphaDialogueResponseAsync(string nextNodeId, string displayText)
+    {
+        if (!_isAlphaDialogueOpen)
+        {
+            SetAlphaSystemMessage("Cannot respond: no dialogue is open.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_openAlphaDialogueNpcId) || string.IsNullOrWhiteSpace(_openAlphaDialogueNodeId))
+        {
+            SetAlphaSystemMessage("Cannot respond: dialogue state is incomplete.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(nextNodeId))
+        {
+            SetAlphaSystemMessage("Cannot respond: next node id is empty.");
+            return;
+        }
+
+        if (_packetLoopCts == null || _packetLoopCts.IsCancellationRequested)
+        {
+            SetAlphaSystemMessage("Cannot respond: listener inactive.");
+            return;
+        }
+
+        if (GatewayClient == null || !GatewayClient.IsConnected)
+        {
+            SetAlphaSystemMessage("Cannot respond: client disconnected.");
+            return;
+        }
+
+        try
+        {
+            SetAlphaSystemMessage($"Sending dialogue response: {_openAlphaDialogueNodeId} -> {nextNodeId}.");
+            SetAlphaCombatMessage($"Dialogue option sent: {displayText}");
+
+            await GatewayClient.SendDialogueResponseRequestAsync(
+                _openAlphaDialogueNpcId,
+                _openAlphaDialogueNodeId,
+                nextNodeId,
+                _packetLoopCts.Token
+            );
+
+            GD.Print($"Alpha dialogue response sent: npc={_openAlphaDialogueNpcId}, node={_openAlphaDialogueNodeId}, next={nextNodeId}, text={displayText}");
+
+            if (string.Equals(nextNodeId, "end", StringComparison.OrdinalIgnoreCase))
+            {
+                CloseAlphaDialogueWindow("dialogue ended");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            SetAlphaSystemMessage("Dialogue response cancelled.");
+            GD.Print("Alpha dialogue response cancelled.");
+        }
+        catch (Exception ex)
+        {
+            SetAlphaSystemMessage($"Dialogue response failed: {ex.GetType().Name}.");
+            GD.PrintErr($"Alpha dialogue response failed: {ex.Message}");
+        }
     }
 
     private void CloseAlphaDialogueWindowFromButton()

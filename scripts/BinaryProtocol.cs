@@ -287,6 +287,26 @@ public static class BinaryProtocol
         return (npcId, nodeId, nodeText, choices);
     }
 
+    public static byte[] EncodeDialogueResponseRequest(string npcId, string nodeId, string nextNodeId)
+    {
+        var safeNpcId = npcId ?? string.Empty;
+        var safeNodeId = nodeId ?? string.Empty;
+        var safeNextNodeId = nextNodeId ?? string.Empty;
+
+        var payload = new byte[
+            2 + Encoding.UTF8.GetByteCount(safeNpcId) +
+            2 + Encoding.UTF8.GetByteCount(safeNodeId) +
+            2 + Encoding.UTF8.GetByteCount(safeNextNodeId)
+        ];
+
+        var offset = 0;
+        offset = WriteStringUInt16(payload, offset, safeNpcId);
+        offset = WriteStringUInt16(payload, offset, safeNodeId);
+        offset = WriteStringUInt16(payload, offset, safeNextNodeId);
+
+        return payload;
+    }
+
     public static byte[] EncodeNpcInteractRequest(string npcId)
     {
         var safeNpcId = npcId ?? string.Empty;
