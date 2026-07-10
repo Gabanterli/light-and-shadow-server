@@ -1602,9 +1602,9 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 					totalContribution := spawnState.DamageContributors[playerID]
 
 					slog.Info("Recorded Orc Elite damage contribution", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "player", playerID, "damage", damage, "total_contribution", totalContribution, "version", spawnState.Version)
+					logAlphaCreatureThreat(spawnState, playerID, damage)
 
 				} else {
-
 					slog.Warn("Failed to record Orc Elite damage contribution", "spawn_id", resolution.SpawnID, "player", playerID, "damage", damage)
 
 				}
@@ -1753,6 +1753,15 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				}
 				conn.Write(dmgPacket.Serialize())
 				s.aoiManager.BroadcastCombat(playerID, protocol.SC_DAMAGE_EVENT, dmgPayload)
+
+				// A37: Add spell damage to contribution and log threat
+				if resolution.IsDebugOrcElite && hit.Damage > 0 && s.creatureSpawnManager != nil {
+					if spawnState, recorded := s.creatureSpawnManager.AddDamageContribution(resolution.SpawnID, playerID, hit.Damage); recorded {
+						logAlphaCreatureThreat(spawnState, playerID, hit.Damage)
+					} else {
+						slog.Warn("Failed to record Orc Elite spell damage contribution", "spawn_id", resolution.SpawnID, "player", playerID, "damage", hit.Damage)
+					}
+				}
 
 				// Se o alvo morreu, notifica morte
 				targetStats, exists := s.combatManager.GetEntityStats(hit.TargetID)
@@ -2597,6 +2606,36 @@ func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.Pla
 	}
 
 	return lootTableFound, itemsDropped, itemsGranted, lootResults
+}
+
+func logAlphaCreatureThreat(spawnState *pve.CreatureSpawnState, playerID string, damage float64) {
+	if spawnState == nil || spawnState.DamageContributors == nil {
+		return
+	}
+
+	var topThreatPlayerID string
+	var topThreatValue float64 = -1.0
+
+	for pID, threat := range spawnState.DamageContributors {
+		if threat > topThreatValue {
+			topThreatValue = threat
+			topThreatPlayerID = pID
+		}
+	}
+
+	playerThreat, _ := spawnState.DamageContributors[playerID]
+
+	slog.Info(
+		"Alpha creature threat updated",
+		"spawn_id", spawnState.SpawnID,
+		"runtime_entity_id", spawnState.RuntimeEntityID,
+		"player", playerID,
+		"damage", damage,
+		"player_threat", playerThreat,
+		"top_threat_player", topThreatPlayerID,
+		"top_threat_value", topThreatValue,
+		"version", spawnState.Version,
+	)
 }
 
 type creatureCombatTargetResolution struct {
