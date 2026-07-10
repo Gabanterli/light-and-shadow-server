@@ -11,6 +11,7 @@ public static class BinaryProtocol
     public const ushort CS_NPC_INTERACT = 5000;
     public const ushort SC_DIALOGUE_OPEN = 5001;
     public const ushort CS_DIALOGUE_RESPONSE = 5002;
+    public const ushort SC_CHOOSE_VOCATION_RESP = 9101;
     public const ushort SC_CAST_SKILL_RESULT = 3006;
     public static byte[] EncodeLoginRequest(string username, string password)
     {
@@ -259,6 +260,26 @@ public static class BinaryProtocol
         };
     }
 
+
+    public static ChooseVocationResponseData DecodeChooseVocationResponse(byte[] payload)
+    {
+        if (payload.Length < 3)
+        {
+            throw new InvalidDataException("Choose vocation response payload is too small.");
+        }
+
+        var offset = 0;
+        var success = payload[offset++] == 1;
+        var errorMessage = ReadStringUInt16(payload, offset, out offset);
+        var className = ReadStringUInt16(payload, offset, out offset);
+
+        return new ChooseVocationResponseData
+        {
+            Success = success,
+            ErrorMessage = errorMessage,
+            ClassName = className
+        };
+    }
 
     public static (string NpcId, string NodeId, string NodeText, List<(string NextNodeId, string Text)> Choices) DecodeDialogueOpen(byte[] payload)
     {
@@ -644,6 +665,13 @@ public static class BinaryProtocol
         nextOffset = offset + 4;
         return intValue / 1000.0;
     }
+}
+
+public sealed class ChooseVocationResponseData
+{
+    public bool Success { get; set; }
+    public string ErrorMessage { get; set; } = string.Empty;
+    public string ClassName { get; set; } = string.Empty;
 }
 
 public sealed class LoginResponseData

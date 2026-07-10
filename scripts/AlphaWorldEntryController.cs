@@ -55,6 +55,7 @@ public partial class AlphaWorldEntryController : Control
     private bool _isAlphaDialogueOpen;
     private string _openAlphaDialogueNpcId = string.Empty;
     private string _openAlphaDialogueNodeId = string.Empty;
+    private string _confirmedAlphaClassId = string.Empty;
 
     private bool _hasInventorySync;
     private uint _syncedLevel;
@@ -961,6 +962,10 @@ content.AddChild(_alphaDialogueTextLabel);
                 {
                     HandleAlphaCastSkillResultPacket(packet);
                 }
+                else if (packet.Opcode == BinaryProtocol.SC_CHOOSE_VOCATION_RESP)
+                {
+                    HandleAlphaChooseVocationResponsePacket(packet);
+                }
                 else if (packet.Opcode == BinaryProtocol.SC_DIALOGUE_OPEN)
                 {
                     HandleAlphaDialogueOpenPacket(packet);
@@ -997,6 +1002,68 @@ content.AddChild(_alphaDialogueTextLabel);
         {
             _packetLoopCts.Cancel();
         }
+    }
+
+    private void HandleAlphaChooseVocationResponsePacket(Packet packet)
+    {
+        try
+        {
+            var data = BinaryProtocol.DecodeChooseVocationResponse(packet.Payload);
+            CallDeferred(
+                nameof(ApplyAlphaChooseVocationResponseValues),
+                data.Success,
+                data.ErrorMessage,
+                data.ClassName
+            );
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Alpha ChooseVocation response decode failed: {ex.Message}");
+            CallDeferred(nameof(SetAlphaSystemMessage), $"Class selection feedback decode failed: {ex.GetType().Name}");
+        }
+    }
+
+    private void ApplyAlphaChooseVocationResponseValues(bool success, string errorMessage, string className)
+    {
+        var displayClass = FormatAlphaClassName(className);
+
+        if (success)
+        {
+            _confirmedAlphaClassId = className ?? string.Empty;
+
+            if (_isAlphaDialogueOpen)
+            {
+                CloseAlphaDialogueWindow("class selection confirmed");
+            }
+
+            SetAlphaSystemMessage($"Class selected: {displayClass}.");
+            SetAlphaCombatMessage($"Mentor Arion confirmed your class: {displayClass}.");
+            GD.Print($"Alpha class selection confirmed: class={className}");
+            return;
+        }
+
+        var safeError = string.IsNullOrWhiteSpace(errorMessage)
+            ? "class selection rejected"
+            : errorMessage.Trim();
+
+        SetAlphaSystemMessage($"Class selection failed: {safeError}");
+        SetAlphaCombatMessage($"Mentor Arion rejected class selection: {safeError}");
+        GD.Print($"Alpha class selection rejected: error={safeError}, class={className}");
+    }
+
+    private static string FormatAlphaClassName(string className)
+    {
+        return (className ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "knight" => "Cavaleiro",
+            "mage" => "Mago",
+            "archer" => "Arqueiro",
+            "assassin" => "Assassino",
+            "cleric" => "Clérigo",
+            "novice" => "Novato",
+            "" => "unknown",
+            var other => other
+        };
     }
 
     private void HandleAlphaDialogueOpenPacket(Packet packet)
