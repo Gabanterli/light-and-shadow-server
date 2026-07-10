@@ -12,6 +12,7 @@ public partial class DebugTileWorldView : Control
     public bool IsOrcEliteDead { get; set; }
     public bool IsOrcEliteSelected { get; set; }
     public Vector2I? OrcElitePosition { get; set; }
+    public Vector2I? MentorArionPosition { get; set; }
     public Vector2I? TargetPosition { get; set; }
 
     // Debug remains unchanged by default. Alpha can opt into a focused playable viewport.
@@ -320,6 +321,12 @@ public partial class DebugTileWorldView : Control
             }
         }
 
+        // Draw Mentor Arion marker on top. Alpha-only technical NPC visualization.
+        if (MentorArionPosition.HasValue)
+        {
+            DrawDebugMarker(MentorArionPosition.Value, new Color(0.2f, 0.55f, 1.0f), Colors.White, minPixelX, minPixelY, visibleRect);
+        }
+
         // Draw movement target marker on top
         if (TargetPosition.HasValue)
         {
@@ -418,6 +425,17 @@ public partial class DebugTileWorldView : Control
             }
         }
 
+        // Draw Mentor Arion in focused Alpha viewport. Technical NPC visualization, not final art.
+        if (MentorArionPosition.HasValue)
+        {
+            DrawFocusedDebugMarker(MentorArionPosition.Value, new Color(0.2f, 0.55f, 1.0f), Colors.White, startTileX, startTileY, tileSize, visibleRect);
+            if (ShowAlphaCombatReadabilityHud)
+            {
+                var labelPosition = GetFocusedTileCenter(MentorArionPosition.Value, startTileX, startTileY, tileSize) + new Vector2(-34.0f, -18.0f);
+                DrawSmallDebugLabel(labelPosition, "Mentor Arion", Colors.White, visibleRect);
+            }
+        }
+
         if (TargetPosition.HasValue)
         {
             var targetRect = new Rect2(
@@ -438,6 +456,42 @@ public partial class DebugTileWorldView : Control
     }
 
 
+    public bool TryGetFocusedTileAtLocalPosition(Vector2 localPosition, out Vector2I tilePosition)
+    {
+        tilePosition = default;
+
+        if (!UseFocusedViewport || Size.X <= 0 || Size.Y <= 0)
+        {
+            return false;
+        }
+
+        if (localPosition.X < 0 || localPosition.Y < 0 || localPosition.X >= Size.X || localPosition.Y >= Size.Y)
+        {
+            return false;
+        }
+
+        var viewportTilesHigh = Math.Max(1, FocusedViewportTilesHigh);
+        var tileSize = Size.Y / viewportTilesHigh;
+        if (tileSize <= 0)
+        {
+            return false;
+        }
+
+        var viewportTilesWide = Math.Max(
+            Math.Max(1, MinimumFocusedViewportTilesWide),
+            Mathf.CeilToInt(Size.X / tileSize)
+        );
+
+        var centerTile = PlayerTilePosition ?? GetFallbackFocusedViewportCenterTile();
+        var startTileX = centerTile.X - viewportTilesWide / 2;
+        var startTileY = centerTile.Y - viewportTilesHigh / 2;
+
+        var localTileX = (int)Math.Floor(localPosition.X / tileSize);
+        var localTileY = (int)Math.Floor(localPosition.Y / tileSize);
+
+        tilePosition = new Vector2I(startTileX + localTileX, startTileY + localTileY);
+        return true;
+    }
     private void DrawFocusedPlayerVitalsHud(Vector2I tilePosition, int startTileX, int startTileY, float tileSize, Rect2 visibleRect)
     {
         if (!HasPlayerVitals)

@@ -36,6 +36,10 @@ public partial class AlphaWorldEntryController : Control
     private const int MaxSystemFeedbackMessages = 5;
     private const int MaxCombatFeedbackMessages = 5;
     private const string AlphaRealAttackWeaponType = "debug_sword";
+    private const string AlphaMentorArionNpcId = "npc_class_trainer";
+    private static Vector2I AlphaMentorArionTilePosition = new(104, 102);
+    private static readonly Vector2I AlphaMentorArionDebugOffset = new(3, 0);
+    private bool _hasAlphaMentorArionDebugPosition;
 
     private readonly DebugChunkStore _chunkStore = new();
     private readonly Queue<string> _systemFeedbackMessages = new();
@@ -110,6 +114,7 @@ public partial class AlphaWorldEntryController : Control
             _worldView.ShowFixedCombatDebugOverlay = false;
             _worldView.UseOneTileEntityMarkers = true;
             _worldView.ShowAlphaCombatReadabilityHud = true;
+            _worldView.MentorArionPosition = AlphaMentorArionTilePosition;
             _worldView.MouseFilter = Control.MouseFilterEnum.Stop;
             _worldView.GuiInput += OnAlphaWorldViewGuiInput;
         }
@@ -230,6 +235,19 @@ public partial class AlphaWorldEntryController : Control
         }
 
         GD.Print("Alpha optional editable HUD bridge bound.");
+    }
+    private void RefreshAlphaMentorArionDebugPosition()
+    {
+        if (_worldView == null || !_hasLocalPlayerPosition || _hasAlphaMentorArionDebugPosition)
+        {
+            return;
+        }
+
+        AlphaMentorArionTilePosition = _currentPlayerTilePosition + AlphaMentorArionDebugOffset;
+        _worldView.MentorArionPosition = AlphaMentorArionTilePosition;
+        _hasAlphaMentorArionDebugPosition = true;
+        RequestAlphaWorldViewRedraw();
+        GD.Print($"Alpha Mentor Arion debug marker locked near initial player position: player={_currentPlayerTilePosition}, mentor={AlphaMentorArionTilePosition}");
     }
     private void RefreshTopBarShellState()
     {
@@ -809,6 +827,7 @@ public partial class AlphaWorldEntryController : Control
         if (_worldView != null)
         {
             _worldView.PlayerTilePosition = _currentPlayerTilePosition;
+            RefreshAlphaMentorArionDebugPosition();
             SyncAlphaOrcEliteNearbyVisualMarker();
         }
 
@@ -1360,10 +1379,32 @@ public partial class AlphaWorldEntryController : Control
 
         if (mouseButton.ButtonIndex == MouseButton.Right)
         {
+            if (TryHandleAlphaMentorArionRightClick(mouseButton))
+            {
+                return;
+            }
+
             OnAlphaRightClickAttackRequested();
         }
     }
 
+    private bool TryHandleAlphaMentorArionRightClick(InputEventMouseButton mouseButton)
+    {
+        if (_worldView == null || !_worldView.TryGetFocusedTileAtLocalPosition(mouseButton.Position, out var clickedTile))
+        {
+            return false;
+        }
+
+        if (clickedTile.X != AlphaMentorArionTilePosition.X || clickedTile.Y != AlphaMentorArionTilePosition.Y)
+        {
+            return false;
+        }
+
+        SetAlphaSystemMessage($"Mentor Arion hit-test ready: {AlphaMentorArionNpcId} at tile {clickedTile.X},{clickedTile.Y}.");
+        SetAlphaCombatMessage("NPC target detected: Mentor Arion. Interaction packet route comes next.");
+        GD.Print($"Alpha Mentor Arion hit-test matched: npc={AlphaMentorArionNpcId}, tile={clickedTile}");
+        return true;
+    }
     private void OnAlphaLeftClickTargetSelectionRequested()
     {
         if (_alphaBattleTargetState == "Dead")
