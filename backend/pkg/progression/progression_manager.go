@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/light-and-shadow/backend/pkg/combat"
+	"github.com/light-and-shadow/backend/pkg/gamedata/rules"
 	"github.com/light-and-shadow/backend/pkg/inventory"
 	"github.com/light-and-shadow/backend/pkg/messaging"
 )
@@ -47,53 +48,56 @@ func (pm *ProgressionManager) ChooseVocation(playerID string, baseClass string) 
 		return fmt.Errorf("jogador %s não está totalmente carregado no servidor", playerID)
 	}
 
-	// 1. Validação de Nível Mínimo
-	if pStats.Level < 10 {
-		return fmt.Errorf("nível insuficiente para desbloquear vocação (atual: %d, necessário: 10)", pStats.Level)
-	}
-
-	// 2. Trava anti-exploit de classe irreversível (PATCH 2)
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	if pStats.Class != "Novice" && pStats.Class != "" {
-		return fmt.Errorf("a escolha de vocação já foi realizada e é irreversível (classe atual: %s)", pStats.Class)
+	// A41-B2: Normalize current and target classes and use canonical rules for validation.
+	var currentClass rules.RuleID
+	switch strings.ToLower(strings.TrimSpace(pStats.Class)) {
+	case "", "novice":
+		currentClass = rules.StartingClassNovice
+	case "knight":
+		currentClass = rules.ClassKnight
+	case "mage":
+		currentClass = rules.ClassMage
+	case "archer":
+		currentClass = rules.ClassArcher
+	case "assassin":
+		currentClass = rules.ClassAssassin
+	case "cleric":
+		currentClass = rules.ClassCleric
+	default:
+		currentClass = rules.RuleID(strings.ToLower(strings.TrimSpace(pStats.Class)))
 	}
 
-	// Validação de classe válida
-	validClasses := map[string]bool{
-		"Knight":   true,
-		"Mage":     true,
-		"Archer":   true,
-		"Assassin": true,
-		"Cleric":   true,
-	}
-	if !validClasses[baseClass] {
-		return fmt.Errorf("classe de vocação inválida: %s", baseClass)
+	targetClass := rules.RuleID(strings.ToLower(strings.TrimSpace(baseClass)))
+
+	if err := rules.CanSelectBaseClass(uint32(pStats.Level), currentClass, targetClass); err != nil {
+		return fmt.Errorf("seleção de vocação rejeitada: %w", err)
 	}
 
 	// 3. Aplica a classe e concede bônus de vocação inicial
-	pStats.Class = baseClass
-	playerInv.BaseStats.Class = baseClass
+	pStats.Class = string(targetClass)
+	playerInv.BaseStats.Class = string(targetClass)
 
 	// Aplica bônus de vocação passivos de forma permanente na BaseStats (recalculados depois)
-	switch baseClass {
-	case "Knight":
+	switch targetClass {
+	case "knight":
 		playerInv.BaseStats.MaxHealth += 100.0 // +100 MaxHP
 		playerInv.BaseStats.Defense += 15.0    // +15 Defesa
-	case "Mage":
-		playerInv.BaseStats.MaxMana += 80.0             // +80 MaxMP
-		playerInv.BaseStats.ElementAttackBonus += 0.10  // +10% Bônus de Ataque Elemental
-	case "Archer":
+	case "mage":
+		playerInv.BaseStats.MaxMana += 80.0            // +80 MaxMP
+		playerInv.BaseStats.ElementAttackBonus += 0.10 // +10% Bônus de Ataque Elemental
+	case "archer":
 		playerInv.BaseStats.CritChance += 0.05 // +5% CritChance
 		playerInv.BaseStats.Accuracy += 10.0   // +10 Precisão
-	case "Assassin":
+	case "assassin":
 		playerInv.BaseStats.Evasion += 10.0    // +10 Evasão
 		playerInv.BaseStats.CritChance += 0.05 // +5% CritChance
-	case "Cleric":
-		playerInv.BaseStats.MaxHealth += 50.0        // +50 MaxHP
-		playerInv.BaseStats.Resistance += 10.0       // +10% Resistência
-		playerInv.BaseStats.ElementDefBonus += 0.05  // +5% Mitigação Elemental
+	case "cleric":
+		playerInv.BaseStats.MaxHealth += 50.0       // +50 MaxHP
+		playerInv.BaseStats.Resistance += 10.0      // +10% Resistência
+		playerInv.BaseStats.ElementDefBonus += 0.05 // +5% Mitigação Elemental
 	}
 
 	// Sincroniza vida/mana atuais com os novos limites
@@ -113,12 +117,12 @@ func (pm *ProgressionManager) ChooseVocation(playerID string, baseClass string) 
 	pStats.ProgressionDirty = true
 	playerInv.SetDirty(true)
 
-	slog.Info("Vocação escolhida e atributos de bônus aplicados com sucesso", "player", playerID, "vocation", baseClass)
+	slog.Info("Vocação escolhida e atributos de bônus aplicados com sucesso", "player", playerID, "vocation", string(targetClass))
 
 	// Dispara evento de vocação desbloqueada
 	messaging.GetInstance().Publish("vocation_unlocked", map[string]interface{}{
 		"player_id": playerID,
-		"class":     baseClass,
+		"class":     string(targetClass),
 	})
 
 	return nil
