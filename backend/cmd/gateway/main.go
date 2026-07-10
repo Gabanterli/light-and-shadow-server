@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -1131,9 +1132,13 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			}
 
 			allowedNextNode := false
+			selectedAction := ""
+			selectedValue := ""
 			for _, r := range currentNode.Responses {
 				if r.NextNodeID == req.NextNodeID {
 					allowedNextNode = true
+					selectedAction = r.Action
+					selectedValue = r.Value
 					break
 				}
 			}
@@ -1142,6 +1147,42 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 
+			if selectedAction == "choose_class" {
+				classID := strings.ToLower(strings.TrimSpace(selectedValue))
+				if classID == "" {
+					slog.Warn("Dialogue choose_class action rejected because class value is empty", "player", playerID, "npc", req.NPCID, "current_node", req.NodeID, "next_node", req.NextNodeID)
+					respPayload := protocol.EncodeChooseVocationResponse(false, "classe inválida no diálogo", "")
+					conn.Write((&protocol.Packet{Opcode: protocol.SC_CHOOSE_VOCATION_RESP, Sequence: packet.Sequence, Payload: respPayload}).Serialize())
+					break
+				}
+
+				err = s.progressionManager.ChooseVocation(playerID, classID)
+				var respPayload []byte
+				if err != nil {
+					slog.Warn("Dialogue choose_class action rejected", "player", playerID, "npc", req.NPCID, "class", classID, "error", err)
+					respPayload = protocol.EncodeChooseVocationResponse(false, err.Error(), "")
+				} else {
+					slog.Info("Dialogue choose_class action succeeded", "player", playerID, "npc", req.NPCID, "class", classID)
+					respPayload = protocol.EncodeChooseVocationResponse(true, "", classID)
+
+					s.inventoriesMu.RLock()
+					playerInv, existsInv := s.inventories[playerID]
+					s.inventoriesMu.RUnlock()
+					if stats, existsStats := s.combatManager.GetEntityStats(playerID); existsStats && existsInv {
+						s.sendInventorySync(conn, playerID, stats, playerInv)
+					}
+				}
+
+				conn.Write((&protocol.Packet{
+					Opcode:   protocol.SC_CHOOSE_VOCATION_RESP,
+					Sequence: packet.Sequence,
+					Payload:  respPayload,
+				}).Serialize())
+
+				if err != nil {
+					break
+				}
+			}
 			// If next node is "end" or empty, close dialogue only after option authorization.
 			if req.NextNodeID == "end" || req.NextNodeID == "" {
 				s.questManager.SetDialogueFlag(playerID, req.NPCID, "completed_conversation")

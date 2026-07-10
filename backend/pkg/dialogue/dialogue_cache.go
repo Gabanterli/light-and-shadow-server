@@ -17,7 +17,7 @@ type Condition struct {
 
 // QuestTrigger define um gatilho de aceitação ou entrega de quest associado a um nó de diálogo
 type QuestTrigger struct {
-	Action  string `json:"action"`   // "accept", "complete"
+	Action  string `json:"action"` // "accept", "complete"
 	QuestID string `json:"quest_id"`
 }
 
@@ -26,6 +26,8 @@ type Response struct {
 	Text       string    `json:"text"`
 	NextNodeID string    `json:"next_node_id"`
 	Condition  Condition `json:"condition"`
+	Action     string    `json:"action,omitempty"`
+	Value      string    `json:"value,omitempty"`
 }
 
 // DialogueNode representa um único slide ou balão de fala do NPC
