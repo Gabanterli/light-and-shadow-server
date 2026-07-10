@@ -1490,5 +1490,121 @@
         "responses": []
       }
     ]
+  },
+  {
+    "npc_id": "npc_class_trainer",
+    "nodes": [
+      {
+        "node_id": "start",
+        "text": "Eu sou Mentor Arion. No nivel 10, voce pode escolher sua classe base. Esta escolha e permanente. Qual caminho deseja seguir?",
+        "responses": [
+          {
+            "text": "Cavaleiro",
+            "next_node_id": "chosen_knight",
+            "condition": {
+              "level": 10
+            },
+            "action": "choose_class",
+            "value": "knight"
+          },
+          {
+            "text": "Mago",
+            "next_node_id": "chosen_mage",
+            "condition": {
+              "level": 10
+            },
+            "action": "choose_class",
+            "value": "mage"
+          },
+          {
+            "text": "Arqueiro",
+            "next_node_id": "chosen_archer",
+            "condition": {
+              "level": 10
+            },
+            "action": "choose_class",
+            "value": "archer"
+          },
+          {
+            "text": "Assassino",
+            "next_node_id": "chosen_assassin",
+            "condition": {
+              "level": 10
+            },
+            "action": "choose_class",
+            "value": "assassin"
+          },
+          {
+            "text": "Clerigo",
+            "next_node_id": "chosen_cleric",
+            "condition": {
+              "level": 10
+            },
+            "action": "choose_class",
+            "value": "cleric"
+          },
+          {
+            "text": "Ainda nao estou pronto.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "chosen_knight",
+        "text": "Seu juramento foi aceito. Voce agora segue o caminho do Cavaleiro.",
+        "responses": [
+          {
+            "text": "Entendido.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "chosen_mage",
+        "text": "Seu pacto arcano foi aceito. Voce agora segue o caminho do Mago.",
+        "responses": [
+          {
+            "text": "Entendido.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "chosen_archer",
+        "text": "Sua mira foi reconhecida. Voce agora segue o caminho do Arqueiro.",
+        "responses": [
+          {
+            "text": "Entendido.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "chosen_assassin",
+        "text": "Sua sombra foi reconhecida. Voce agora segue o caminho do Assassino.",
+        "responses": [
+          {
+            "text": "Entendido.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      },
+      {
+        "node_id": "chosen_cleric",
+        "text": "Sua fe foi reconhecida. Voce agora segue o caminho do Clerigo.",
+        "responses": [
+          {
+            "text": "Entendido.",
+            "next_node_id": "end",
+            "condition": {}
+          }
+        ]
+      }
+    ]
   }
 ]
