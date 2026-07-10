@@ -1,0 +1,13 @@
+{
+  "profiles": [
+    {
+      "id": "alpha_orc_elite",
+      "enabled": true,
+      "spawn_id": "debug_orc_elite_001",
+      "target_id": "Orc_Elite",
+      "display_name": "Orc Elite",
+      "reward_log_name": "Alpha Orc Elite",
+      "loot_table_id": "alpha_orc_elite_loot"
+    }
+  ]
+}

@@ -77,6 +77,7 @@ type GatewayServer struct {
 	inventories              map[string]*inventory.PlayerInventory
 	stopAutosave             chan struct{}
 	stopRespawnScheduler     chan struct{}
+	alphaCreatureRewards     map[string]alphaCreatureRewardProfileDefinition
 	alphaCreatureSpawns      map[string]alphaCreatureSpawnDefinition
 	// A38: AI Loop state
 	stopAlphaAILoop                  chan struct{}
@@ -162,6 +163,14 @@ func main() {
 	}
 	slog.Info("Alpha creature spawns loaded successfully from config", "count", len(alphaCreatureSpawns), "path", "config/alpha_creature_spawns.json")
 
+	// A40: Load Alpha Creature Rewards from config
+	alphaCreatureRewards, err := loadAlphaCreatureRewards("config/alpha_creature_rewards.json")
+	if err != nil {
+		slog.Error("Failed to load Alpha creature rewards configuration, server cannot start.", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("Alpha creature rewards loaded successfully from config", "count", len(alphaCreatureRewards), "path", "config/alpha_creature_rewards.json")
+
 	// Inicialização de bancos de dados (tolerante a fallbacks locais)
 	pgPool, err := db.NewPostgresPool(cfg.PostgresDSN)
 	if err != nil {
@@ -241,6 +250,7 @@ func main() {
 		inventories:              make(map[string]*inventory.PlayerInventory),
 		activeGatherings:         make(map[string]string),
 		stopAutosave:             make(chan struct{}),
+		alphaCreatureRewards:     alphaCreatureRewards,
 		alphaCreatureSpawns:      alphaCreatureSpawns,
 		stopRespawnScheduler:     make(chan struct{}),
 		stopAlphaAILoop:          make(chan struct{}),
@@ -2609,33 +2619,32 @@ type alphaOrcEliteLootResult struct {
 	Reason   string
 }
 
-const alphaOrcEliteLootTableID = "alpha_orc_elite_loot"
 const alphaOrcEliteCombatTestHealth = 100.0
 
-func getAlphaOrcEliteRewardProfile(pveMgr *pve.PveManager, playerID string, targetID string) (pve.LootRewardProfile, bool) {
+func getAlphaOrcEliteRewardProfile(pveMgr *pve.PveManager, playerID string, targetID string, lootTableID string) (pve.LootRewardProfile, bool) {
 
 	if pveMgr == nil {
 
-		slog.Warn("Cannot resolve Alpha Orc Elite reward profile because PvE manager is not available", "player", playerID, "target", targetID, "loot_table", alphaOrcEliteLootTableID)
+		slog.Warn("Cannot resolve Alpha Orc Elite reward profile because PvE manager is not available", "player", playerID, "target", targetID, "loot_table", lootTableID)
 
-		return pve.LootRewardProfile{LootTableID: alphaOrcEliteLootTableID}, false
+		return pve.LootRewardProfile{LootTableID: lootTableID}, false
 
 	}
 
-	rewardProfile, found := pveMgr.GetLootRewardProfile(alphaOrcEliteLootTableID)
+	rewardProfile, found := pveMgr.GetLootRewardProfile(lootTableID)
 
 	if !found {
 
-		slog.Warn("Alpha Orc Elite reward profile not found; Gold/XP skipped", "player", playerID, "target", targetID, "loot_table", alphaOrcEliteLootTableID)
+		slog.Warn("Alpha Orc Elite reward profile not found; Gold/XP skipped", "player", playerID, "target", targetID, "loot_table", lootTableID)
 
-		return pve.LootRewardProfile{LootTableID: alphaOrcEliteLootTableID}, false
+		return pve.LootRewardProfile{LootTableID: lootTableID}, false
 
 	}
 
 	return rewardProfile, true
 }
 
-func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.PlayerInventory, playerID string, targetID string) (bool, int, int, []alphaOrcEliteLootResult) {
+func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.PlayerInventory, playerID string, targetID string, lootTableID string) (bool, int, int, []alphaOrcEliteLootResult) {
 
 	lootTableFound := false
 
@@ -2647,17 +2656,17 @@ func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.Pla
 
 	if pveMgr == nil {
 
-		slog.Warn("Cannot roll Alpha Orc Elite loot because PvE manager is not available", "player", playerID, "target", targetID, "loot_table", alphaOrcEliteLootTableID)
+		slog.Warn("Cannot roll Alpha Orc Elite loot because PvE manager is not available", "player", playerID, "target", targetID, "loot_table", lootTableID)
 
 		return lootTableFound, itemsDropped, itemsGranted, lootResults
 
 	}
 
-	lootRolls, found := pveMgr.RollLootTable(alphaOrcEliteLootTableID)
+	lootRolls, found := pveMgr.RollLootTable(lootTableID)
 
 	if !found {
 
-		slog.Warn("Alpha Orc Elite loot table not found; item drops skipped", "player", playerID, "target", targetID, "loot_table", alphaOrcEliteLootTableID)
+		slog.Warn("Alpha Orc Elite loot table not found; item drops skipped", "player", playerID, "target", targetID, "loot_table", lootTableID)
 
 		return lootTableFound, itemsDropped, itemsGranted, lootResults
 
@@ -2669,7 +2678,7 @@ func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.Pla
 
 		if !lootRoll.Dropped {
 
-			slog.Info("Alpha Orc Elite loot roll did not drop", "player", playerID, "target", targetID, "loot_table", alphaOrcEliteLootTableID, "item", lootRoll.ItemID, "chance", lootRoll.Chance, "roll", lootRoll.Roll, "reason", lootRoll.Reason)
+			slog.Info("Alpha Orc Elite loot roll did not drop", "player", playerID, "target", targetID, "loot_table", lootTableID, "item", lootRoll.ItemID, "chance", lootRoll.Chance, "roll", lootRoll.Roll, "reason", lootRoll.Reason)
 
 			continue
 
@@ -2691,7 +2700,7 @@ func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.Pla
 		}
 
 		lootResults = append(lootResults, alphaOrcEliteLootResult{
-			TableID:  alphaOrcEliteLootTableID,
+			TableID:  lootTableID,
 			ItemID:   lootRoll.ItemID,
 			Quantity: uint32(lootRoll.Quantity),
 			Dropped:  true,
@@ -2699,11 +2708,56 @@ func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.Pla
 			Reason:   resultReason,
 		})
 
-		slog.Info("Alpha Orc Elite loot roll applied", "player", playerID, "target", targetID, "loot_table", alphaOrcEliteLootTableID, "item", lootRoll.ItemID, "quantity", lootRoll.Quantity, "chance", lootRoll.Chance, "roll", lootRoll.Roll, "item_granted", itemGranted, "reason", lootRoll.Reason, "loot_result_reason", resultReason)
+		slog.Info("Alpha Orc Elite loot roll applied", "player", playerID, "target", targetID, "loot_table", lootTableID, "item", lootRoll.ItemID, "quantity", lootRoll.Quantity, "chance", lootRoll.Chance, "roll", lootRoll.Roll, "item_granted", itemGranted, "reason", lootRoll.Reason, "loot_result_reason", resultReason)
 
 	}
 
 	return lootTableFound, itemsDropped, itemsGranted, lootResults
+}
+
+type alphaCreatureRewardConfigFile struct {
+	Profiles []alphaCreatureRewardProfileDefinition `json:"profiles"`
+}
+
+type alphaCreatureRewardProfileDefinition struct {
+	ID            string `json:"id"`
+	Enabled       bool   `json:"enabled"`
+	SpawnID       string `json:"spawn_id"`
+	TargetID      string `json:"target_id"`
+	DisplayName   string `json:"display_name"`
+	RewardLogName string `json:"reward_log_name"`
+	LootTableID   string `json:"loot_table_id"`
+}
+
+func loadAlphaCreatureRewards(path string) (map[string]alphaCreatureRewardProfileDefinition, error) {
+	file, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read alpha creature rewards config file: %w", err)
+	}
+
+	var config alphaCreatureRewardConfigFile
+	if err := json.Unmarshal(file, &config); err != nil {
+		return nil, fmt.Errorf("failed to parse alpha creature rewards config JSON: %w", err)
+	}
+
+	rewardMap := make(map[string]alphaCreatureRewardProfileDefinition)
+	foundEnabled := false
+	for _, def := range config.Profiles {
+		if !def.Enabled {
+			continue
+		}
+		if def.ID == "" || def.SpawnID == "" || def.TargetID == "" || def.DisplayName == "" || def.RewardLogName == "" || def.LootTableID == "" {
+			return nil, fmt.Errorf("invalid or incomplete alpha creature reward definition for ID: %s", def.ID)
+		}
+		rewardMap[def.ID] = def
+		foundEnabled = true
+	}
+
+	if !foundEnabled || rewardMap["alpha_orc_elite"].ID == "" {
+		return nil, fmt.Errorf("no enabled reward profiles found or mandatory 'alpha_orc_elite' definition is missing")
+	}
+
+	return rewardMap, nil
 }
 
 type alphaCreatureSpawnConfigFile struct {
@@ -2824,6 +2878,11 @@ func (s *GatewayServer) alphaOrcEliteSpawnDefinition() (alphaCreatureSpawnDefini
 	return def, ok
 }
 
+func (s *GatewayServer) alphaOrcEliteRewardProfileDefinition() (alphaCreatureRewardProfileDefinition, bool) {
+	def, ok := s.alphaCreatureRewards["alpha_orc_elite"]
+	return def, ok
+}
+
 func resolveCreatureCombatTarget(s *GatewayServer, requestedTargetID string) creatureCombatTargetResolution {
 	res := creatureCombatTargetResolution{
 		RequestedTargetID: requestedTargetID,
@@ -2890,18 +2949,16 @@ type creatureDeathRewardProfile struct {
 	LootTableID   string
 }
 
-func resolveCreatureDeathRewardProfile(targetID string, runtimeEntityID string) (creatureDeathRewardProfile, bool) {
-	// A39: This is a temporary bridge. In A40, this should be fully data-driven.
-	// For now, we assume if the targetID is the one from our single Alpha spawn, it gets this profile.
-	// This is safe because there's only one special creature.
-	// A real implementation would look up the creature profile from a manager.
-	if targetID == "Orc_Elite" { // Hardcoded check remains for now.
+func (s *GatewayServer) resolveCreatureDeathRewardProfile(targetID string, runtimeEntityID string) (creatureDeathRewardProfile, bool) {
+	def, ok := s.alphaOrcEliteSpawnDefinition()
+	rewardDef, rewardOk := s.alphaOrcEliteRewardProfileDefinition()
+	if ok && rewardOk && targetID == def.TargetID {
 		return creatureDeathRewardProfile{
-			SpawnID:       "debug_orc_elite_001",
-			TargetID:      "Orc_Elite",
-			DisplayName:   "Orc Elite", // Placeholder
-			RewardLogName: "Alpha Orc Elite",
-			LootTableID:   alphaOrcEliteLootTableID,
+			SpawnID:       rewardDef.SpawnID,
+			TargetID:      rewardDef.TargetID,
+			DisplayName:   rewardDef.DisplayName,
+			RewardLogName: rewardDef.RewardLogName,
+			LootTableID:   rewardDef.LootTableID,
 		}, true
 	}
 	return creatureDeathRewardProfile{}, false
@@ -2971,8 +3028,8 @@ func (s *GatewayServer) handleCreatureDeathReward(req creatureDeathRewardRequest
 	}
 
 	// A35: For now, use the hardcoded Alpha Orc Elite helpers. This will be generalized later.
-	lootTableFound, itemsDropped, itemsGranted, lootResults := grantAlphaOrcEliteItemLoot(s.pveManager, playerInv, req.KillerPlayerID, req.Profile.TargetID)
-	rewardProfile, rewardProfileFound := getAlphaOrcEliteRewardProfile(s.pveManager, req.KillerPlayerID, req.Profile.TargetID)
+	lootTableFound, itemsDropped, itemsGranted, lootResults := grantAlphaOrcEliteItemLoot(s.pveManager, playerInv, req.KillerPlayerID, req.Profile.TargetID, req.Profile.LootTableID)
+	rewardProfile, rewardProfileFound := getAlphaOrcEliteRewardProfile(s.pveManager, req.KillerPlayerID, req.Profile.TargetID, req.Profile.LootTableID)
 	goldGranted := playerInv.AddGold(rewardProfile.Gold)
 	currentXP, leveledUp := applyAlphaOrcEliteXPReward(req.KillerPlayerID, playerInv, playerStats, rewardProfile.XP)
 
@@ -3003,7 +3060,7 @@ func (s *GatewayServer) handleCreatureDeathReward(req creatureDeathRewardRequest
 }
 
 func (s *GatewayServer) handleAlphaOrcEliteDeathReward(conn net.Conn, playerID string, targetID string, sequence uint32) bool {
-	profile, found := resolveCreatureDeathRewardProfile(targetID, "")
+	profile, found := s.resolveCreatureDeathRewardProfile(targetID, "")
 	if !found {
 		return false
 	}
