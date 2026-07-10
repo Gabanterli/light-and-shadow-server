@@ -269,7 +269,7 @@ public partial class AlphaWorldEntryController : Control
 
         if (_topBarLabel != null)
         {
-            _topBarLabel.Text = $"Player: {characterState} | Level: {levelState} | XP: {xpState} | Gold: {goldState} | HP: {hpState} | Mana: {manaState} | {sessionState} | {clientState}";
+            _topBarLabel.Text = $"Level: {levelState} | XP: {xpState} | Gold: {goldState} | HP: {hpState} | Mana: {manaState} | {sessionState} | {clientState}";
         }
 
         _editableTopBarPanel?.BindPlayerStatus(
@@ -281,6 +281,7 @@ public partial class AlphaWorldEntryController : Control
             _hasInventorySync ? _syncedMaxMana : 0
         );
     }
+
     private void RefreshBattleTargetState()
     {
         if (_battleLabel != null)
@@ -504,7 +505,7 @@ content.AddChild(_alphaDialogueTextLabel);
             var parsedChoice = ParseAlphaDialogueChoice(optionText);
             var choiceNextNodeId = parsedChoice.NextNodeId;
             var choiceDisplayText = parsedChoice.Text;
-            optionButton.Text = $"Choice: {choiceDisplayText}";
+            optionButton.Text = $"› {choiceDisplayText}";
 
             optionButton.Pressed += () =>
             {
@@ -1669,7 +1670,7 @@ content.AddChild(_alphaDialogueTextLabel);
 
     private void ApplyInventorySyncValues(uint level, double health, double maxHealth, double mana, double maxMana, int itemCount, bool hasAlphaProgression, ulong gold, ulong experience)
     {
-        var hadPreviousInventorySync = _hasInventorySync;         var previousLevel = _syncedLevel;         var previousItemCount = _syncedItemCount;         var hadPreviousAlphaProgressionSync = _hasAlphaProgressionSync;         var previousGold = _syncedGold;         var previousExperience = _syncedExperience;
+        var hadPreviousInventorySync = _hasInventorySync; var previousLevel = _syncedLevel; var previousItemCount = _syncedItemCount; var hadPreviousAlphaProgressionSync = _hasAlphaProgressionSync; var previousGold = _syncedGold; var previousExperience = _syncedExperience;
         _hasInventorySync = true;
         _syncedLevel = level;
         _syncedHealth = health;
@@ -1689,7 +1690,7 @@ content.AddChild(_alphaDialogueTextLabel);
         RefreshBackpackShellState();
         SetAlphaSystemMessage($"InventorySync 4001 received. Items: {_syncedItemCount}");
 
-        if (_pendingCombatRewardConfirmation)         {             _pendingCombatRewardConfirmation = false;             var rewardMessage = BuildAlphaRewardSyncFeedback(                 hadPreviousInventorySync,                 previousLevel,                 previousItemCount,                 hadPreviousAlphaProgressionSync,                 previousGold,                 previousExperience,                 level,                 itemCount,                 hasAlphaProgression,                 gold,                 experience             );             SetAlphaCombatMessage(rewardMessage);         }
+        if (_pendingCombatRewardConfirmation) { _pendingCombatRewardConfirmation = false; var rewardMessage = BuildAlphaRewardSyncFeedback( hadPreviousInventorySync, previousLevel, previousItemCount, hadPreviousAlphaProgressionSync, previousGold, previousExperience, level, itemCount, hasAlphaProgression, gold, experience ); SetAlphaCombatMessage(rewardMessage); }
 
         GD.Print($"Alpha inventory sync applied: level={_syncedLevel}, hp={_syncedHealth:F2}/{_syncedMaxHealth:F2}, mana={_syncedMana:F2}/{_syncedMaxMana:F2}, items={_syncedItemCount}, hasProgression={_hasAlphaProgressionSync}, gold={_syncedGold}, xp={_syncedExperience}");
     }
@@ -2111,7 +2112,7 @@ content.AddChild(_alphaDialogueTextLabel);
             return;
         }
 
-        if (!IsAlphaDebugSwordPreviewRangeReady(out var previewDistance))         {             var rangeMessage = $"Cannot attack: move into debug sword range. Distance: {previewDistance:F2}, Range: {AlphaDebugSwordPreviewRangeTiles:F2}.";              SetAlphaCombatMessage(rangeMessage);              if (source == "auto-attack")             {                 StopAlphaAutoAttackLoop("target outside debug sword preview range");             }              return;         }
+        if (!IsAlphaDebugSwordPreviewRangeReady(out var previewDistance)) { var rangeMessage = $"Cannot attack: move into debug sword range. Distance: {previewDistance:F2}, Range: {AlphaDebugSwordPreviewRangeTiles:F2}."; SetAlphaCombatMessage(rangeMessage); if (source == "auto-attack") { StopAlphaAutoAttackLoop("target outside debug sword preview range"); } return; }
         if (_isAlphaAttackRequestInFlight)
         {
             if (source == "right-click")
@@ -2127,9 +2128,9 @@ content.AddChild(_alphaDialogueTextLabel);
         try
         {
             _isAlphaAttackRequestInFlight = true;
-            if (source != "auto-attack")             {                 SetAlphaCombatMessage("Sending attack request.");             }
+            if (source != "auto-attack") { SetAlphaCombatMessage("Sending attack request."); }
             await GatewayClient.SendAttackRequestAsync(_alphaOrcEliteRuntimeEntityId, AlphaRealAttackWeaponType, effectiveToken);
-            if (source != "auto-attack")             {                 SetAlphaCombatMessage("Attack request sent.");             }
+            if (source != "auto-attack") { SetAlphaCombatMessage("Attack request sent."); }
             GD.Print($"Alpha {source} attack request sent with safe target identity.");
         }
         catch (OperationCanceledException)
