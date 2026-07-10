@@ -2513,7 +2513,7 @@ type alphaOrcEliteLootResult struct {
 }
 
 const alphaOrcEliteLootTableID = "alpha_orc_elite_loot"
-const alphaOrcEliteCombatTestHealth = 5000.0
+const alphaOrcEliteCombatTestHealth = 100.0
 
 func getAlphaOrcEliteRewardProfile(pveMgr *pve.PveManager, playerID string, targetID string) (pve.LootRewardProfile, bool) {
 
