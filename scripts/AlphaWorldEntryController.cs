@@ -39,7 +39,6 @@ public partial class AlphaWorldEntryController : Control
     private const string AlphaMentorArionNpcId = "npc_class_trainer";
     private static Vector2I AlphaMentorArionTilePosition = new(104, 102);
     private static readonly Vector2I AlphaMentorArionDebugOffset = new(3, 0);
-    private bool _hasAlphaMentorArionDebugPosition;
 
     private readonly DebugChunkStore _chunkStore = new();
     private readonly Queue<string> _systemFeedbackMessages = new();
@@ -66,6 +65,7 @@ public partial class AlphaWorldEntryController : Control
     private string _selectedCharacterNameForWorldEntry = string.Empty;
     private bool _hasLocalPlayerPosition;
     private Vector2I _currentPlayerTilePosition;
+    private bool _hasAlphaMentorArionDebugPosition;
     private int _currentPlayerTileZ;
 
     private bool _isAlphaMovePending;
@@ -238,7 +238,7 @@ public partial class AlphaWorldEntryController : Control
     }
     private void RefreshAlphaMentorArionDebugPosition()
     {
-        if (_worldView == null || !_hasLocalPlayerPosition || _hasAlphaMentorArionDebugPosition)
+        if (_worldView == null || _hasAlphaMentorArionDebugPosition || !_hasLocalPlayerPosition)
         {
             return;
         }
@@ -246,7 +246,7 @@ public partial class AlphaWorldEntryController : Control
         AlphaMentorArionTilePosition = _currentPlayerTilePosition + AlphaMentorArionDebugOffset;
         _worldView.MentorArionPosition = AlphaMentorArionTilePosition;
         _hasAlphaMentorArionDebugPosition = true;
-        RequestAlphaWorldViewRedraw();
+
         GD.Print($"Alpha Mentor Arion debug marker locked near initial player position: player={_currentPlayerTilePosition}, mentor={AlphaMentorArionTilePosition}");
     }
     private void RefreshTopBarShellState()
@@ -640,6 +640,10 @@ public partial class AlphaWorldEntryController : Control
                 {
                     HandleAlphaCastSkillResultPacket(packet);
                 }
+                else if (packet.Opcode == BinaryProtocol.SC_DIALOGUE_OPEN)
+                {
+                    HandleAlphaDialogueOpenPacket(packet);
+                }
                 else
                 {
                     _ignoredPacketCount++;
@@ -674,6 +678,42 @@ public partial class AlphaWorldEntryController : Control
         }
     }
 
+    private void HandleAlphaDialogueOpenPacket(Packet packet)
+    {
+        try
+        {
+            var data = BinaryProtocol.DecodeDialogueOpen(packet.Payload);
+            var choiceParts = new List<string>();
+
+            foreach (var choice in data.Choices)
+            {
+                choiceParts.Add($"{choice.NextNodeId}: {choice.Text}");
+            }
+
+            var choicesText = choiceParts.Count == 0 ? "none" : string.Join(" | ", choiceParts);
+
+            CallDeferred(
+                nameof(ApplyAlphaDialogueOpenValues),
+                data.NpcId,
+                data.NodeId,
+                data.NodeText,
+                choicesText,
+                data.Choices.Count
+            );
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Alpha DialogueOpen decode failed: {ex.Message}");
+            CallDeferred(nameof(SetAlphaSystemMessage), $"DialogueOpen decode failed: {ex.GetType().Name}");
+        }
+    }
+
+    private void ApplyAlphaDialogueOpenValues(string npcId, string nodeId, string nodeText, string choicesText, int choiceCount)
+    {
+        SetAlphaSystemMessage($"Dialogue opened: npc={npcId}, node={nodeId}, choices={choiceCount}.");
+        SetAlphaCombatMessage($"NPC says: {nodeText}");
+        GD.Print($"Alpha dialogue open decoded: npc={npcId}, node={nodeId}, text={nodeText}, choices={choicesText}");
+    }
     private void HandleAlphaInventorySyncPacket(Packet packet)
     {
         try
@@ -1415,6 +1455,15 @@ public partial class AlphaWorldEntryController : Control
             return;
         }
 
+        var targetTile = new Vector2I(_currentPlayerTilePosition.X + deltaX, _currentPlayerTilePosition.Y + deltaY);
+        if (targetTile.X == AlphaMentorArionTilePosition.X && targetTile.Y == AlphaMentorArionTilePosition.Y)
+        {
+            SetAlphaSystemMessage($"Cannot move: Mentor Arion blocks tile {targetTile.X},{targetTile.Y}.");
+            SetAlphaCombatMessage("Movement blocked: NPCs are solid.");
+            GD.Print($"Alpha movement blocked by Mentor Arion: targetTile={targetTile}, mentor={AlphaMentorArionTilePosition}");
+            return;
+        }
+
         GD.Print($"Alpha left-click movement requested: clickedTile={clickedTile}, player={_currentPlayerTilePosition}, step=({deltaX},{deltaY})");
         _ = SendAlphaMoveAsync(deltaX, deltaY, "left-click");
     }
@@ -1452,6 +1501,8 @@ public partial class AlphaWorldEntryController : Control
             return false;
         }
 
+        SetAlphaSystemMessage($"Mentor Arion selected at tile {clickedTile.X},{clickedTile.Y}. Sending NPC interaction.");
+        SetAlphaCombatMessage($"NPC selected: Mentor Arion at {clickedTile.X},{clickedTile.Y}.");
         GD.Print($"Alpha Mentor Arion interaction requested: npc={AlphaMentorArionNpcId}, tile={clickedTile}");
         _ = SendAlphaNpcInteractRequestAsync(AlphaMentorArionNpcId);
         return true;
@@ -1481,8 +1532,8 @@ public partial class AlphaWorldEntryController : Control
         {
             SetAlphaSystemMessage($"Interacting with NPC: {npcId}.");
             await GatewayClient.SendNpcInteractRequestAsync(npcId, _packetLoopCts.Token);
-            SetAlphaSystemMessage("NPC interaction request sent. Waiting for dialogue open.");
-            SetAlphaCombatMessage("NPC interaction sent: Mentor Arion.");
+            SetAlphaSystemMessage($"NPC interaction request sent for {npcId} at tile {AlphaMentorArionTilePosition.X},{AlphaMentorArionTilePosition.Y}. Waiting for dialogue open.");
+            SetAlphaCombatMessage($"NPC interaction sent: Mentor Arion at {AlphaMentorArionTilePosition.X},{AlphaMentorArionTilePosition.Y}.");
             GD.Print($"Alpha NPC interact request sent: npc={npcId}");
         }
         catch (OperationCanceledException)

@@ -260,6 +260,33 @@ public static class BinaryProtocol
     }
 
 
+    public static (string NpcId, string NodeId, string NodeText, List<(string NextNodeId, string Text)> Choices) DecodeDialogueOpen(byte[] payload)
+    {
+        var offset = 0;
+
+        var npcId = ReadStringUInt16(payload, offset, out offset);
+        var nodeId = ReadStringUInt16(payload, offset, out offset);
+        var nodeText = ReadStringUInt16(payload, offset, out offset);
+
+        if (offset + 2 > payload.Length)
+        {
+            throw new InvalidDataException("Dialogue open payload is missing choice count.");
+        }
+
+        var choiceCount = ReadUInt16LE(payload, offset);
+        offset += 2;
+
+        var choices = new List<(string NextNodeId, string Text)>();
+        for (var index = 0; index < choiceCount; index++)
+        {
+            var nextNodeId = ReadStringUInt16(payload, offset, out offset);
+            var text = ReadStringUInt16(payload, offset, out offset);
+            choices.Add((nextNodeId, text));
+        }
+
+        return (npcId, nodeId, nodeText, choices);
+    }
+
     public static byte[] EncodeNpcInteractRequest(string npcId)
     {
         var safeNpcId = npcId ?? string.Empty;
