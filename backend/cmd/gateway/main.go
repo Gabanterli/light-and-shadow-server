@@ -77,6 +77,13 @@ type GatewayServer struct {
 	inventories              map[string]*inventory.PlayerInventory
 	stopAutosave             chan struct{}
 	stopRespawnScheduler     chan struct{}
+	// A38: AI Loop state
+	stopAlphaAILoop                  chan struct{}
+	alphaCreatureAIThreatMu          sync.Mutex
+	alphaCreatureAIThreatSnapshot    alphaCreatureAIThreatSnapshot
+	alphaCreatureAILastTopThreatPlayerID string
+	alphaCreatureAILastTopThreatValue    float64
+	alphaCreatureAILastLogAt             time.Time
 }
 
 type gatewayAuthRequest struct {
@@ -226,6 +233,7 @@ func main() {
 		activeGatherings:         make(map[string]string),
 		stopAutosave:             make(chan struct{}),
 		stopRespawnScheduler:     make(chan struct{}),
+		stopAlphaAILoop:          make(chan struct{}),
 	}
 
 	// Inicializa e configura PveManager (Sprint 3 Task 2)
@@ -395,6 +403,9 @@ func main() {
 	// Inicia scheduler minimo de respawn de criatura para validacao R2.
 	server.startCreatureRespawnSchedulerLoop()
 	lifecycleMgr := lifecycle.NewManager()
+
+	// A38: Inicia o primeiro loop de AI observacional.
+	go server.runAlphaCreatureAILoop()
 
 	// Inicia HTTP Server para /health
 	server.startHTTPServer()
@@ -1602,7 +1613,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 					totalContribution := spawnState.DamageContributors[playerID]
 
 					slog.Info("Recorded Orc Elite damage contribution", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "player", playerID, "damage", damage, "total_contribution", totalContribution, "version", spawnState.Version)
-					logAlphaCreatureThreat(spawnState, playerID, damage)
+					s.logAlphaCreatureThreat(spawnState, playerID, damage, totalContribution)
 
 				} else {
 					slog.Warn("Failed to record Orc Elite damage contribution", "spawn_id", resolution.SpawnID, "player", playerID, "damage", damage)
@@ -1757,7 +1768,8 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				// A37: Add spell damage to contribution and log threat
 				if resolution.IsDebugOrcElite && hit.Damage > 0 && s.creatureSpawnManager != nil {
 					if spawnState, recorded := s.creatureSpawnManager.AddDamageContribution(resolution.SpawnID, playerID, hit.Damage); recorded {
-						logAlphaCreatureThreat(spawnState, playerID, hit.Damage)
+						playerThreat := spawnState.DamageContributors[playerID]
+						s.logAlphaCreatureThreat(spawnState, playerID, hit.Damage, playerThreat)
 					} else {
 						slog.Warn("Failed to record Orc Elite spell damage contribution", "spawn_id", resolution.SpawnID, "player", playerID, "damage", hit.Damage)
 					}
@@ -2498,6 +2510,76 @@ func (s *GatewayServer) startAutosaveLoop() {
 	}()
 }
 
+type alphaCreatureAIThreatSnapshot struct {
+	SpawnID           string
+	RuntimeEntityID   string
+	CreatureID        string
+	TargetID          string
+	TopThreatPlayerID string
+	TopThreatValue    float64
+	Version           uint64
+	UpdatedAt         time.Time
+}
+
+func (s *GatewayServer) runAlphaCreatureAILoop() {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if s.creatureSpawnManager == nil || s.combatManager == nil {
+				continue
+			}
+
+			spawnState, exists := s.creatureSpawnManager.GetSpawn("debug_orc_elite_001")
+			if !exists || !spawnState.Alive {
+				continue
+			}
+
+			targetStats, exists := s.combatManager.GetEntityStats("Orc_Elite")
+			if !exists || targetStats.Health <= 0 {
+				continue
+			}
+
+			s.alphaCreatureAIThreatMu.Lock()
+			snapshot := s.alphaCreatureAIThreatSnapshot
+			s.alphaCreatureAIThreatMu.Unlock()
+
+			if snapshot.TopThreatPlayerID == "" || snapshot.RuntimeEntityID != spawnState.RuntimeEntityID {
+				continue
+			}
+
+			now := time.Now()
+			if snapshot.TopThreatPlayerID == s.alphaCreatureAILastTopThreatPlayerID &&
+				snapshot.TopThreatValue == s.alphaCreatureAILastTopThreatValue &&
+				now.Sub(s.alphaCreatureAILastLogAt) < 5*time.Second {
+				continue
+			}
+
+			s.alphaCreatureAILastTopThreatPlayerID = snapshot.TopThreatPlayerID
+			s.alphaCreatureAILastTopThreatValue = snapshot.TopThreatValue
+			s.alphaCreatureAILastLogAt = now
+
+			slog.Info(
+				"Alpha creature AI target selected",
+				"spawn_id", spawnState.SpawnID,
+				"runtime_entity_id", spawnState.RuntimeEntityID,
+				"creature_id", spawnState.CreatureID,
+				"target", snapshot.TargetID,
+				"top_threat_player", snapshot.TopThreatPlayerID,
+				"top_threat_value", snapshot.TopThreatValue,
+				"health", targetStats.Health,
+				"max_health", targetStats.MaxHealth,
+				"version", snapshot.Version,
+			)
+		case <-s.stopAlphaAILoop:
+			slog.Info("Alpha creature AI loop stopped.")
+			return
+		}
+	}
+}
+
 // Varre todos os inventÃ¡rios ativos cadastrados e os persiste no PostgreSQL
 // Inicia o scheduler minimo de respawn de criatura para validacao R2.
 // Escopo atual: Orc_Elite debug spawn only.
@@ -2608,22 +2690,28 @@ func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.Pla
 	return lootTableFound, itemsDropped, itemsGranted, lootResults
 }
 
-func logAlphaCreatureThreat(spawnState *pve.CreatureSpawnState, playerID string, damage float64) {
-	if spawnState == nil || spawnState.DamageContributors == nil {
+func (s *GatewayServer) logAlphaCreatureThreat(spawnState *pve.CreatureSpawnState, playerID string, damage float64, playerThreat float64) {
+	if spawnState == nil {
 		return
 	}
 
-	var topThreatPlayerID string
-	var topThreatValue float64 = -1.0
+	s.alphaCreatureAIThreatMu.Lock()
+	previousSnapshot := s.alphaCreatureAIThreatSnapshot
+	s.alphaCreatureAIThreatMu.Unlock()
 
-	for pID, threat := range spawnState.DamageContributors {
-		if threat > topThreatValue {
-			topThreatValue = threat
-			topThreatPlayerID = pID
-		}
+	topThreatPlayerID := previousSnapshot.TopThreatPlayerID
+	topThreatValue := previousSnapshot.TopThreatValue
+
+	// If the mob has respawned (different runtime ID), reset the threat tracking.
+	if previousSnapshot.RuntimeEntityID != spawnState.RuntimeEntityID {
+		topThreatPlayerID = ""
+		topThreatValue = -1.0
 	}
 
-	playerThreat, _ := spawnState.DamageContributors[playerID]
+	if playerThreat >= topThreatValue {
+		topThreatPlayerID = playerID
+		topThreatValue = playerThreat
+	}
 
 	slog.Info(
 		"Alpha creature threat updated",
@@ -2636,6 +2724,19 @@ func logAlphaCreatureThreat(spawnState *pve.CreatureSpawnState, playerID string,
 		"top_threat_value", topThreatValue,
 		"version", spawnState.Version,
 	)
+
+	s.alphaCreatureAIThreatMu.Lock()
+	s.alphaCreatureAIThreatSnapshot = alphaCreatureAIThreatSnapshot{
+		SpawnID:           spawnState.SpawnID,
+		RuntimeEntityID:   spawnState.RuntimeEntityID,
+		CreatureID:        spawnState.CreatureID,
+		TargetID:          "Orc_Elite", // A38: Hardcoded for now
+		TopThreatPlayerID: topThreatPlayerID,
+		TopThreatValue:    topThreatValue,
+		Version:           spawnState.Version,
+		UpdatedAt:         time.Now(),
+	}
+	s.alphaCreatureAIThreatMu.Unlock()
 }
 
 type creatureCombatTargetResolution struct {
