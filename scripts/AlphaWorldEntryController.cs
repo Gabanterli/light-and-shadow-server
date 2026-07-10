@@ -1373,7 +1373,7 @@ public partial class AlphaWorldEntryController : Control
 
         if (mouseButton.ButtonIndex == MouseButton.Left)
         {
-            OnAlphaLeftClickTargetSelectionRequested();
+            OnAlphaLeftClickMoveRequested(mouseButton);
             return;
         }
 
@@ -1384,10 +1384,62 @@ public partial class AlphaWorldEntryController : Control
                 return;
             }
 
-            OnAlphaRightClickAttackRequested();
+            if (TryHandleAlphaOrcEliteRightClick(mouseButton))
+            {
+                return;
+            }
+
+            SetAlphaCombatMessage("No attack: right-click did not hit a valid target.");
         }
     }
+    private void OnAlphaLeftClickMoveRequested(InputEventMouseButton mouseButton)
+    {
+        if (_worldView == null || !_worldView.TryGetFocusedTileAtLocalPosition(mouseButton.Position, out var clickedTile))
+        {
+            SetAlphaSystemMessage("Cannot move: clicked tile could not be resolved.");
+            return;
+        }
 
+        if (!_hasLocalPlayerPosition)
+        {
+            SetAlphaSystemMessage("Cannot move: player position pending sync.");
+            return;
+        }
+
+        var deltaX = Math.Clamp(clickedTile.X - _currentPlayerTilePosition.X, -1, 1);
+        var deltaY = Math.Clamp(clickedTile.Y - _currentPlayerTilePosition.Y, -1, 1);
+
+        if (deltaX == 0 && deltaY == 0)
+        {
+            SetAlphaSystemMessage("Cannot move: clicked current tile.");
+            return;
+        }
+
+        GD.Print($"Alpha left-click movement requested: clickedTile={clickedTile}, player={_currentPlayerTilePosition}, step=({deltaX},{deltaY})");
+        _ = SendAlphaMoveAsync(deltaX, deltaY, "left-click");
+    }
+
+    private bool TryHandleAlphaOrcEliteRightClick(InputEventMouseButton mouseButton)
+    {
+        if (_worldView == null || !_worldView.TryGetFocusedTileAtLocalPosition(mouseButton.Position, out var clickedTile))
+        {
+            return false;
+        }
+
+        if (!_worldView.OrcElitePosition.HasValue)
+        {
+            return false;
+        }
+
+        var orcTile = _worldView.OrcElitePosition.Value;
+        if (clickedTile.X != orcTile.X || clickedTile.Y != orcTile.Y)
+        {
+            return false;
+        }
+
+        SelectAlphaOrcEliteTargetAndStartAutoAttack();
+        return true;
+    }
     private bool TryHandleAlphaMentorArionRightClick(InputEventMouseButton mouseButton)
     {
         if (_worldView == null || !_worldView.TryGetFocusedTileAtLocalPosition(mouseButton.Position, out var clickedTile))
@@ -1405,7 +1457,7 @@ public partial class AlphaWorldEntryController : Control
         GD.Print($"Alpha Mentor Arion hit-test matched: npc={AlphaMentorArionNpcId}, tile={clickedTile}");
         return true;
     }
-    private void OnAlphaLeftClickTargetSelectionRequested()
+    private void SelectAlphaOrcEliteTargetAndStartAutoAttack()
     {
         if (_alphaBattleTargetState == "Dead")
         {
@@ -1441,11 +1493,6 @@ public partial class AlphaWorldEntryController : Control
         SetAlphaCombatMessage("Target selected: Orc_Elite.");
         SetAlphaSystemMessage("Alpha target selected.");
         StartAlphaAutoAttackLoop();
-    }
-
-    private void OnAlphaRightClickAttackRequested()
-    {
-        _ = SendAlphaAttackOnceAsync("right-click");
     }
 
     private void StartAlphaAutoAttackLoop()
@@ -1600,7 +1647,7 @@ public partial class AlphaWorldEntryController : Control
         try
         {
             _isAlphaAttackRequestInFlight = true;
-            if (source != "auto-attack")             {                 SetAlphaCombatMessage("Sending right-click attack.");             }
+            if (source != "auto-attack")             {                 SetAlphaCombatMessage("Sending attack request.");             }
             await GatewayClient.SendAttackRequestAsync(_alphaOrcEliteRuntimeEntityId, AlphaRealAttackWeaponType, effectiveToken);
             if (source != "auto-attack")             {                 SetAlphaCombatMessage("Attack request sent.");             }
             GD.Print($"Alpha {source} attack request sent with safe target identity.");
