@@ -42,7 +42,6 @@ public partial class AlphaWorldEntryController : Control
     private readonly Queue<string> _combatFeedbackMessages = new();
     private readonly Queue<ChunkData> _pendingChunkData = new();
     private readonly object _pendingChunkDataLock = new();
-
     private CancellationTokenSource? _packetLoopCts;
     private int _ignoredPacketCount;
 
@@ -537,7 +536,7 @@ public partial class AlphaWorldEntryController : Control
         RequestAlphaWorldViewRedraw();
     }
 
-    private static bool IsAlphaConfirmedSpellSkillName(string skillName)
+    private static bool IsAlphaConfirmedSpellSkillName(string? skillName)
     {
         var normalizedSkillName = skillName?.Trim() ?? string.Empty;
 

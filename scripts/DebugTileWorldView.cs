@@ -1,5 +1,7 @@
 using Godot;
 using System;
+using System.Collections.Generic;
+using System.Text.Json;
 using LightAndShadow.Client;
 
 public partial class DebugTileWorldView : Control
@@ -47,19 +49,33 @@ public partial class DebugTileWorldView : Control
         public float HorizontalOffset { get; set; }
     }
 
-    private sealed class AlphaConfirmedSpellVisual
+    private sealed class AlphaSpellVfxConfig
+    {
+        public string SkillName { get; set; } = string.Empty;
+        public bool Enabled { get; set; }
+        public float ColorR { get; set; }
+        public float ColorG { get; set; }
+        public float ColorB { get; set; }
+        public float DurationSeconds { get; set; }
+        public float LineWidth { get; set; }
+        public float PulseBaseRadius { get; set; }
+        public float PulseGrowthRadius { get; set; }
+        public float ImpactRadius { get; set; }
+    }
+
+    private sealed class AlphaSpellVfxInstance
     {
         public Vector2I FromTilePosition { get; set; }
         public Vector2I ToTilePosition { get; set; }
-        public string SkillName { get; set; } = string.Empty;
+        public AlphaSpellVfxConfig Config { get; set; } = new();
         public float AgeSeconds { get; set; }
-        public float DurationSeconds { get; set; } = 1.15f;
     }
 
     private const int MaxAlphaFloatingCombatTexts = 8;
     private const int MaxAlphaConfirmedSpellVisuals = 4;
     private readonly System.Collections.Generic.List<AlphaFloatingCombatText> _alphaFloatingCombatTexts = new();
-    private readonly System.Collections.Generic.List<AlphaConfirmedSpellVisual> _alphaConfirmedSpellVisuals = new();
+    private readonly System.Collections.Generic.List<AlphaSpellVfxInstance> _alphaSpellVfxInstances = new();
+    private readonly Dictionary<string, AlphaSpellVfxConfig> _alphaSpellVfxConfig = new();
 
     private Texture2D? _grassTileTexture;
     private Texture2D? _dirtTileTexture;
@@ -68,7 +84,7 @@ public partial class DebugTileWorldView : Control
 
     public override void _Process(double delta)
     {
-        if (_alphaFloatingCombatTexts.Count == 0 && _alphaConfirmedSpellVisuals.Count == 0)
+        if (_alphaFloatingCombatTexts.Count == 0 && _alphaSpellVfxInstances.Count == 0)
         {
             return;
         }
@@ -83,13 +99,13 @@ public partial class DebugTileWorldView : Control
             }
         }
 
-        for (var i = _alphaConfirmedSpellVisuals.Count - 1; i >= 0; i--)
+        for (var i = _alphaSpellVfxInstances.Count - 1; i >= 0; i--)
         {
-            _alphaConfirmedSpellVisuals[i].AgeSeconds += (float)delta;
+            _alphaSpellVfxInstances[i].AgeSeconds += (float)delta;
 
-            if (_alphaConfirmedSpellVisuals[i].AgeSeconds >= _alphaConfirmedSpellVisuals[i].DurationSeconds)
+            if (_alphaSpellVfxInstances[i].AgeSeconds >= _alphaSpellVfxInstances[i].Config.DurationSeconds)
             {
-                _alphaConfirmedSpellVisuals.RemoveAt(i);
+                _alphaSpellVfxInstances.RemoveAt(i);
             }
         }
 
@@ -125,21 +141,27 @@ public partial class DebugTileWorldView : Control
 
     public void AddAlphaConfirmedSpellVisual(string skillName)
     {
-        if (!PlayerTilePosition.HasValue || !OrcElitePosition.HasValue || string.IsNullOrWhiteSpace(skillName))
+        var normalizedSkillName = skillName.Trim();
+        if (!PlayerTilePosition.HasValue || !OrcElitePosition.HasValue || string.IsNullOrWhiteSpace(normalizedSkillName))
         {
             return;
         }
 
-        _alphaConfirmedSpellVisuals.Add(new AlphaConfirmedSpellVisual
+        if (!_alphaSpellVfxConfig.TryGetValue(normalizedSkillName, out var vfxConfig) || !vfxConfig.Enabled)
+        {
+            return;
+        }
+
+        _alphaSpellVfxInstances.Add(new AlphaSpellVfxInstance
         {
             FromTilePosition = PlayerTilePosition.Value,
             ToTilePosition = OrcElitePosition.Value,
-            SkillName = skillName.Trim()
+            Config = vfxConfig
         });
 
-        while (_alphaConfirmedSpellVisuals.Count > MaxAlphaConfirmedSpellVisuals)
+        while (_alphaSpellVfxInstances.Count > MaxAlphaConfirmedSpellVisuals)
         {
-            _alphaConfirmedSpellVisuals.RemoveAt(0);
+            _alphaSpellVfxInstances.RemoveAt(0);
         }
 
         QueueRedraw();
@@ -157,6 +179,40 @@ public partial class DebugTileWorldView : Control
         if (_grassTileTexture == null || _dirtTileTexture == null || _stoneBlockedTileTexture == null || _waterTileTexture == null)
         {
             GD.PrintErr("DebugTileWorldView: One or more placeholder textures failed to load. The view will fall back to solid colors.");
+        }
+
+        LoadAlphaSpellVfxConfig();
+    }
+
+    private void LoadAlphaSpellVfxConfig()
+    {
+        const string configPath = "res://config/alpha_spell_vfx.json";
+        if (!FileAccess.FileExists(configPath))
+        {
+            GD.PrintErr($"Alpha spell VFX config not found at: {configPath}");
+            return;
+        }
+
+        try
+        {
+            using var file = FileAccess.Open(configPath, FileAccess.ModeFlags.Read);
+            var content = file.GetAsText();
+            var configRoot = JsonSerializer.Deserialize<JsonElement>(content);
+            var spells = configRoot.GetProperty("Spells").EnumerateArray();
+
+            foreach (var spellElement in spells)
+            {
+                var spellConfig = JsonSerializer.Deserialize<AlphaSpellVfxConfig>(spellElement.GetRawText());
+                if (spellConfig != null && !string.IsNullOrWhiteSpace(spellConfig.SkillName) && !_alphaSpellVfxConfig.ContainsKey(spellConfig.SkillName))
+                {
+                    _alphaSpellVfxConfig[spellConfig.SkillName] = spellConfig;
+                }
+            }
+            GD.Print($"DebugTileWorldView: Alpha spell VFX config loaded. Count: {_alphaSpellVfxConfig.Count}");
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Failed to load or parse Alpha spell VFX config: {ex.Message}");
         }
     }
 
@@ -451,16 +507,16 @@ public partial class DebugTileWorldView : Control
     }
     private void DrawFocusedAlphaConfirmedSpellVisuals(int startTileX, int startTileY, float tileSize, Rect2 visibleRect)
     {
-        if (_alphaConfirmedSpellVisuals.Count == 0)
+        if (_alphaSpellVfxInstances.Count == 0)
         {
             return;
         }
 
-        foreach (var spellVisual in _alphaConfirmedSpellVisuals)
+        foreach (var spellVisual in _alphaSpellVfxInstances)
         {
-            var progress = spellVisual.DurationSeconds <= 0.0f
+            var progress = spellVisual.Config.DurationSeconds <= 0.0f
                 ? 1.0f
-                : Mathf.Clamp(spellVisual.AgeSeconds / spellVisual.DurationSeconds, 0.0f, 1.0f);
+                : Mathf.Clamp(spellVisual.AgeSeconds / spellVisual.Config.DurationSeconds, 0.0f, 1.0f);
 
             var opacity = 1.0f - progress;
             var from = GetFocusedTileCenter(spellVisual.FromTilePosition, startTileX, startTileY, tileSize);
@@ -478,12 +534,12 @@ public partial class DebugTileWorldView : Control
                 continue;
             }
 
-            var color = GetAlphaSpellVisualColor(spellVisual.SkillName, opacity);
-            DrawLine(from, to, color, 4.0f);
+            var color = new Color(spellVisual.Config.ColorR, spellVisual.Config.ColorG, spellVisual.Config.ColorB, opacity);
+            DrawLine(from, to, color, spellVisual.Config.LineWidth);
 
             var pulsePosition = from.Lerp(to, progress);
-            DrawCircle(pulsePosition, 8.0f + 6.0f * progress, color);
-            DrawCircle(to, 10.0f * opacity, color);
+            DrawCircle(pulsePosition, spellVisual.Config.PulseBaseRadius + spellVisual.Config.PulseGrowthRadius * progress, color);
+            DrawCircle(to, spellVisual.Config.ImpactRadius * opacity, color);
         }
     }
 
@@ -500,7 +556,8 @@ public partial class DebugTileWorldView : Control
 
     private static Color GetAlphaSpellVisualColor(string skillName, float opacity)
     {
-        return skillName switch
+        // Fallback for any legacy calls, though the new flow uses the config directly.
+        return skillName.Trim() switch
         {
             "Fire Bolt" => new Color(1.0f, 0.35f, 0.05f, opacity),
             "Holy Spark" => new Color(1.0f, 0.95f, 0.55f, opacity),

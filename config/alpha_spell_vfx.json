@@ -1,0 +1,42 @@
+{
+  "SystemName": "Alpha Spell VFX Definitions",
+  "Version": 1,
+  "Spells": [
+    {
+      "SkillName": "Fire Bolt",
+      "Enabled": true,
+      "ColorR": 1.0,
+      "ColorG": 0.35,
+      "ColorB": 0.05,
+      "DurationSeconds": 1.15,
+      "LineWidth": 4.0,
+      "PulseBaseRadius": 8.0,
+      "PulseGrowthRadius": 6.0,
+      "ImpactRadius": 10.0
+    },
+    {
+      "SkillName": "Holy Spark",
+      "Enabled": true,
+      "ColorR": 1.0,
+      "ColorG": 0.95,
+      "ColorB": 0.55,
+      "DurationSeconds": 1.15,
+      "LineWidth": 4.0,
+      "PulseBaseRadius": 8.0,
+      "PulseGrowthRadius": 6.0,
+      "ImpactRadius": 10.0
+    },
+    {
+      "SkillName": "Shadow Dart",
+      "Enabled": true,
+      "ColorR": 0.55,
+      "ColorG": 0.25,
+      "ColorB": 1.0,
+      "DurationSeconds": 1.15,
+      "LineWidth": 4.0,
+      "PulseBaseRadius": 8.0,
+      "PulseGrowthRadius": 6.0,
+      "ImpactRadius": 10.0
+    }
+  ]
+}
