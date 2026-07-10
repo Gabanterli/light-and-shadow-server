@@ -60,6 +60,7 @@ type CombatManager struct {
 	mu             sync.RWMutex
 	entities       map[string]*EntityStats
 	entityPos      map[string]struct{ X, Y float64 }
+	skills         map[uint32]Skill
 	aggroTables    map[string]*AggroTable          // NPC ID -> AggroTable
 	nextAttackTime map[string]time.Time            // ID -> Próximo momento de ataque permitido
 	skillCooldowns map[string]map[uint32]time.Time // ID -> SkillID -> Próximo momento de uso
@@ -75,10 +76,11 @@ type CombatManager struct {
 }
 
 // NewCombatManager instancia um novo CombatManager completo
-func NewCombatManager(chunkManager *movement.ChunkManager) *CombatManager {
+func NewCombatManager(chunkManager *movement.ChunkManager, skillOverrides ...map[uint32]Skill) *CombatManager {
 	cm := &CombatManager{
 		entities:       make(map[string]*EntityStats),
 		entityPos:      make(map[string]struct{ X, Y float64 }),
+		skills:         PredefinedSkills, // Começa com o hardcode
 		aggroTables:    make(map[string]*AggroTable),
 		nextAttackTime: make(map[string]time.Time),
 		skillCooldowns: make(map[string]map[uint32]time.Time),
@@ -87,6 +89,13 @@ func NewCombatManager(chunkManager *movement.ChunkManager) *CombatManager {
 		manaCounter:    0,
 		chunkManager:   chunkManager,
 		lastAttacker:   make(map[string]string),
+	}
+
+	// Se um mapa de skills foi fornecido, ele sobrescreve ou adiciona ao padrão.
+	if len(skillOverrides) > 0 && skillOverrides[0] != nil && len(skillOverrides[0]) > 0 {
+		for id, skill := range skillOverrides[0] {
+			cm.skills[id] = skill
+		}
 	}
 
 	// Registra tarefas periódicas no Scheduler
@@ -535,7 +544,7 @@ func (cm *CombatManager) ProcessCastSkillRequest(attackerID string, skillID uint
 		return nil, errors.New("atacante está morto")
 	}
 
-	skill, existsSkill := PredefinedSkills[skillID]
+	skill, existsSkill := cm.skills[skillID]
 	if !existsSkill {
 		return nil, fmt.Errorf("habilidade ID %d não existe", skillID)
 	}

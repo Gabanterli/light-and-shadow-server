@@ -139,7 +139,14 @@ func main() {
 
 	slog.Info("Starting Light and Shadow Gateway Server...")
 
-	// InicializaÃ§Ã£o de bancos de dados (tolerante a fallbacks locais)
+	// A33: Load Alpha Skills from config
+	alphaSkills, err := combat.LoadAlphaSkills("config/alpha_skills.json")
+	if err != nil {
+		slog.Error("Failed to load Alpha skills configuration, server cannot start.", "error", err)
+		os.Exit(1)
+	}
+
+	// Inicialização de bancos de dados (tolerante a fallbacks locais)
 	pgPool, err := db.NewPostgresPool(cfg.PostgresDSN)
 	if err != nil {
 		slog.Error("PostgreSQL pool initialization failed; refusing to start Gateway", "error", err)
@@ -159,7 +166,7 @@ func main() {
 	movementSystem := movement.NewMovementSystem(spatialIndex, chunkManager, aoiManager)
 
 	// Inicializa Sistema de Combate Autorizativo (Sprint 2 Task 5)
-	combatManager := combat.NewCombatManager(chunkManager)
+	combatManager := combat.NewCombatManager(chunkManager, alphaSkills)
 
 	// Configura LevelProvider para checagens de regiÃ£o da Sprint 3 Task 5 (PATCH 1)
 	movementSystem.LevelProvider = func(playerID string) int {
@@ -168,9 +175,6 @@ func main() {
 		}
 		return 1
 	}
-
-	// Inicializa Sistema de Combate Autorizativo (Sprint 2 Task 5)
-	combatManager = combat.NewCombatManager(chunkManager)
 
 	// Configura manipuladores de eventos de combate assÃ­ncronos (projÃ©teis)
 	combatManager.SetEventHandler(combat.CombatEventHandler{

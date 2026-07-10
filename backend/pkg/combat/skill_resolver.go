@@ -1,8 +1,11 @@
 package combat
 
 import (
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"math"
+	"os"
 	"time"
 )
 
@@ -91,6 +94,72 @@ var PredefinedSkills = map[uint32]Skill{
 
 func isAlphaDebugSpellSkillID(skillID uint32) bool {
 	return skillID == 1001 || skillID == 1002 || skillID == 1003
+}
+
+// skillDTO é uma estrutura de transferência de dados para carregar do JSON.
+type skillDTO struct {
+	ID         uint32  `json:"ID"`
+	Name       string  `json:"Name"`
+	CooldownMs uint32  `json:"CooldownMs"`
+	Range      float64 `json:"Range"`
+	SkillScale float64 `json:"SkillScale"`
+	IsArea     bool    `json:"IsArea"`
+	AreaRadius float64 `json:"AreaRadius"`
+	ManaCost   float64 `json:"ManaCost"`
+}
+
+// LoadAlphaSkills carrega as definições de skills Alpha de um arquivo JSON.
+func LoadAlphaSkills(path string) (map[uint32]Skill, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read alpha skills config file at %s: %w", path, err)
+	}
+
+	var config struct {
+		Skills []skillDTO `json:"Skills"`
+	}
+	if err := json.Unmarshal(data, &config); err != nil {
+		return nil, fmt.Errorf("failed to parse alpha skills JSON: %w", err)
+	}
+
+	if len(config.Skills) == 0 {
+		return nil, fmt.Errorf("no skills found in alpha skills config")
+	}
+
+	skillMap := make(map[uint32]Skill)
+	for _, dto := range config.Skills {
+		if _, exists := skillMap[dto.ID]; exists {
+			return nil, fmt.Errorf("duplicate skill ID found in config: %d", dto.ID)
+		}
+		if dto.Name == "" {
+			return nil, fmt.Errorf("skill with ID %d has an empty name", dto.ID)
+		}
+		if dto.ManaCost < 0 {
+			return nil, fmt.Errorf("skill with ID %d has a negative mana cost: %.2f", dto.ID, dto.ManaCost)
+		}
+		if dto.Range < 0 {
+			return nil, fmt.Errorf("skill with ID %d has a negative range: %.2f", dto.ID, dto.Range)
+		}
+		if dto.SkillScale <= 0 {
+			return nil, fmt.Errorf("skill with ID %d has a non-positive skill scale: %.2f", dto.ID, dto.SkillScale)
+		}
+		if dto.IsArea && dto.AreaRadius < 0 {
+			return nil, fmt.Errorf("skill with ID %d is an area skill but has a negative area radius: %.2f", dto.ID, dto.AreaRadius)
+		}
+
+		skillMap[dto.ID] = Skill{
+			ID:         dto.ID,
+			Name:       dto.Name,
+			Cooldown:   time.Duration(dto.CooldownMs) * time.Millisecond,
+			Range:      dto.Range,
+			SkillScale: dto.SkillScale,
+			IsArea:     dto.IsArea,
+			AreaRadius: dto.AreaRadius,
+			ManaCost:   dto.ManaCost,
+		}
+	}
+	slog.Info("Alpha skills loaded successfully from config", "count", len(skillMap))
+	return skillMap, nil
 }
 
 // SkillCastResult armazena as consequências e acertos da execução de uma habilidade

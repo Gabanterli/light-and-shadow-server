@@ -1,0 +1,36 @@
+{
+  "SystemName": "Alpha Skill Definitions",
+  "Version": 1,
+  "Skills": [
+    {
+      "ID": 1001,
+      "Name": "Fire Bolt",
+      "ManaCost": 0,
+      "CooldownMs": 900,
+      "Range": 6.0,
+      "SkillScale": 0.45,
+      "IsArea": false,
+      "AreaRadius": 0
+    },
+    {
+      "ID": 1002,
+      "Name": "Holy Spark",
+      "ManaCost": 0,
+      "CooldownMs": 1100,
+      "Range": 6.0,
+      "SkillScale": 0.40,
+      "IsArea": false,
+      "AreaRadius": 0
+    },
+    {
+      "ID": 1003,
+      "Name": "Shadow Dart",
+      "ManaCost": 0,
+      "CooldownMs": 1000,
+      "Range": 6.0,
+      "SkillScale": 0.50,
+      "IsArea": false,
+      "AreaRadius": 0
+    }
+  ]
+}
