@@ -887,6 +887,18 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				Y:        savedY,
 				Z:        int(savedZ),
 			})
+			alphaRole, _, alphaEffectiveDevGM := isCharacterAccountGM(s.persistenceMgr, s.config, playerID)
+			alphaCapabilitiesPacket := &protocol.Packet{
+				Opcode:   protocol.SC_ALPHA_CAPABILITIES,
+				Sequence: packet.Sequence,
+				Payload:  protocol.EncodeAlphaCapabilities(alphaEffectiveDevGM, alphaRole),
+			}
+			if _, err := conn.Write(alphaCapabilitiesPacket.Serialize()); err != nil {
+				slog.Warn("Failed to send Alpha capabilities", "player", playerID, "role", alphaRole, "effectiveDevGM", alphaEffectiveDevGM, "error", err)
+			} else {
+				slog.Info("Alpha capabilities sent", "player", playerID, "role", alphaRole, "effectiveDevGM", alphaEffectiveDevGM, "devGMEnabled", s.config.EnableDevGM)
+			}
+
 			initialPositionPacket := &protocol.Packet{
 				Opcode:  protocol.SC_PLAYER_UPDATE,
 				Payload: initialPositionPayload,
@@ -1119,6 +1131,12 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 
+			// Determine if a GM bypass is allowed for this action.
+			role, _, effectiveDevGM := isCharacterAccountGM(s.persistenceMgr, s.config, playerID)
+			if effectiveDevGM {
+				slog.Info("GM bypass check for dialogue action", "player", playerID, "role", role, "effectiveDevGM", true)
+			}
+
 			currentFlag := s.questManager.GetDialogueFlag(playerID, req.NPCID)
 			if currentFlag == "" || currentFlag == "completed_conversation" || currentFlag != req.NodeID {
 				slog.Warn("Dialogue response rejected due to invalid dialogue state", "player", playerID, "npc", req.NPCID, "request_node", req.NodeID, "current_node", currentFlag, "next_node", req.NextNodeID)
@@ -1156,7 +1174,11 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 					break
 				}
 
-				err = s.progressionManager.ChooseVocation(playerID, classID)
+				err = s.progressionManager.ChooseVocationWithOptions(playerID, classID, progression.ChooseVocationOptions{
+					AllowDevBypass: effectiveDevGM,
+					DevReason:      "dev_gm_class_selection_via_mentor",
+				})
+
 				var respPayload []byte
 				if err != nil {
 					slog.Warn("Dialogue choose_class action rejected", "player", playerID, "npc", req.NPCID, "class", classID, "error", err)
@@ -3222,6 +3244,27 @@ func appendInt32LE(payload []byte, value int32) []byte {
 	var buffer [4]byte
 	binary.LittleEndian.PutUint32(buffer[:], uint32(value))
 	return append(payload, buffer[:]...)
+}
+
+// isCharacterAccountGM checks if the account associated with a character has GM/Admin privileges.
+func isCharacterAccountGM(pm *persistence.PersistenceManager, cfg *config.Config, characterName string) (role string, isGMAccount bool, effectiveDevGM bool) {
+	role = "player" // Default role
+	if pm == nil || cfg == nil || characterName == "" {
+		return role, false, false
+	}
+
+	accountRole, err := pm.GetAccountRoleByCharacterName(characterName)
+	if err != nil {
+		slog.Warn("Could not determine account role for character", "character", characterName, "error", err)
+		// Fallback to default role, do not block the player.
+	} else {
+		role = accountRole
+	}
+
+	isGMAccount = (role == "gm" || role == "admin")
+	effectiveDevGM = cfg.EnableDevGM && isGMAccount
+
+	return role, isGMAccount, effectiveDevGM
 }
 func (s *GatewayServer) startCreatureRespawnSchedulerLoop() {
 	ticker := time.NewTicker(1 * time.Second)

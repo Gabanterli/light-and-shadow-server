@@ -575,6 +575,13 @@ func (pm *PersistenceManager) InitSchema() error {
 		return fmt.Errorf("failed to run PATCH 1, 4 & PvP system tables: %w", err)
 	}
 
+	_, err = dbConn.ExecContext(ctx, `
+        ALTER TABLE accounts
+        ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'player'
+    `)
+	if err != nil {
+		return fmt.Errorf("failed to add accounts.role column: %w", err)
+	}
 	slog.Info("PostgreSQL schema validated and upgraded successfully")
 	return nil
 }
@@ -606,6 +613,44 @@ func (pm *PersistenceManager) CharacterBelongsToAccount(accountID int, character
 	}
 
 	return exists, nil
+}
+
+// GetAccountRoleByCharacterName retrieves the role of the account that owns the specified character.
+func (pm *PersistenceManager) GetAccountRoleByCharacterName(characterName string) (string, error) {
+	if pm.pgPool == nil || pm.pgPool.DB == nil {
+		return "player", fmt.Errorf("database is not available")
+	}
+
+	normalizedName := strings.TrimSpace(characterName)
+	if normalizedName == "" {
+		return "player", fmt.Errorf("characterName cannot be empty")
+	}
+
+	dbConn := pm.pgPool.DB
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var role string
+	err := dbConn.QueryRowContext(ctx, `
+        SELECT COALESCE(NULLIF(TRIM(a.role), ''), 'player')
+        FROM accounts a
+        JOIN characters c ON a.id = c.account_id
+        WHERE c.name = $1
+    `, normalizedName).Scan(&role)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "player", fmt.Errorf("character %q not found or has no associated account", normalizedName)
+		}
+
+		return "player", fmt.Errorf("failed to query account role for character %q: %w", normalizedName, err)
+	}
+
+	role = strings.ToLower(strings.TrimSpace(role))
+	if role != "gm" && role != "admin" {
+		return "player", nil
+	}
+
+	return role, nil
 }
 
 // LoadCharacter carrega os atributos autoritativos de um personagem, versÃ£o e inventÃ¡rio correspondente do PostgreSQL (PATCH 4)

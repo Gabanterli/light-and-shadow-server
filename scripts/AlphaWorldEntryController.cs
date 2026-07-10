@@ -23,6 +23,7 @@ public partial class AlphaWorldEntryController : Control
     private Button? _alphaHolySparkButton;
     private Button? _alphaShadowDartButton;
     private CanvasLayer? _alphaDialogueCanvasLayer;
+    private Label? _alphaDevGmBadgeLabel;
     private PanelContainer? _alphaDialoguePanel;
     private Label? _alphaDialogueTitleLabel;
     private Label? _alphaDialogueTextLabel;
@@ -56,6 +57,8 @@ public partial class AlphaWorldEntryController : Control
     private string _openAlphaDialogueNpcId = string.Empty;
     private string _openAlphaDialogueNodeId = string.Empty;
     private string _confirmedAlphaClassId = string.Empty;
+    private bool _isAlphaDevGM;
+    private string _alphaAccountRole = string.Empty;
 
     private bool _hasInventorySync;
     private uint _syncedLevel;
@@ -133,6 +136,7 @@ public partial class AlphaWorldEntryController : Control
         MountAlphaSpellbookShell();
         MountAlphaDialogueWindowShell();
         RefreshBackpackShellState();
+        MountAlphaDevGmBadge();
         RefreshAlphaSpellbookShellState();
         RefreshWorldShellState();
         StartAlphaWorldBootstrapPacketLoop();
@@ -435,6 +439,36 @@ content.AddChild(_alphaDialogueTextLabel);
         GD.Print($"Alpha dialogue window centered on world view: worldRect={worldRect}, position={_alphaDialoguePanel.Position}, size={_alphaDialoguePanel.Size}");
     }
 
+    private void MountAlphaDevGmBadge()
+    {
+        if (_alphaDevGmBadgeLabel != null)
+        {
+            return;
+        }
+
+        _alphaDevGmBadgeLabel = new Label
+        {
+            Name = "AlphaDevGmBadgeLabel",
+            Text = "GM TEST",
+            Visible = false,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Top,
+            AnchorsPreset = (int)LayoutPreset.TopRight,
+            ZIndex = 200
+        };
+
+        AddChild(_alphaDevGmBadgeLabel);
+        GD.Print("Alpha Dev GM badge mounted.");
+    }
+
+    private void RefreshAlphaDevGmBadge()
+    {
+        if (_alphaDevGmBadgeLabel != null)
+        {
+            _alphaDevGmBadgeLabel.Visible = _isAlphaDevGM;
+        }
+    }
+
     private void BindAlphaDialogueWindow(string npcId, string nodeId, string nodeText, string choicesText, int choiceCount)
     {
         MountAlphaDialogueWindowShell();
@@ -505,7 +539,7 @@ content.AddChild(_alphaDialogueTextLabel);
             var parsedChoice = ParseAlphaDialogueChoice(optionText);
             var choiceNextNodeId = parsedChoice.NextNodeId;
             var choiceDisplayText = parsedChoice.Text;
-            optionButton.Text = $"› {choiceDisplayText}";
+            optionButton.Text = $"Choice: {choiceDisplayText}";
 
             optionButton.Pressed += () =>
             {
@@ -971,6 +1005,10 @@ content.AddChild(_alphaDialogueTextLabel);
                 {
                     HandleAlphaDialogueOpenPacket(packet);
                 }
+                else if (packet.Opcode == BinaryProtocol.SC_ALPHA_CAPABILITIES)
+                {
+                    HandleAlphaCapabilitiesPacket(packet);
+                }
                 else
                 {
                     _ignoredPacketCount++;
@@ -1003,6 +1041,28 @@ content.AddChild(_alphaDialogueTextLabel);
         {
             _packetLoopCts.Cancel();
         }
+    }
+
+    private void HandleAlphaCapabilitiesPacket(Packet packet)
+    {
+        try
+        {
+            var data = BinaryProtocol.DecodeAlphaCapabilities(packet.Payload);
+            CallDeferred(nameof(ApplyAlphaCapabilities), data.IsDevGM, data.Role);
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Alpha Capabilities decode failed: {ex.Message}");
+            CallDeferred(nameof(SetAlphaSystemMessage), $"GM capabilities decode failed: {ex.GetType().Name}");
+        }
+    }
+
+    private void ApplyAlphaCapabilities(bool isDevGM, string role)
+    {
+        _isAlphaDevGM = isDevGM;
+        _alphaAccountRole = role;
+        SetAlphaSystemMessage($"GM capabilities received: IsDevGM={isDevGM}, Role={role}");
+        RefreshAlphaDevGmBadge();
     }
 
     private void HandleAlphaChooseVocationResponsePacket(Packet packet)
@@ -1039,6 +1099,7 @@ content.AddChild(_alphaDialogueTextLabel);
 
             SetAlphaSystemMessage($"Class selected: {displayClass}.");
             SetAlphaCombatMessage($"Mentor Arion confirmed your class: {displayClass}.");
+            RefreshTopBarShellState();
             GD.Print($"Alpha class selection confirmed: class={className}");
             return;
         }

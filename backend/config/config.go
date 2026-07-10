@@ -14,6 +14,7 @@ type Config struct {
 	RedisPassword string
 	RedisDB       int
 	LogLevel      string
+	EnableDevGM   bool
 }
 
 func LoadConfig() *Config {
@@ -21,6 +22,7 @@ func LoadConfig() *Config {
 	authPort, _ := strconv.Atoi(getEnv("AUTH_PORT", "8081"))
 	worldPort, _ := strconv.Atoi(getEnv("WORLD_PORT", "8082"))
 	redisDB, _ := strconv.Atoi(getEnv("REDIS_DB", "0"))
+	enableDevGM, _ := strconv.ParseBool(getEnv("LS_ENABLE_DEV_GM", "false"))
 
 	return &Config{
 		GatewayPort:   gatewayPort,
@@ -31,6 +33,7 @@ func LoadConfig() *Config {
 		RedisPassword: getEnv("REDIS_PASSWORD", ""),
 		RedisDB:       redisDB,
 		LogLevel:      getEnv("LOG_LEVEL", "info"),
+		EnableDevGM:   enableDevGM,
 	}
 }
 

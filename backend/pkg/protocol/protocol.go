@@ -136,6 +136,7 @@ const (
 	SC_CHOOSE_VOCATION_RESP uint16 = 9101
 	CS_UNLOCK_SUBCLASS      uint16 = 9102
 	SC_UNLOCK_SUBCLASS_RESP uint16 = 9103
+	SC_ALPHA_CAPABILITIES   uint16 = 9104 // GM/Test capabilities
 )
 
 const HeaderSize = 8
@@ -1633,6 +1634,23 @@ func EncodeUnlockSubclassResponse(success bool, errorMessage string, subclass st
 	payload = append(payload, elLen...)
 	payload = append(payload, elBytes...)
 
+	return payload
+}
+
+// EncodeAlphaCapabilities serializa as permissões de GM/Test para o cliente Alpha.
+func EncodeAlphaCapabilities(isDevGM bool, role string) []byte {
+	isDevGMByte := byte(0)
+	if isDevGM {
+		isDevGMByte = 1
+	}
+
+	payload := []byte{isDevGMByte}
+
+	roleBytes := []byte(role)
+	roleLenBytes := make([]byte, 2)
+	binary.LittleEndian.PutUint16(roleLenBytes, uint16(len(roleBytes)))
+	payload = append(payload, roleLenBytes...)
+	payload = append(payload, roleBytes...)
 	return payload
 }
 

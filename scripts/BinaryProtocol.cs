@@ -12,6 +12,7 @@ public static class BinaryProtocol
     public const ushort SC_DIALOGUE_OPEN = 5001;
     public const ushort CS_DIALOGUE_RESPONSE = 5002;
     public const ushort SC_CHOOSE_VOCATION_RESP = 9101;
+    public const ushort SC_ALPHA_CAPABILITIES = 9104;
     public const ushort SC_CAST_SKILL_RESULT = 3006;
     public static byte[] EncodeLoginRequest(string username, string password)
     {
@@ -281,6 +282,22 @@ public static class BinaryProtocol
         };
     }
 
+    public static AlphaCapabilitiesData DecodeAlphaCapabilities(byte[] payload)
+    {
+        if (payload.Length < 1)
+        {
+            throw new InvalidDataException("Alpha capabilities payload is too small.");
+        }
+
+        var offset = 0;
+        var isDevGM = payload[offset++] == 1;
+        var role = ReadStringUInt16(payload, offset, out _);
+
+        return new AlphaCapabilitiesData {
+            IsDevGM = isDevGM,
+            Role = role
+        };
+    }
     public static (string NpcId, string NodeId, string NodeText, List<(string NextNodeId, string Text)> Choices) DecodeDialogueOpen(byte[] payload)
     {
         var offset = 0;
@@ -672,6 +689,12 @@ public sealed class ChooseVocationResponseData
     public bool Success { get; set; }
     public string ErrorMessage { get; set; } = string.Empty;
     public string ClassName { get; set; } = string.Empty;
+}
+
+public sealed class AlphaCapabilitiesData
+{
+    public bool IsDevGM { get; set; }
+    public string Role { get; set; } = string.Empty;
 }
 
 public sealed class LoginResponseData

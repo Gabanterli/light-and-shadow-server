@@ -40,10 +40,21 @@ func NewProgressionManager(db *sql.DB, cm *combat.CombatManager, invs map[string
 	return pm
 }
 
-// ChooseVocation realiza a seleção irreversível de classe a partir do Level 10 (PATCH 2)
+type ChooseVocationOptions struct {
+	AllowDevBypass bool
+	DevReason      string
+}
+
 func (pm *ProgressionManager) ChooseVocation(playerID string, baseClass string) error {
+	return pm.ChooseVocationWithOptions(playerID, baseClass, ChooseVocationOptions{})
+}
+
+// ChooseVocationWithOptions realiza a seleção de classe, com opção de bypass para GMs em ambiente dev.
+func (pm *ProgressionManager) ChooseVocationWithOptions(playerID string, baseClass string, opts ChooseVocationOptions) error {
 	pStats, existsStats := pm.combatManager.GetEntityStats(playerID)
+	pm.mu.RLock()
 	playerInv, existsInv := pm.inventories[playerID]
+	pm.mu.RUnlock()
 	if !existsStats || !existsInv {
 		return fmt.Errorf("jogador %s não está totalmente carregado no servidor", playerID)
 	}
@@ -89,8 +100,13 @@ func (pm *ProgressionManager) ChooseVocation(playerID string, baseClass string) 
 			dbCurrentClass = rules.RuleID(strings.ToLower(strings.TrimSpace(dbClass.String)))
 		}
 
-		if err := rules.CanSelectBaseClass(uint32(dbLevel), dbCurrentClass, targetClass); err != nil {
-			return fmt.Errorf("seleção de vocação rejeitada: %w", err)
+		if !opts.AllowDevBypass {
+			if err := rules.CanSelectBaseClass(uint32(dbLevel), dbCurrentClass, targetClass); err != nil {
+				return fmt.Errorf("seleção de vocação rejeitada: %w", err)
+			}
+		} else {
+			slog.Info("Applying GM/Test character class selection bypass", "player", playerID, "reason", opts.DevReason)
+			// For GM bypass, we allow changing from any class, not just novice.
 		}
 
 		res, err := tx.ExecContext(ctx, `
@@ -98,6 +114,7 @@ func (pm *ProgressionManager) ChooseVocation(playerID string, baseClass string) 
 			SET class = $1, updated_at = CURRENT_TIMESTAMP
 			WHERE name = $2 AND (class = 'Novice' OR class = 'novice' OR class = '')
 		`, string(targetClass), playerID)
+
 		if err != nil {
 			return fmt.Errorf("failed to persist vocation change: %w", err)
 		}
@@ -107,7 +124,24 @@ func (pm *ProgressionManager) ChooseVocation(playerID string, baseClass string) 
 			return fmt.Errorf("failed to verify vocation update result: %w", err)
 		}
 		if rowsAffected != 1 {
-			return fmt.Errorf("vocation already chosen or race condition detected (rows affected: %d)", rowsAffected)
+			// If the first update failed, it might be a GM re-selecting a class.
+			// The original query had a WHERE clause for 'novice'. The GM bypass should work on any class.
+			if opts.AllowDevBypass && (dbCurrentClass != rules.StartingClassNovice && dbCurrentClass != "") {
+				// If it's a GM re-selecting, we update the class directly without the novice check.
+				res, err = tx.ExecContext(ctx, `UPDATE characters SET class = $1, updated_at = CURRENT_TIMESTAMP WHERE name = $2`, string(targetClass), playerID)
+				if err != nil {
+					return fmt.Errorf("failed to persist GM vocation re-selection: %w", err)
+				}
+				rowsAffected, err = res.RowsAffected()
+				if err != nil {
+					return fmt.Errorf("failed to verify GM vocation re-selection result: %w", err)
+				}
+				if rowsAffected != 1 {
+					return fmt.Errorf("GM re-selection failed to update any rows (character not found?)")
+				}
+			} else {
+				return fmt.Errorf("vocation already chosen or race condition detected (rows affected: %d)", rowsAffected)
+			}
 		}
 
 		if err := tx.Commit(); err != nil {
@@ -135,8 +169,10 @@ func (pm *ProgressionManager) ChooseVocation(playerID string, baseClass string) 
 			currentClass = rules.RuleID(strings.ToLower(strings.TrimSpace(pStats.Class)))
 		}
 
-		if err := rules.CanSelectBaseClass(uint32(pStats.Level), currentClass, targetClass); err != nil {
-			return fmt.Errorf("seleção de vocação rejeitada: %w", err)
+		if !opts.AllowDevBypass {
+			if err := rules.CanSelectBaseClass(uint32(pStats.Level), currentClass, targetClass); err != nil {
+				return fmt.Errorf("seleção de vocação rejeitada: %w", err)
+			}
 		}
 	}
 
