@@ -51,32 +51,96 @@ func (pm *ProgressionManager) ChooseVocation(playerID string, baseClass string) 
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	// A41-B2: Normalize current and target classes and use canonical rules for validation.
-	var currentClass rules.RuleID
-	switch strings.ToLower(strings.TrimSpace(pStats.Class)) {
-	case "", "novice":
-		currentClass = rules.StartingClassNovice
-	case "knight":
-		currentClass = rules.ClassKnight
-	case "mage":
-		currentClass = rules.ClassMage
-	case "archer":
-		currentClass = rules.ClassArcher
-	case "assassin":
-		currentClass = rules.ClassAssassin
-	case "cleric":
-		currentClass = rules.ClassCleric
-	default:
-		currentClass = rules.RuleID(strings.ToLower(strings.TrimSpace(pStats.Class)))
-	}
-
 	targetClass := rules.RuleID(strings.ToLower(strings.TrimSpace(baseClass)))
 
-	if err := rules.CanSelectBaseClass(uint32(pStats.Level), currentClass, targetClass); err != nil {
-		return fmt.Errorf("seleção de vocação rejeitada: %w", err)
+	// A41-B3: Persist class change atomically before mutating memory.
+	if pm.dbConn != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		tx, err := pm.dbConn.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
+		if err != nil {
+			return fmt.Errorf("failed to begin vocation transaction: %w", err)
+		}
+		defer tx.Rollback()
+
+		var dbClass sql.NullString
+		var dbLevel int
+		err = tx.QueryRowContext(ctx, `SELECT class, level FROM characters WHERE name = $1 FOR UPDATE`, playerID).Scan(&dbClass, &dbLevel)
+		if err != nil {
+			return fmt.Errorf("failed to fetch and lock character for vocation change: %w", err)
+		}
+
+		var dbCurrentClass rules.RuleID
+		switch strings.ToLower(strings.TrimSpace(dbClass.String)) {
+		case "", "novice":
+			dbCurrentClass = rules.StartingClassNovice
+		case "knight":
+			dbCurrentClass = rules.ClassKnight
+		case "mage":
+			dbCurrentClass = rules.ClassMage
+		case "archer":
+			dbCurrentClass = rules.ClassArcher
+		case "assassin":
+			dbCurrentClass = rules.ClassAssassin
+		case "cleric":
+			dbCurrentClass = rules.ClassCleric
+		default:
+			dbCurrentClass = rules.RuleID(strings.ToLower(strings.TrimSpace(dbClass.String)))
+		}
+
+		if err := rules.CanSelectBaseClass(uint32(dbLevel), dbCurrentClass, targetClass); err != nil {
+			return fmt.Errorf("seleção de vocação rejeitada: %w", err)
+		}
+
+		res, err := tx.ExecContext(ctx, `
+			UPDATE characters
+			SET class = $1, updated_at = CURRENT_TIMESTAMP
+			WHERE name = $2 AND (class = 'Novice' OR class = 'novice' OR class = '')
+		`, string(targetClass), playerID)
+		if err != nil {
+			return fmt.Errorf("failed to persist vocation change: %w", err)
+		}
+
+		rowsAffected, err := res.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("failed to verify vocation update result: %w", err)
+		}
+		if rowsAffected != 1 {
+			return fmt.Errorf("vocation already chosen or race condition detected (rows affected: %d)", rowsAffected)
+		}
+
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("failed to commit vocation transaction: %w", err)
+		}
+
+		slog.Info("Canonical vocation persisted atomically", "player", playerID, "class", string(targetClass), "source_class", dbCurrentClass, "level", dbLevel)
+	} else {
+		// Fallback for development/testing without a database.
+		var currentClass rules.RuleID
+		switch strings.ToLower(strings.TrimSpace(pStats.Class)) {
+		case "", "novice":
+			currentClass = rules.StartingClassNovice
+		case "knight":
+			currentClass = rules.ClassKnight
+		case "mage":
+			currentClass = rules.ClassMage
+		case "archer":
+			currentClass = rules.ClassArcher
+		case "assassin":
+			currentClass = rules.ClassAssassin
+		case "cleric":
+			currentClass = rules.ClassCleric
+		default:
+			currentClass = rules.RuleID(strings.ToLower(strings.TrimSpace(pStats.Class)))
+		}
+
+		if err := rules.CanSelectBaseClass(uint32(pStats.Level), currentClass, targetClass); err != nil {
+			return fmt.Errorf("seleção de vocação rejeitada: %w", err)
+		}
 	}
 
-	// 3. Aplica a classe e concede bônus de vocação inicial
+	// Apply changes to in-memory state only after successful validation (and DB commit if applicable).
 	pStats.Class = string(targetClass)
 	playerInv.BaseStats.Class = string(targetClass)
 
