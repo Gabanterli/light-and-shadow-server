@@ -1452,10 +1452,49 @@ public partial class AlphaWorldEntryController : Control
             return false;
         }
 
-        SetAlphaSystemMessage($"Mentor Arion hit-test ready: {AlphaMentorArionNpcId} at tile {clickedTile.X},{clickedTile.Y}.");
-        SetAlphaCombatMessage("NPC target detected: Mentor Arion. Interaction packet route comes next.");
-        GD.Print($"Alpha Mentor Arion hit-test matched: npc={AlphaMentorArionNpcId}, tile={clickedTile}");
+        GD.Print($"Alpha Mentor Arion interaction requested: npc={AlphaMentorArionNpcId}, tile={clickedTile}");
+        _ = SendAlphaNpcInteractRequestAsync(AlphaMentorArionNpcId);
         return true;
+    }
+
+    private async Task SendAlphaNpcInteractRequestAsync(string npcId)
+    {
+        if (string.IsNullOrWhiteSpace(npcId))
+        {
+            SetAlphaSystemMessage("Cannot interact: NPC id is empty.");
+            return;
+        }
+
+        if (GatewayClient == null || !GatewayClient.IsConnected)
+        {
+            SetAlphaSystemMessage("Cannot interact: client disconnected.");
+            return;
+        }
+
+        if (_packetLoopCts == null || _packetLoopCts.IsCancellationRequested)
+        {
+            SetAlphaSystemMessage("Cannot interact: listener inactive.");
+            return;
+        }
+
+        try
+        {
+            SetAlphaSystemMessage($"Interacting with NPC: {npcId}.");
+            await GatewayClient.SendNpcInteractRequestAsync(npcId, _packetLoopCts.Token);
+            SetAlphaSystemMessage("NPC interaction request sent. Waiting for dialogue open.");
+            SetAlphaCombatMessage("NPC interaction sent: Mentor Arion.");
+            GD.Print($"Alpha NPC interact request sent: npc={npcId}");
+        }
+        catch (OperationCanceledException)
+        {
+            SetAlphaSystemMessage("NPC interaction request cancelled.");
+            GD.Print("Alpha NPC interact request cancelled.");
+        }
+        catch (Exception ex)
+        {
+            SetAlphaSystemMessage($"NPC interaction failed: {ex.GetType().Name}.");
+            GD.PrintErr($"Alpha NPC interact request failed: {ex.Message}");
+        }
     }
     private void SelectAlphaOrcEliteTargetAndStartAutoAttack()
     {
