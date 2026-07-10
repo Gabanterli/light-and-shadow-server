@@ -22,6 +22,12 @@ public partial class AlphaWorldEntryController : Control
     private Button? _alphaFireBoltButton;
     private Button? _alphaHolySparkButton;
     private Button? _alphaShadowDartButton;
+    private CanvasLayer? _alphaDialogueCanvasLayer;
+    private PanelContainer? _alphaDialoguePanel;
+    private Label? _alphaDialogueTitleLabel;
+    private Label? _alphaDialogueTextLabel;
+    private Button? _alphaDialogueCloseButton;
+    private VBoxContainer? _alphaDialogueChoicesContainer;
     private DebugTileWorldView? _worldView;
 
     private Control? _legacyHudRoot;
@@ -37,8 +43,7 @@ public partial class AlphaWorldEntryController : Control
     private const int MaxCombatFeedbackMessages = 5;
     private const string AlphaRealAttackWeaponType = "debug_sword";
     private const string AlphaMentorArionNpcId = "npc_class_trainer";
-    private static Vector2I AlphaMentorArionTilePosition = new(104, 102);
-    private static readonly Vector2I AlphaMentorArionDebugOffset = new(3, 0);
+    private static readonly Vector2I AlphaMentorArionTilePosition = new(217, 146);
 
     private readonly DebugChunkStore _chunkStore = new();
     private readonly Queue<string> _systemFeedbackMessages = new();
@@ -47,6 +52,8 @@ public partial class AlphaWorldEntryController : Control
     private readonly object _pendingChunkDataLock = new();
     private CancellationTokenSource? _packetLoopCts;
     private int _ignoredPacketCount;
+    private bool _isAlphaDialogueOpen;
+    private string _openAlphaDialogueNpcId = string.Empty;
 
     private bool _hasInventorySync;
     private uint _syncedLevel;
@@ -65,7 +72,6 @@ public partial class AlphaWorldEntryController : Control
     private string _selectedCharacterNameForWorldEntry = string.Empty;
     private bool _hasLocalPlayerPosition;
     private Vector2I _currentPlayerTilePosition;
-    private bool _hasAlphaMentorArionDebugPosition;
     private int _currentPlayerTileZ;
 
     private bool _isAlphaMovePending;
@@ -123,6 +129,7 @@ public partial class AlphaWorldEntryController : Control
         RefreshBattleTargetState();
         RefreshCombatFeedbackState();
         MountAlphaSpellbookShell();
+        MountAlphaDialogueWindowShell();
         RefreshBackpackShellState();
         RefreshAlphaSpellbookShellState();
         RefreshWorldShellState();
@@ -238,16 +245,12 @@ public partial class AlphaWorldEntryController : Control
     }
     private void RefreshAlphaMentorArionDebugPosition()
     {
-        if (_worldView == null || _hasAlphaMentorArionDebugPosition || !_hasLocalPlayerPosition)
+        if (_worldView == null)
         {
             return;
         }
 
-        AlphaMentorArionTilePosition = _currentPlayerTilePosition + AlphaMentorArionDebugOffset;
         _worldView.MentorArionPosition = AlphaMentorArionTilePosition;
-        _hasAlphaMentorArionDebugPosition = true;
-
-        GD.Print($"Alpha Mentor Arion debug marker locked near initial player position: player={_currentPlayerTilePosition}, mentor={AlphaMentorArionTilePosition}");
     }
     private void RefreshTopBarShellState()
     {
@@ -308,6 +311,238 @@ public partial class AlphaWorldEntryController : Control
         }
 
         _editableCombatLogPanel?.BindMessages("Combat", _combatFeedbackMessages);
+    }
+    private void MountAlphaDialogueWindowShell()
+    {
+        if (_alphaDialoguePanel != null)
+        {
+            RefreshAlphaDialogueWindowLayout();
+            return;
+        }
+
+        _alphaDialogueCanvasLayer = new CanvasLayer
+        {
+            Name = "AlphaDialogueCanvasLayer",
+            Layer = 50
+        };
+
+        _alphaDialoguePanel = new PanelContainer
+        {
+            Name = "AlphaDialoguePanel",
+            Visible = false,
+            MouseFilter = MouseFilterEnum.Stop,
+            ZIndex = 100,
+            CustomMinimumSize = new Vector2(560.0f, 210.0f)
+        };
+
+        var margin = new MarginContainer
+        {
+            Name = "Margin"
+        };
+
+        margin.AddThemeConstantOverride("margin_left", 14);
+        margin.AddThemeConstantOverride("margin_top", 12);
+        margin.AddThemeConstantOverride("margin_right", 14);
+        margin.AddThemeConstantOverride("margin_bottom", 12);
+
+        var content = new VBoxContainer
+        {
+            Name = "Content",
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill
+        };
+
+        _alphaDialogueTitleLabel = new Label
+        {
+            Name = "TitleLabel",
+            Text = "Dialogue",
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+
+        _alphaDialogueTextLabel = new Label
+        {
+            Name = "TextLabel",
+            Text = "No dialogue open.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill
+        };
+
+
+        _alphaDialogueCloseButton = new Button
+        {
+            Name = "CloseButton",
+            Text = "Fechar",
+            MouseFilter = MouseFilterEnum.Stop,
+            SizeFlagsHorizontal = SizeFlags.ShrinkEnd
+        };
+
+        _alphaDialogueCloseButton.Pressed += CloseAlphaDialogueWindowFromButton;
+        _alphaDialogueChoicesContainer = new VBoxContainer
+        {
+            Name = "ChoicesContainer",
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill
+        };
+
+        content.AddChild(_alphaDialogueTitleLabel);
+                content.AddChild(_alphaDialogueCloseButton);
+content.AddChild(_alphaDialogueTextLabel);
+        content.AddChild(_alphaDialogueChoicesContainer);
+        margin.AddChild(content);
+        _alphaDialoguePanel.AddChild(margin);
+        _alphaDialogueCanvasLayer.AddChild(_alphaDialoguePanel);
+        AddChild(_alphaDialogueCanvasLayer);
+
+        RefreshAlphaDialogueWindowLayout();
+
+        GD.Print("Alpha dialogue window mounted on CanvasLayer overlay.");
+    }
+
+    private void RefreshAlphaDialogueWindowLayout()
+    {
+        if (_alphaDialoguePanel == null)
+        {
+            return;
+        }
+
+        var viewportSize = GetViewportRect().Size;
+        var worldRect = _worldView != null
+            ? _worldView.GetGlobalRect()
+            : new Rect2(Vector2.Zero, viewportSize);
+
+        if (worldRect.Size.X <= 0.0f || worldRect.Size.Y <= 0.0f)
+        {
+            worldRect = new Rect2(Vector2.Zero, viewportSize);
+        }
+
+        var panelWidth = Math.Min(760.0f, Math.Max(560.0f, worldRect.Size.X * 0.58f));
+        var panelHeight = Math.Min(360.0f, Math.Max(260.0f, worldRect.Size.Y * 0.42f));
+        var panelX = worldRect.Position.X + Math.Max(0.0f, (worldRect.Size.X - panelWidth) * 0.5f);
+        var panelY = worldRect.Position.Y + Math.Max(0.0f, (worldRect.Size.Y - panelHeight) * 0.5f);
+
+        _alphaDialoguePanel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+        _alphaDialoguePanel.OffsetLeft = panelX;
+        _alphaDialoguePanel.OffsetTop = panelY;
+        _alphaDialoguePanel.OffsetRight = panelX + panelWidth;
+        _alphaDialoguePanel.OffsetBottom = panelY + panelHeight;
+        _alphaDialoguePanel.Position = new Vector2(panelX, panelY);
+        _alphaDialoguePanel.Size = new Vector2(panelWidth, panelHeight);
+        _alphaDialoguePanel.CustomMinimumSize = new Vector2(panelWidth, panelHeight);
+
+        GD.Print($"Alpha dialogue window centered on world view: worldRect={worldRect}, position={_alphaDialoguePanel.Position}, size={_alphaDialoguePanel.Size}");
+    }
+
+    private void BindAlphaDialogueWindow(string npcId, string nodeId, string nodeText, string choicesText, int choiceCount)
+    {
+        MountAlphaDialogueWindowShell();
+
+        if (_alphaDialoguePanel == null)
+        {
+            GD.PrintErr("Alpha dialogue window skipped: panel missing.");
+            return;
+        }
+
+        RefreshAlphaDialogueWindowLayout();
+
+        _isAlphaDialogueOpen = true;
+        _openAlphaDialogueNpcId = npcId;
+        _alphaDialoguePanel.Visible = true;
+        _alphaDialoguePanel.Show();
+
+        if (_alphaDialogueTitleLabel != null)
+        {
+            _alphaDialogueTitleLabel.Text = $"Mentor Arion | {nodeId}";
+        }
+
+        if (_alphaDialogueTextLabel != null)
+        {
+            _alphaDialogueTextLabel.Text = nodeText;
+        }
+
+        if (_alphaDialogueChoicesContainer == null)
+        {
+            GD.PrintErr("Alpha dialogue window choices skipped: container missing.");
+            return;
+        }
+
+        foreach (var child in _alphaDialogueChoicesContainer.GetChildren())
+        {
+            child.QueueFree();
+        }
+
+        if (choiceCount <= 0 || string.IsNullOrWhiteSpace(choicesText) || choicesText == "none")
+        {
+            _alphaDialogueChoicesContainer.AddChild(new Label
+            {
+                Text = "No dialogue choices available.",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart
+            });
+
+            GD.Print($"Alpha dialogue window opened without choices: npc={npcId}, node={nodeId}, text={nodeText}");
+            return;
+        }
+
+        var choices = choicesText.Split(new[] { " | " }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var rawChoice in choices)
+        {
+            var optionText = rawChoice.Trim();
+            if (string.IsNullOrWhiteSpace(optionText))
+            {
+                continue;
+            }
+
+            var optionButton = new Button
+            {
+                Text = $"› {optionText}",
+                MouseFilter = MouseFilterEnum.Stop,
+                SizeFlagsHorizontal = SizeFlags.ExpandFill
+            };
+
+            optionButton.Pressed += () =>
+            {
+                SetAlphaSystemMessage($"Dialogue option selected visually: {optionText}. Response packet comes next.");
+                SetAlphaCombatMessage("Dialogue response preview only. CS_DIALOGUE_RESPONSE comes next.");
+            };
+
+            _alphaDialogueChoicesContainer.AddChild(optionButton);
+        }
+
+        GD.Print($"Alpha dialogue window opened: npc={npcId}, node={nodeId}, choices={choiceCount}, text={nodeText}, rawChoices={choicesText}");
+    }
+
+    private void CloseAlphaDialogueWindowFromButton()
+    {
+        CloseAlphaDialogueWindow("close button");
+    }
+
+    private void CloseAlphaDialogueWindow(string reason)
+    {
+        if (_alphaDialoguePanel != null)
+        {
+            _alphaDialoguePanel.Hide();
+        }
+
+        _isAlphaDialogueOpen = false;
+        _openAlphaDialogueNpcId = string.Empty;
+
+        SetAlphaSystemMessage($"Dialogue closed: {reason}.");
+        GD.Print($"Alpha dialogue window closed: reason={reason}");
+    }
+
+    private void RefreshAlphaDialogueProximityState()
+    {
+        if (!_isAlphaDialogueOpen)
+        {
+            return;
+        }
+
+        var deltaX = Math.Abs(_currentPlayerTilePosition.X - AlphaMentorArionTilePosition.X);
+        var deltaY = Math.Abs(_currentPlayerTilePosition.Y - AlphaMentorArionTilePosition.Y);
+
+        if (deltaX > 4 || deltaY > 4)
+        {
+            CloseAlphaDialogueWindow("moved away from Mentor Arion");
+        }
     }
 
     private void MountAlphaSpellbookShell()
@@ -710,6 +945,7 @@ public partial class AlphaWorldEntryController : Control
 
     private void ApplyAlphaDialogueOpenValues(string npcId, string nodeId, string nodeText, string choicesText, int choiceCount)
     {
+        BindAlphaDialogueWindow(npcId, nodeId, nodeText, choicesText, choiceCount);
         SetAlphaSystemMessage($"Dialogue opened: npc={npcId}, node={nodeId}, choices={choiceCount}.");
         SetAlphaCombatMessage($"NPC says: {nodeText}");
         GD.Print($"Alpha dialogue open decoded: npc={npcId}, node={nodeId}, text={nodeText}, choices={choicesText}");
@@ -868,6 +1104,7 @@ public partial class AlphaWorldEntryController : Control
         {
             _worldView.PlayerTilePosition = _currentPlayerTilePosition;
             RefreshAlphaMentorArionDebugPosition();
+            RefreshAlphaDialogueProximityState();
             SyncAlphaOrcEliteNearbyVisualMarker();
         }
 

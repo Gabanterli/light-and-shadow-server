@@ -387,8 +387,8 @@
     "id": "npc_class_trainer",
     "name": "Mentor Arion",
     "position": {
-      "x": 209.0,
-      "y": 143.0,
+      "x": 217.0,
+      "y": 146.0,
       "z": 0
     },
     "sprite_id": "sprite_advisor",
