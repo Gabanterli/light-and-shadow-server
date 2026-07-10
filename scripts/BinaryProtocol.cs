@@ -8,6 +8,9 @@ namespace LightAndShadow.Client;
 
 public static class BinaryProtocol
 {
+    public const ushort CS_NPC_INTERACT = 5000;
+    public const ushort SC_DIALOGUE_OPEN = 5001;
+    public const ushort CS_DIALOGUE_RESPONSE = 5002;
     public const ushort SC_CAST_SKILL_RESULT = 3006;
     public static byte[] EncodeLoginRequest(string username, string password)
     {
@@ -256,6 +259,15 @@ public static class BinaryProtocol
         };
     }
 
+
+    public static byte[] EncodeNpcInteractRequest(string npcId)
+    {
+        var safeNpcId = npcId ?? string.Empty;
+        var payload = new byte[2 + Encoding.UTF8.GetByteCount(safeNpcId)];
+        var offset = 0;
+        offset = WriteStringUInt16(payload, offset, safeNpcId);
+        return payload;
+    }
     public static byte[] EncodeAttackRequest(string targetId, string weaponType)
     {
         var safeTargetId = targetId ?? string.Empty;
