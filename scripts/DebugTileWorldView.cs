@@ -26,7 +26,9 @@ public partial class DebugTileWorldView : Control
     public double PlayerMaxHealth { get; set; }
     public double PlayerMana { get; set; }
     public double PlayerMaxMana { get; set; }
-    public string OrcEliteHealthStateText { get; set; } = "HP sync pending";
+    private double _alphaOrcEliteMaxHealth = 100.0;
+    private double _alphaOrcEliteCurrentHealth = 100.0;
+    private string _alphaOrcEliteRuntimeEntityId = string.Empty;
 
     private const int TileSize = 8;
     private const int ChunkWidthInTiles = 32;
@@ -167,6 +169,45 @@ public partial class DebugTileWorldView : Control
         QueueRedraw();
     }
 
+    public void ApplyAlphaOrcEliteConfirmedDamage(double damage, string runtimeEntityId)
+    {
+        if (string.IsNullOrEmpty(_alphaOrcEliteRuntimeEntityId) && !string.IsNullOrEmpty(runtimeEntityId))
+        {
+            _alphaOrcEliteRuntimeEntityId = runtimeEntityId;
+        }
+        else if (runtimeEntityId != _alphaOrcEliteRuntimeEntityId)
+        {
+            GD.Print($"Ignoring damage for stale Orc Elite instance. Current: {_alphaOrcEliteRuntimeEntityId}, Stale: {runtimeEntityId}");
+            return;
+        }
+
+        _alphaOrcEliteCurrentHealth = Math.Clamp(_alphaOrcEliteCurrentHealth - damage, 0, _alphaOrcEliteMaxHealth);
+        GD.Print($"Alpha Orc Elite overhead HP damaged. New HP: {_alphaOrcEliteCurrentHealth}/{_alphaOrcEliteMaxHealth}");
+        QueueRedraw();
+    }
+
+    public void MarkAlphaOrcEliteDead(string runtimeEntityId)
+    {
+        if (runtimeEntityId != _alphaOrcEliteRuntimeEntityId && !string.IsNullOrEmpty(_alphaOrcEliteRuntimeEntityId))
+        {
+            GD.Print($"Ignoring dead marker for stale Orc Elite instance. Current: {_alphaOrcEliteRuntimeEntityId}, Stale: {runtimeEntityId}");
+            return;
+        }
+        _alphaOrcEliteCurrentHealth = 0;
+        _alphaOrcEliteRuntimeEntityId = runtimeEntityId;
+        GD.Print("Alpha Orc Elite overhead HP dead.");
+        QueueRedraw();
+    }
+
+    public void ResetAlphaOrcEliteHealthForRespawn(string runtimeEntityId)
+    {
+        _alphaOrcEliteRuntimeEntityId = runtimeEntityId;
+        _alphaOrcEliteCurrentHealth = _alphaOrcEliteMaxHealth;
+        IsOrcEliteDead = false;
+        GD.Print($"Alpha Orc Elite overhead HP respawn reset. New ID: {runtimeEntityId}");
+        QueueRedraw();
+    }
+
     public override void _Ready()
     {
         // Load placeholder textures. GD.Load returns null if the path is invalid,
@@ -182,6 +223,7 @@ public partial class DebugTileWorldView : Control
         }
 
         LoadAlphaSpellVfxConfig();
+        GD.Print("Alpha Orc Elite overhead HP initialized.");
     }
 
     private void LoadAlphaSpellVfxConfig()
@@ -444,11 +486,11 @@ public partial class DebugTileWorldView : Control
 
         DrawRect(backgroundRect, new Color(0.0f, 0.0f, 0.0f, 0.45f));
 
-        var healthRatio = IsOrcEliteDead ? 0.0f : 1.0f;
+        var healthRatio = CalculateVitalRatio(_alphaOrcEliteCurrentHealth, _alphaOrcEliteMaxHealth);
         DrawRect(barRect, new Color(0.15f, 0.0f, 0.0f, 0.75f));
         DrawRect(new Rect2(barRect.Position, new Vector2(barRect.Size.X * healthRatio, barRect.Size.Y)), new Color(0.9f, 0.1f, 0.1f, 0.85f));
 
-        var stateText = IsOrcEliteDead ? "Orc_Elite HP 0" : $"Orc_Elite {OrcEliteHealthStateText}";
+        var stateText = $"Orc_Elite HP {_alphaOrcEliteCurrentHealth:F0}/{_alphaOrcEliteMaxHealth:F0}";
         DrawSmallDebugLabel(new Vector2(hudPosition.X + 4.0f, hudPosition.Y + 9.0f), stateText, Colors.White, visibleRect);
     }
 

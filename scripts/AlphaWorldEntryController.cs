@@ -500,15 +500,15 @@ public partial class AlphaWorldEntryController : Control
         RequestAlphaWorldViewRedraw();
     }
 
-    private void ApplyAlphaOrcEliteDamageHudFeedback(double damage, bool isCritical)
+    private void ApplyAlphaOrcEliteDamageHudFeedback(double damage, bool isCritical, string runtimeEntityId)
     {
         if (_worldView == null)
         {
             return;
         }
 
+        _worldView.ApplyAlphaOrcEliteConfirmedDamage(damage, runtimeEntityId);
         var critText = isCritical ? " CRIT" : string.Empty;
-        _worldView.OrcEliteHealthStateText = $"HP sync pending | -{damage:F0}{critText}";
         _worldView.AddAlphaOrcEliteFloatingCombatText($"-{damage:F0}{critText}", isCritical, false);
         RequestAlphaWorldViewRedraw();
     }
@@ -983,9 +983,10 @@ public partial class AlphaWorldEntryController : Control
             var data = BinaryProtocol.DecodeDamageEvent(packet.Payload);
             GD.Print($"Alpha damage event decoded: target={data.TargetID}, skill={data.SkillName}, success={data.Success}, hit={data.IsHit}, damage={data.Damage:F0}");
 
-            if (!data.Success)             {                 var failureMessage = BuildAlphaCombatFailureFeedback(data.SkillName);                 CallDeferred(nameof(ApplyAlphaCombatFailureFeedback), failureMessage);                 return;             }
+            if (!data.Success) { var failureMessage = BuildAlphaCombatFailureFeedback(data.SkillName); CallDeferred(nameof(ApplyAlphaCombatFailureFeedback), failureMessage); return; }
 
-            var isAlphaConfirmedSpell = data.TargetID == "Orc_Elite" && IsAlphaConfirmedSpellSkillName(data.SkillName);
+            var isOrcEliteTarget = data.TargetID == "Orc_Elite" || data.TargetID == _alphaOrcEliteRuntimeEntityId;
+            var isAlphaConfirmedSpell = isOrcEliteTarget && IsAlphaConfirmedSpellSkillName(data.SkillName);
 
             if (isAlphaConfirmedSpell)
             {
@@ -995,13 +996,14 @@ public partial class AlphaWorldEntryController : Control
             if (!data.IsHit)
             {
                 CallDeferred(nameof(SetAlphaCombatMessage), "Combat event: attack missed.");
+                CallDeferred(nameof(ApplyAlphaOrcEliteMissFloatingText));
                 return;
             }
 
             var critText = data.IsCrit ? " Critical." : string.Empty;
-            if (data.TargetID == "Orc_Elite")
+            if (isOrcEliteTarget)
             {
-                CallDeferred(nameof(ApplyAlphaOrcEliteDamageHudFeedback), data.Damage, data.IsCrit);
+                CallDeferred(nameof(ApplyAlphaOrcEliteDamageHudFeedback), data.Damage, data.IsCrit, _alphaOrcEliteRuntimeEntityId);
             }
 
             CallDeferred(nameof(SetAlphaCombatMessage), $"Combat event: {data.Damage:F0} damage.{critText}");
@@ -1019,12 +1021,13 @@ public partial class AlphaWorldEntryController : Control
         {
             var data = BinaryProtocol.DecodeTargetDeadEvent(packet.Payload);
 
-            if (data.TargetID != "Orc_Elite")
+            var isOrcEliteTarget = data.TargetID == "Orc_Elite" || data.TargetID == _alphaOrcEliteRuntimeEntityId;
+            if (!isOrcEliteTarget)
             {
                 return;
             }
 
-            CallDeferred(nameof(ApplyAlphaSafeTargetIdentity), data.RuntimeEntityID);
+            CallDeferred(nameof(ApplyAlphaSafeTargetIdentity), data.RuntimeEntityID, true);
             CallDeferred(nameof(ApplyAlphaBattleTargetState), "Dead", "Orc_Elite defeated.");
         }
         catch (Exception ex)
@@ -1104,12 +1107,13 @@ public partial class AlphaWorldEntryController : Control
         {
             var data = BinaryProtocol.DecodeCreatureRespawnEvent(packet.Payload);
 
-            if (data.TargetID != "Orc_Elite")
+            var isOrcEliteTarget = data.TargetID == "Orc_Elite";
+            if (!isOrcEliteTarget)
             {
                 return;
             }
 
-            CallDeferred(nameof(ApplyAlphaSafeTargetIdentity), data.RuntimeEntityID);
+            CallDeferred(nameof(ApplyAlphaSafeTargetIdentity), data.RuntimeEntityID, false);
             CallDeferred(nameof(ApplyAlphaOrcEliteBackendPosition), data.HasPosition, data.X, data.Y, data.Z);
             CallDeferred(nameof(ApplyAlphaBattleTargetState), "Alive", "Orc_Elite respawned.");
         }
@@ -1138,15 +1142,25 @@ public partial class AlphaWorldEntryController : Control
         SetAlphaSystemMessage($"Orc_Elite backend position synced: {_alphaOrcEliteVisualPosition.X},{_alphaOrcEliteVisualPosition.Y},z={z}.");
         RequestAlphaWorldViewRedraw();
     }
-    private void ApplyAlphaSafeTargetIdentity(string runtimeEntityId)
+    private void ApplyAlphaSafeTargetIdentity(string runtimeEntityId, bool isDead)
     {
         if (string.IsNullOrWhiteSpace(runtimeEntityId))
         {
             return;
         }
 
+        var oldId = _alphaOrcEliteRuntimeEntityId;
         _alphaOrcEliteRuntimeEntityId = runtimeEntityId.Trim();
         SetAlphaCombatMessage("Target identity synced.");
+
+        if (isDead)
+        {
+            _worldView?.MarkAlphaOrcEliteDead(_alphaOrcEliteRuntimeEntityId);
+        }
+        else if (oldId != _alphaOrcEliteRuntimeEntityId)
+        {
+            _worldView?.ResetAlphaOrcEliteHealthForRespawn(_alphaOrcEliteRuntimeEntityId);
+        }
         GD.Print("Alpha safe target identity synced for Orc_Elite.");
     }
 
@@ -1169,7 +1183,6 @@ public partial class AlphaWorldEntryController : Control
         {
             _worldView.IsOrcEliteDead = state == "Dead";
             _worldView.IsOrcEliteSelected = _isAlphaOrcEliteSelected && state == "Alive";
-            _worldView.OrcEliteHealthStateText = state == "Dead" ? "HP 0" : "HP sync pending";
             SyncAlphaOrcEliteNearbyVisualMarker();
         }
 
