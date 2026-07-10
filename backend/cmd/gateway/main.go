@@ -80,9 +80,9 @@ type GatewayServer struct {
 	alphaCreatureRewards     map[string]alphaCreatureRewardProfileDefinition
 	alphaCreatureSpawns      map[string]alphaCreatureSpawnDefinition
 	// A38: AI Loop state
-	stopAlphaAILoop                  chan struct{}
-	alphaCreatureAIThreatMu          sync.Mutex
-	alphaCreatureAIThreatSnapshot    alphaCreatureAIThreatSnapshot
+	stopAlphaAILoop                      chan struct{}
+	alphaCreatureAIThreatMu              sync.Mutex
+	alphaCreatureAIThreatSnapshot        alphaCreatureAIThreatSnapshot
 	alphaCreatureAILastTopThreatPlayerID string
 	alphaCreatureAILastTopThreatValue    float64
 	alphaCreatureAILastLogAt             time.Time
@@ -1112,26 +1112,50 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 
-			// Validar distÃ¢ncia
+			// Validate distance/floor before any dialogue state transition.
 			if err := s.npcManager.ValidateInteractionDistance(playerID, req.NPCID, s.spatialIndex); err != nil {
 				slog.Warn("Dialogue response rejected due to distance/floor check", "player", playerID, "npc", req.NPCID, "error", err)
 				break
 			}
 
-			// Se next node for "end", encerra o diÃ¡logo e limpa ou atualiza a flag
+			currentFlag := s.questManager.GetDialogueFlag(playerID, req.NPCID)
+			if currentFlag == "" || currentFlag == "completed_conversation" || currentFlag != req.NodeID {
+				slog.Warn("Dialogue response rejected due to invalid dialogue state", "player", playerID, "npc", req.NPCID, "request_node", req.NodeID, "current_node", currentFlag, "next_node", req.NextNodeID)
+				break
+			}
+
+			currentNode, err := s.npcManager.GetVisibleNode(playerID, req.NPCID, req.NodeID, s.questManager)
+			if err != nil {
+				slog.Warn("Dialogue response rejected because current visible node could not be loaded", "player", playerID, "npc", req.NPCID, "node", req.NodeID, "error", err)
+				break
+			}
+
+			allowedNextNode := false
+			for _, r := range currentNode.Responses {
+				if r.NextNodeID == req.NextNodeID {
+					allowedNextNode = true
+					break
+				}
+			}
+			if !allowedNextNode {
+				slog.Warn("Dialogue response rejected because requested next node is not a visible option", "player", playerID, "npc", req.NPCID, "current_node", req.NodeID, "next_node", req.NextNodeID)
+				break
+			}
+
+			// If next node is "end" or empty, close dialogue only after option authorization.
 			if req.NextNodeID == "end" || req.NextNodeID == "" {
 				s.questManager.SetDialogueFlag(playerID, req.NPCID, "completed_conversation")
 				break
 			}
 
-			// ObtÃ©m nÃ³ de diÃ¡logo selecionado
+			// Load selected next visible node only after validating it was offered by current node.
 			node, err := s.npcManager.GetVisibleNode(playerID, req.NPCID, req.NextNodeID, s.questManager)
 			if err != nil {
 				slog.Error("Failed to load dialogue node", "player", playerID, "npc", req.NPCID, "node", req.NextNodeID, "error", err)
 				break
 			}
 
-			// Processa gatilhos de quest ANTES de avanÃ§ar para novo diÃ¡logo, garantindo transaÃ§Ãµes atÃ´micas (PATCH 2)
+			// Process quest triggers before advancing to the new dialogue node.
 			if node.QuestTrigger != nil {
 				if node.QuestTrigger.Action == "accept" {
 					if err := s.questManager.AcceptQuest(playerID, node.QuestTrigger.QuestID); err != nil {
@@ -1144,10 +1168,8 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				}
 			}
 
-			// Define estado de conversa atual no jogador
 			s.questManager.SetDialogueFlag(playerID, req.NPCID, node.NodeID)
 
-			// Envia diÃ¡logo aberto
 			choices := make([]protocol.DialogueOpenChoice, 0, len(node.Responses))
 			for _, r := range node.Responses {
 				choices = append(choices, protocol.DialogueOpenChoice{
@@ -2771,16 +2793,16 @@ type alphaCreatureSpawnConfigFile struct {
 }
 
 type alphaCreatureSpawnDefinition struct {
-	ID          string  `json:"id"`
-	Enabled     bool    `json:"enabled"`
-	SpawnID     string  `json:"spawn_id"`
-	CreatureID  string  `json:"creature_id"`
-	TargetID    string  `json:"target_id"`
-	Anchor      string  `json:"anchor"`
-	OffsetX     float64 `json:"offset_x"`
-	OffsetY     float64 `json:"offset_y"`
-	OffsetZ     int     `json:"offset_z"`
-	Radius      float64 `json:"radius"`
+	ID         string  `json:"id"`
+	Enabled    bool    `json:"enabled"`
+	SpawnID    string  `json:"spawn_id"`
+	CreatureID string  `json:"creature_id"`
+	TargetID   string  `json:"target_id"`
+	Anchor     string  `json:"anchor"`
+	OffsetX    float64 `json:"offset_x"`
+	OffsetY    float64 `json:"offset_y"`
+	OffsetZ    int     `json:"offset_z"`
+	Radius     float64 `json:"radius"`
 }
 
 func loadAlphaCreatureSpawns(path string) (map[string]alphaCreatureSpawnDefinition, error) {
