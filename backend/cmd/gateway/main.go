@@ -1645,10 +1645,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			// Verifica se o alvo morreu
 			targetStats, exists := s.combatManager.GetEntityStats(resolvedTargetID)
 			if exists && targetStats.Health <= 0 {
-				if isDebugOrcEliteTarget {
-					s.handleAlphaOrcEliteDeathReward(conn, playerID, resolvedTargetID, packet.Sequence)
-				} else {
-					// Manter death simples para outros targets
+				if !s.handleAlphaOrcEliteDeathReward(conn, playerID, resolvedTargetID, packet.Sequence) {
 					deadPayload := protocol.EncodeTargetDeadEvent(resolvedTargetID)
 					conn.Write((&protocol.Packet{Opcode: protocol.SC_TARGET_DEAD, Sequence: packet.Sequence, Payload: deadPayload}).Serialize())
 					s.aoiManager.BroadcastCombat(playerID, protocol.SC_TARGET_DEAD, deadPayload)
@@ -1770,10 +1767,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				// Se o alvo morreu, notifica morte
 				targetStats, exists := s.combatManager.GetEntityStats(hit.TargetID)
 				if exists && targetStats.Health <= 0 {
-					if isDebugOrcEliteTarget && hit.TargetID == "Orc_Elite" {
-						s.handleAlphaOrcEliteDeathReward(conn, playerID, hit.TargetID, packet.Sequence)
-					} else {
-						// Manter death simples para outros targets
+					if !s.handleAlphaOrcEliteDeathReward(conn, playerID, hit.TargetID, packet.Sequence) {
 						deadPayload := protocol.EncodeTargetDeadEvent(hit.TargetID)
 						deadPacket := &protocol.Packet{
 							Opcode:   protocol.SC_TARGET_DEAD,
@@ -2615,95 +2609,143 @@ func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.Pla
 	return lootTableFound, itemsDropped, itemsGranted, lootResults
 }
 
-func (s *GatewayServer) handleAlphaOrcEliteDeathReward(conn net.Conn, playerID string, targetID string, sequence uint32) {
+type creatureDeathRewardRequest struct {
+	KillerPlayerID string
+	Profile        creatureDeathRewardProfile
+	Sequence       uint32
+	Conn           net.Conn
+}
+
+type creatureDeathRewardProfile struct {
+	SpawnID       string
+	TargetID      string
+	DisplayName   string
+	RewardLogName string
+	LootTableID   string
+}
+
+func resolveCreatureDeathRewardProfile(targetID string, runtimeEntityID string) (creatureDeathRewardProfile, bool) {
+	if targetID == "Orc_Elite" {
+		return creatureDeathRewardProfile{
+			SpawnID:       "debug_orc_elite_001",
+			TargetID:      "Orc_Elite",
+			DisplayName:   "Orc Elite",
+			RewardLogName: "Alpha Orc Elite",
+			LootTableID:   alphaOrcEliteLootTableID,
+		}, true
+	}
+	return creatureDeathRewardProfile{}, false
+}
+
+func (s *GatewayServer) handleCreatureDeathReward(req creatureDeathRewardRequest) {
 	if s.creatureSpawnManager == nil {
-		slog.Warn("Orc Elite death blocked because creature spawn manager is unavailable", "spawn_id", "debug_orc_elite_001", "target", targetID)
+		slog.Warn("Creature death reward blocked because creature spawn manager is unavailable", "spawn_id", req.Profile.SpawnID, "target", req.Profile.TargetID)
 		return
 	}
 
-	spawnState, markedDead := s.creatureSpawnManager.MarkDead("debug_orc_elite_001", playerID, 30*time.Second)
+	spawnState, markedDead := s.creatureSpawnManager.MarkDead(req.Profile.SpawnID, req.KillerPlayerID, 30*time.Second)
 	if !markedDead {
-		slog.Warn("Orc Elite duplicate death blocked by creature spawn state", "spawn_id", "debug_orc_elite_001", "target", targetID)
+		slog.Warn("Creature duplicate death blocked by creature spawn state", "spawn_id", req.Profile.SpawnID, "target", req.Profile.TargetID)
 		return
 	}
 
 	deadRuntimeEntityID := spawnState.RuntimeEntityID
-	shouldGrantDebugLoot := true
+	shouldGrantLoot := true
 
-	slog.Info("Marked Orc Elite creature spawn dead", "spawn_id", spawnState.SpawnID, "creature_id", spawnState.CreatureID, "runtime_entity_id", spawnState.RuntimeEntityID, "killer_player_id", spawnState.KillerPlayerID, "died_at", spawnState.DiedAt, "next_respawn_at", spawnState.NextRespawn, "version", spawnState.Version)
+	slog.Info("Marked creature spawn dead", "spawn_id", spawnState.SpawnID, "creature_id", spawnState.CreatureID, "runtime_entity_id", spawnState.RuntimeEntityID, "killer_player_id", spawnState.KillerPlayerID, "died_at", spawnState.DiedAt, "next_respawn_at", spawnState.NextRespawn, "version", spawnState.Version)
 
-	if s.creatureSpawnManager.MarkLootGenerated("debug_orc_elite_001") {
-		slog.Info("Orc Elite debug loot generation guard accepted", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID)
+	if s.creatureSpawnManager.MarkLootGenerated(req.Profile.SpawnID) {
+		slog.Info("Creature loot generation guard accepted", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID)
 	} else {
-		slog.Warn("Orc Elite debug loot generation blocked by guard", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID)
-		shouldGrantDebugLoot = false
+		slog.Warn("Creature loot generation blocked by guard", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID)
+		shouldGrantLoot = false
 	}
 
-	deadPayload := protocol.EncodeTargetDeadEvent(targetID)
+	deadPayload := protocol.EncodeTargetDeadEvent(req.Profile.TargetID)
 	if deadRuntimeEntityID != "" {
-		deadPayload = protocol.EncodeTargetDeadEventWithRuntimeEntityID(targetID, deadRuntimeEntityID)
+		deadPayload = protocol.EncodeTargetDeadEventWithRuntimeEntityID(req.Profile.TargetID, deadRuntimeEntityID)
 	}
 
 	deadPacket := &protocol.Packet{
 		Opcode:   protocol.SC_TARGET_DEAD,
-		Sequence: sequence,
+		Sequence: req.Sequence,
 		Payload:  deadPayload,
 	}
 
-	slog.Info("Sending target dead packet to client", "target", targetID, "opcode", protocol.SC_TARGET_DEAD, "sequence", sequence)
-	if _, err := conn.Write(deadPacket.Serialize()); err != nil {
-		slog.Warn("Failed to send target dead packet to client", "target", targetID, "error", err)
+	slog.Info("Sending target dead packet to client", "target", req.Profile.TargetID, "opcode", protocol.SC_TARGET_DEAD, "sequence", req.Sequence)
+	if _, err := req.Conn.Write(deadPacket.Serialize()); err != nil {
+		slog.Warn("Failed to send target dead packet to client", "target", req.Profile.TargetID, "error", err)
 	} else {
-		slog.Info("Target dead packet sent to client", "target", targetID, "opcode", protocol.SC_TARGET_DEAD, "sequence", sequence)
+		slog.Info("Target dead packet sent to client", "target", req.Profile.TargetID, "opcode", protocol.SC_TARGET_DEAD, "sequence", req.Sequence)
 	}
 
-	s.aoiManager.BroadcastCombat(playerID, protocol.SC_TARGET_DEAD, deadPayload)
+	s.aoiManager.BroadcastCombat(req.KillerPlayerID, protocol.SC_TARGET_DEAD, deadPayload)
 
-	if !shouldGrantDebugLoot {
+	if !shouldGrantLoot {
 		return
 	}
 
 	s.inventoriesMu.RLock()
-	playerInv, hasInventory := s.inventories[playerID]
+	playerInv, hasInventory := s.inventories[req.KillerPlayerID]
 	s.inventoriesMu.RUnlock()
 
 	if !hasInventory || playerInv == nil {
-		slog.Warn("Cannot grant Alpha Orc Elite reward because player inventory was not found", "player", playerID, "target", targetID)
+		slog.Warn("Cannot grant creature reward because player inventory was not found", "player", req.KillerPlayerID, "target", req.Profile.TargetID)
 		return
 	}
 
-	playerStats, statsExist := s.combatManager.GetEntityStats(playerID)
+	playerStats, statsExist := s.combatManager.GetEntityStats(req.KillerPlayerID)
 	if !statsExist || playerStats == nil {
-		slog.Warn("Cannot grant Alpha Orc Elite reward because player stats were not found", "player", playerID, "target", targetID)
+		slog.Warn("Cannot grant creature reward because player stats were not found", "player", req.KillerPlayerID, "target", req.Profile.TargetID)
 		return
 	}
 
-	lootTableFound, itemsDropped, itemsGranted, lootResults := grantAlphaOrcEliteItemLoot(s.pveManager, playerInv, playerID, targetID)
-	rewardProfile, rewardProfileFound := getAlphaOrcEliteRewardProfile(s.pveManager, playerID, targetID)
+	// A35: For now, use the hardcoded Alpha Orc Elite helpers. This will be generalized later.
+	lootTableFound, itemsDropped, itemsGranted, lootResults := grantAlphaOrcEliteItemLoot(s.pveManager, playerInv, req.KillerPlayerID, req.Profile.TargetID)
+	rewardProfile, rewardProfileFound := getAlphaOrcEliteRewardProfile(s.pveManager, req.KillerPlayerID, req.Profile.TargetID)
 	goldGranted := playerInv.AddGold(rewardProfile.Gold)
-	currentXP, leveledUp := applyAlphaOrcEliteXPReward(playerID, playerInv, playerStats, rewardProfile.XP)
+	currentXP, leveledUp := applyAlphaOrcEliteXPReward(req.KillerPlayerID, playerInv, playerStats, rewardProfile.XP)
 
 	playerInv.SetDirty(true)
-	s.sendInventorySync(conn, playerID, playerStats, playerInv)
-	sendAlphaOrcEliteLootResults(conn, lootResults)
-	s.saveCharacterState(playerID)
+	s.sendInventorySync(req.Conn, req.KillerPlayerID, playerStats, playerInv)
+	sendAlphaOrcEliteLootResults(req.Conn, lootResults)
+	s.saveCharacterState(req.KillerPlayerID)
 
-	slog.Info(
-		"Alpha Orc Elite reward granted and persisted",
-		"player", playerID,
-		"target", targetID,
-		"loot_table", alphaOrcEliteLootTableID,
-		"loot_table_found", lootTableFound,
-		"reward_profile_found", rewardProfileFound,
-		"items_dropped", itemsDropped,
-		"items_granted", itemsGranted,
-		"gold", rewardProfile.Gold,
-		"gold_granted", goldGranted,
-		"xp", rewardProfile.XP,
-		"current_xp", currentXP,
-		"level", playerStats.Level,
-		"leveled_up", leveledUp,
-	)
+	// A35: Preserving the exact log message for validation.
+	if req.Profile.RewardLogName == "Alpha Orc Elite" {
+		slog.Info(
+			"Alpha Orc Elite reward granted and persisted",
+			"player", req.KillerPlayerID,
+			"target", req.Profile.TargetID,
+			"loot_table", req.Profile.LootTableID,
+			"loot_table_found", lootTableFound,
+			"reward_profile_found", rewardProfileFound,
+			"items_dropped", itemsDropped,
+			"items_granted", itemsGranted,
+			"gold", rewardProfile.Gold,
+			"gold_granted", goldGranted,
+			"xp", rewardProfile.XP,
+			"current_xp", currentXP,
+			"level", playerStats.Level,
+			"leveled_up", leveledUp,
+		)
+	}
+}
+
+func (s *GatewayServer) handleAlphaOrcEliteDeathReward(conn net.Conn, playerID string, targetID string, sequence uint32) bool {
+	profile, found := resolveCreatureDeathRewardProfile(targetID, "")
+	if !found {
+		return false
+	}
+
+	req := creatureDeathRewardRequest{
+		KillerPlayerID: playerID,
+		Profile:        profile,
+		Sequence:       sequence,
+		Conn:           conn,
+	}
+	s.handleCreatureDeathReward(req)
+	return true
 }
 
 func sendAlphaOrcEliteLootResults(conn net.Conn, lootResults []alphaOrcEliteLootResult) {
