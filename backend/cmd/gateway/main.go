@@ -171,6 +171,12 @@ func main() {
 	}
 	slog.Info("Alpha creature rewards loaded successfully from config", "count", len(alphaCreatureRewards), "path", "config/alpha_creature_rewards.json")
 
+	// A41: Validate and register canonical class rules at runtime.
+	if err := validateAndRegisterCanonicalClassRules(); err != nil {
+		slog.Error("Canonical class rule validation failed, server cannot start.", "error", err)
+		os.Exit(1)
+	}
+
 	// Inicialização de bancos de dados (tolerante a fallbacks locais)
 	pgPool, err := db.NewPostgresPool(cfg.PostgresDSN)
 	if err != nil {
@@ -3329,6 +3335,59 @@ func (s *GatewayServer) sendAlphaOrcEliteTargetIdentitySync(conn net.Conn, playe
 	slog.Info("Sent Alpha Orc Elite target identity sync", "player", playerID, "spawn_id", def.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "state", targetState, "opcode", opcode)
 }
 
+func validateAndRegisterCanonicalClassRules() error {
+	if rules.StartingClassNovice != "novice" {
+		return fmt.Errorf("canonical rule violation: starting class ID is not 'novice', got '%s'", rules.StartingClassNovice)
+	}
+
+	officialClassIDs := rules.OfficialBaseClassIDs()
+	if len(officialClassIDs) != 5 {
+		return fmt.Errorf("canonical rule violation: expected 5 official base classes, got %d", len(officialClassIDs))
+	}
+
+	expected := map[rules.RuleID]bool{
+		rules.ClassKnight:   true,
+		rules.ClassMage:     true,
+		rules.ClassArcher:   true,
+		rules.ClassAssassin: true,
+		rules.ClassCleric:   true,
+	}
+	for _, classID := range officialClassIDs {
+		if !expected[classID] {
+			return fmt.Errorf("canonical rule violation: unexpected class ID '%s' in official list", classID)
+		}
+		delete(expected, classID) // Mark as found
+	}
+
+	if len(expected) > 0 {
+		return fmt.Errorf("canonical rule violation: missing expected base classes")
+	}
+
+	if rules.IsOfficialBaseClass(rules.StartingClassNovice) {
+		return fmt.Errorf("canonical rule violation: IsOfficialBaseClass('novice') should be false")
+	}
+
+	if err := rules.CanSelectBaseClass(10, rules.StartingClassNovice, rules.ClassKnight); err != nil {
+		return fmt.Errorf("canonical rule violation: CanSelectBaseClass(10, novice, knight) should succeed, but failed: %w", err)
+	}
+
+	if err := rules.CanSelectBaseClass(9, rules.StartingClassNovice, rules.ClassKnight); err == nil {
+		return fmt.Errorf("canonical rule violation: CanSelectBaseClass(9, novice, knight) should fail, but succeeded")
+	}
+
+	if err := rules.CanSelectBaseClass(10, rules.ClassMage, rules.ClassKnight); err == nil {
+		return fmt.Errorf("canonical rule violation: CanSelectBaseClass(10, mage, knight) should fail, but succeeded")
+	}
+
+	slog.Info("Canonical class rules registered in gateway runtime",
+		"default_class_id", rules.StartingClassNovice,
+		"required_level", 10,
+		"class_count", len(officialClassIDs),
+		"classes", officialClassIDs,
+	)
+
+	return nil
+}
 func (s *GatewayServer) sendInventorySync(conn net.Conn, playerID string, stats *combat.EntityStats, playerInv *inventory.PlayerInventory) {
 	items := playerInv.GetItems()
 	syncItems := make([]protocol.SyncItem, 0, len(items))
