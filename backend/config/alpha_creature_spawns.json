@@ -1,0 +1,16 @@
+{
+  "spawns": [
+    {
+      "id": "alpha_orc_elite",
+      "enabled": true,
+      "spawn_id": "debug_orc_elite_001",
+      "creature_id": "orc_elite",
+      "target_id": "Orc_Elite",
+      "anchor": "player_saved_position",
+      "offset_x": 1.0,
+      "offset_y": 0.0,
+      "offset_z": 0,
+      "radius": 1.0
+    }
+  ]
+}

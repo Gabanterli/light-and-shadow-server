@@ -77,6 +77,7 @@ type GatewayServer struct {
 	inventories              map[string]*inventory.PlayerInventory
 	stopAutosave             chan struct{}
 	stopRespawnScheduler     chan struct{}
+	alphaCreatureSpawns      map[string]alphaCreatureSpawnDefinition
 	// A38: AI Loop state
 	stopAlphaAILoop                  chan struct{}
 	alphaCreatureAIThreatMu          sync.Mutex
@@ -152,6 +153,14 @@ func main() {
 		slog.Error("Failed to load Alpha skills configuration, server cannot start.", "error", err)
 		os.Exit(1)
 	}
+
+	// A39: Load Alpha Creature Spawns from config
+	alphaCreatureSpawns, err := loadAlphaCreatureSpawns("config/alpha_creature_spawns.json")
+	if err != nil {
+		slog.Error("Failed to load Alpha creature spawns configuration, server cannot start.", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("Alpha creature spawns loaded successfully from config", "count", len(alphaCreatureSpawns), "path", "config/alpha_creature_spawns.json")
 
 	// Inicialização de bancos de dados (tolerante a fallbacks locais)
 	pgPool, err := db.NewPostgresPool(cfg.PostgresDSN)
@@ -232,6 +241,7 @@ func main() {
 		inventories:              make(map[string]*inventory.PlayerInventory),
 		activeGatherings:         make(map[string]string),
 		stopAutosave:             make(chan struct{}),
+		alphaCreatureSpawns:      alphaCreatureSpawns,
 		stopRespawnScheduler:     make(chan struct{}),
 		stopAlphaAILoop:          make(chan struct{}),
 	}
@@ -798,9 +808,10 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			s.combatManager.RegisterEntity(stats, savedX, savedY)
 
 			// Registra o NPC Orc Elite inimigo para simular combate PvE
+			def, _ := s.alphaOrcEliteSpawnDefinition()
 			s.combatManager.RegisterEntity(&combat.EntityStats{
-				ID:                 "Orc_Elite",
-				Name:               "Orc Elite",
+				ID:                 def.TargetID,
+				Name:               def.TargetID, // Placeholder name
 				IsPlayer:           false,
 				Faction:            "Monsters",
 				Level:              42,
@@ -819,9 +830,9 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				// HP temporário de validação Alpha para testar cadência, HUD e magias target.
 				Health:    alphaOrcEliteCombatTestHealth,
 				MaxHealth: alphaOrcEliteCombatTestHealth,
-			}, savedX+1.0, savedY)
+			}, savedX+def.OffsetX, savedY+def.OffsetY)
 
-			if targetStats, exists := s.combatManager.GetEntityStats("Orc_Elite"); exists && targetStats != nil {
+			if targetStats, exists := s.combatManager.GetEntityStats(def.TargetID); exists && targetStats != nil {
 				slog.Info(
 					"Registered Orc Elite combat stats",
 					"target", targetStats.ID,
@@ -833,7 +844,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			}
 
 			if s.creatureSpawnManager != nil {
-				spawnState, err := s.creatureSpawnManager.RegisterSpawn("debug_orc_elite_001", "orc_elite", savedX+1.0, savedY, int(savedZ), 1.0)
+				spawnState, err := s.creatureSpawnManager.RegisterSpawn(def.SpawnID, def.CreatureID, savedX+def.OffsetX, savedY+def.OffsetY, int(savedZ)+def.OffsetZ, def.Radius)
 				if err != nil {
 					slog.Warn("Failed to register Orc Elite creature spawn state", "error", err)
 				} else {
@@ -2532,12 +2543,17 @@ func (s *GatewayServer) runAlphaCreatureAILoop() {
 				continue
 			}
 
-			spawnState, exists := s.creatureSpawnManager.GetSpawn("debug_orc_elite_001")
+			def, ok := s.alphaOrcEliteSpawnDefinition()
+			if !ok {
+				continue
+			}
+
+			spawnState, exists := s.creatureSpawnManager.GetSpawn(def.SpawnID)
 			if !exists || !spawnState.Alive {
 				continue
 			}
 
-			targetStats, exists := s.combatManager.GetEntityStats("Orc_Elite")
+			targetStats, exists := s.combatManager.GetEntityStats(def.TargetID)
 			if !exists || targetStats.Health <= 0 {
 				continue
 			}
@@ -2566,7 +2582,7 @@ func (s *GatewayServer) runAlphaCreatureAILoop() {
 				"spawn_id", spawnState.SpawnID,
 				"runtime_entity_id", spawnState.RuntimeEntityID,
 				"creature_id", spawnState.CreatureID,
-				"target", snapshot.TargetID,
+				"target", def.TargetID,
 				"top_threat_player", snapshot.TopThreatPlayerID,
 				"top_threat_value", snapshot.TopThreatValue,
 				"health", targetStats.Health,
@@ -2690,6 +2706,54 @@ func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.Pla
 	return lootTableFound, itemsDropped, itemsGranted, lootResults
 }
 
+type alphaCreatureSpawnConfigFile struct {
+	Spawns []alphaCreatureSpawnDefinition `json:"spawns"`
+}
+
+type alphaCreatureSpawnDefinition struct {
+	ID          string  `json:"id"`
+	Enabled     bool    `json:"enabled"`
+	SpawnID     string  `json:"spawn_id"`
+	CreatureID  string  `json:"creature_id"`
+	TargetID    string  `json:"target_id"`
+	Anchor      string  `json:"anchor"`
+	OffsetX     float64 `json:"offset_x"`
+	OffsetY     float64 `json:"offset_y"`
+	OffsetZ     int     `json:"offset_z"`
+	Radius      float64 `json:"radius"`
+}
+
+func loadAlphaCreatureSpawns(path string) (map[string]alphaCreatureSpawnDefinition, error) {
+	file, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read alpha creature spawns config file: %w", err)
+	}
+
+	var config alphaCreatureSpawnConfigFile
+	if err := json.Unmarshal(file, &config); err != nil {
+		return nil, fmt.Errorf("failed to parse alpha creature spawns config JSON: %w", err)
+	}
+
+	spawnMap := make(map[string]alphaCreatureSpawnDefinition)
+	foundEnabled := false
+	for _, def := range config.Spawns {
+		if !def.Enabled {
+			continue
+		}
+		if def.ID == "" || def.SpawnID == "" || def.CreatureID == "" || def.TargetID == "" || def.Anchor != "player_saved_position" || def.Radius <= 0 {
+			return nil, fmt.Errorf("invalid or incomplete alpha creature spawn definition for ID: %s", def.ID)
+		}
+		spawnMap[def.ID] = def
+		foundEnabled = true
+	}
+
+	if !foundEnabled || spawnMap["alpha_orc_elite"].ID == "" {
+		return nil, fmt.Errorf("no enabled spawns found or mandatory 'alpha_orc_elite' definition is missing")
+	}
+
+	return spawnMap, nil
+}
+
 func (s *GatewayServer) logAlphaCreatureThreat(spawnState *pve.CreatureSpawnState, playerID string, damage float64, playerThreat float64) {
 	if spawnState == nil {
 		return
@@ -2725,12 +2789,17 @@ func (s *GatewayServer) logAlphaCreatureThreat(spawnState *pve.CreatureSpawnStat
 		"version", spawnState.Version,
 	)
 
+	def, ok := s.alphaOrcEliteSpawnDefinition()
+	if !ok {
+		return
+	}
+
 	s.alphaCreatureAIThreatMu.Lock()
 	s.alphaCreatureAIThreatSnapshot = alphaCreatureAIThreatSnapshot{
 		SpawnID:           spawnState.SpawnID,
 		RuntimeEntityID:   spawnState.RuntimeEntityID,
 		CreatureID:        spawnState.CreatureID,
-		TargetID:          "Orc_Elite", // A38: Hardcoded for now
+		TargetID:          def.TargetID,
 		TopThreatPlayerID: topThreatPlayerID,
 		TopThreatValue:    topThreatValue,
 		Version:           spawnState.Version,
@@ -2750,6 +2819,11 @@ type creatureCombatTargetResolution struct {
 	IsStaleRuntimeEntityID bool
 }
 
+func (s *GatewayServer) alphaOrcEliteSpawnDefinition() (alphaCreatureSpawnDefinition, bool) {
+	def, ok := s.alphaCreatureSpawns["alpha_orc_elite"]
+	return def, ok
+}
+
 func resolveCreatureCombatTarget(s *GatewayServer, requestedTargetID string) creatureCombatTargetResolution {
 	res := creatureCombatTargetResolution{
 		RequestedTargetID: requestedTargetID,
@@ -2757,9 +2831,14 @@ func resolveCreatureCombatTarget(s *GatewayServer, requestedTargetID string) cre
 	}
 
 	if s.creatureSpawnManager != nil {
+		def, ok := s.alphaOrcEliteSpawnDefinition()
+		if !ok {
+			return res
+		}
+
 		if spawnState, exists := s.creatureSpawnManager.GetSpawnByRuntimeEntityID(requestedTargetID); exists {
-			if spawnState.SpawnID == "debug_orc_elite_001" {
-				res.ResolvedTargetID = "Orc_Elite"
+			if spawnState.SpawnID == def.SpawnID {
+				res.ResolvedTargetID = def.TargetID
 				res.RuntimeEntityID = spawnState.RuntimeEntityID
 				res.SpawnID = spawnState.SpawnID
 				res.CreatureID = spawnState.CreatureID
@@ -2770,9 +2849,14 @@ func resolveCreatureCombatTarget(s *GatewayServer, requestedTargetID string) cre
 		}
 	}
 
-	if requestedTargetID == "Orc_Elite" {
-		res.ResolvedTargetID = "Orc_Elite"
-		res.SpawnID = "debug_orc_elite_001"
+	def, ok := s.alphaOrcEliteSpawnDefinition()
+	if !ok {
+		return res
+	}
+
+	if requestedTargetID == def.TargetID {
+		res.ResolvedTargetID = def.TargetID
+		res.SpawnID = def.SpawnID
 		res.IsManagedCreature = true
 		res.IsDebugOrcElite = true
 		return res
@@ -2780,7 +2864,7 @@ func resolveCreatureCombatTarget(s *GatewayServer, requestedTargetID string) cre
 
 	// A36: Check for stale runtime IDs specifically for the debug orc elite.
 	// This can be generalized later with creature profiles.
-	debugOrcEliteRuntimePrefix := "creature:debug_orc_elite_001:"
+	debugOrcEliteRuntimePrefix := "creature:" + def.SpawnID + ":"
 	if len(requestedTargetID) > len(debugOrcEliteRuntimePrefix) && requestedTargetID[:len(debugOrcEliteRuntimePrefix)] == debugOrcEliteRuntimePrefix {
 		// It looks like a stale ID because it didn't resolve in GetSpawnByRuntimeEntityID.
 		res.IsStaleRuntimeEntityID = true
@@ -2807,11 +2891,15 @@ type creatureDeathRewardProfile struct {
 }
 
 func resolveCreatureDeathRewardProfile(targetID string, runtimeEntityID string) (creatureDeathRewardProfile, bool) {
-	if targetID == "Orc_Elite" {
+	// A39: This is a temporary bridge. In A40, this should be fully data-driven.
+	// For now, we assume if the targetID is the one from our single Alpha spawn, it gets this profile.
+	// This is safe because there's only one special creature.
+	// A real implementation would look up the creature profile from a manager.
+	if targetID == "Orc_Elite" { // Hardcoded check remains for now.
 		return creatureDeathRewardProfile{
 			SpawnID:       "debug_orc_elite_001",
 			TargetID:      "Orc_Elite",
-			DisplayName:   "Orc Elite",
+			DisplayName:   "Orc Elite", // Placeholder
 			RewardLogName: "Alpha Orc Elite",
 			LootTableID:   alphaOrcEliteLootTableID,
 		}, true
@@ -3032,27 +3120,32 @@ func (s *GatewayServer) startCreatureRespawnSchedulerLoop() {
 					continue
 				}
 
-				targetStats, exists := s.combatManager.GetEntityStats("Orc_Elite")
+				def, ok := s.alphaOrcEliteSpawnDefinition()
+				if !ok {
+					continue
+				}
+
+				targetStats, exists := s.combatManager.GetEntityStats(def.TargetID)
 				if !exists || targetStats == nil || targetStats.Health > 0 {
 					continue
 				}
 
-				spawnState, due := s.creatureSpawnManager.TryRespawnDue("debug_orc_elite_001", time.Now().UTC())
+				spawnState, due := s.creatureSpawnManager.TryRespawnDue(def.SpawnID, time.Now().UTC())
 				if !due {
 					continue
 				}
 
-				if s.combatManager.ReviveEntity("Orc_Elite") {
+				if s.combatManager.ReviveEntity(def.TargetID) {
 					slog.Info("Orc Elite creature spawn scheduler respawned", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "version", spawnState.Version, "spawned_at", spawnState.SpawnedAt)
 
-					respawnPayload := encodeAlphaOrcEliteTargetSyncPayload("Orc_Elite", spawnState.RuntimeEntityID, spawnState.X, spawnState.Y, spawnState.Z)
+					respawnPayload := encodeAlphaOrcEliteTargetSyncPayload(def.TargetID, spawnState.RuntimeEntityID, spawnState.X, spawnState.Y, spawnState.Z)
 
 					respawnPacket := &protocol.Packet{
 						Opcode:  3004, // SC_CREATURE_RESPAWN debug bridge
 						Payload: respawnPayload,
 					}
 					s.broadcastToAll(respawnPacket)
-					slog.Info("Orc Elite creature respawn visual sync packet emitted", "target", "Orc_Elite", "opcode", 3004, "runtime_entity_id", spawnState.RuntimeEntityID)
+					slog.Info("Orc Elite creature respawn visual sync packet emitted", "target", def.TargetID, "opcode", 3004, "runtime_entity_id", spawnState.RuntimeEntityID)
 				} else {
 					slog.Warn("Orc Elite creature spawn scheduler respawned but combat revive failed", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID)
 				}
@@ -3141,14 +3234,19 @@ func (s *GatewayServer) sendAlphaOrcEliteTargetIdentitySync(conn net.Conn, playe
 		return
 	}
 
-	spawnState, exists := s.creatureSpawnManager.GetSpawn("debug_orc_elite_001")
+	def, ok := s.alphaOrcEliteSpawnDefinition()
+	if !ok {
+		return
+	}
+
+	spawnState, exists := s.creatureSpawnManager.GetSpawn(def.SpawnID)
 	if !exists || spawnState == nil {
-		slog.Warn("Skipped Alpha Orc Elite target identity sync: spawn state unavailable", "player", playerID, "spawn_id", "debug_orc_elite_001")
+		slog.Warn("Skipped Alpha Orc Elite target identity sync: spawn state unavailable", "player", playerID, "spawn_id", def.SpawnID)
 		return
 	}
 
 	if spawnState.RuntimeEntityID == "" {
-		slog.Warn("Skipped Alpha Orc Elite target identity sync: runtime entity id missing", "player", playerID, "spawn_id", spawnState.SpawnID)
+		slog.Warn("Skipped Alpha Orc Elite target identity sync: runtime entity id missing", "player", playerID, "spawn_id", def.SpawnID)
 		return
 	}
 
@@ -3159,7 +3257,7 @@ func (s *GatewayServer) sendAlphaOrcEliteTargetIdentitySync(conn net.Conn, playe
 		targetState = "alive"
 	}
 
-	payload := encodeAlphaOrcEliteTargetSyncPayload("Orc_Elite", spawnState.RuntimeEntityID, spawnState.X, spawnState.Y, spawnState.Z)
+	payload := encodeAlphaOrcEliteTargetSyncPayload(def.TargetID, spawnState.RuntimeEntityID, spawnState.X, spawnState.Y, spawnState.Z)
 	packet := &protocol.Packet{
 		Opcode:   opcode,
 		Sequence: 0,
@@ -3167,11 +3265,11 @@ func (s *GatewayServer) sendAlphaOrcEliteTargetIdentitySync(conn net.Conn, playe
 	}
 
 	if _, err := conn.Write(packet.Serialize()); err != nil {
-		slog.Warn("Failed to send Alpha Orc Elite target identity sync", "player", playerID, "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "state", targetState, "error", err)
+		slog.Warn("Failed to send Alpha Orc Elite target identity sync", "player", playerID, "spawn_id", def.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "state", targetState, "error", err)
 		return
 	}
 
-	slog.Info("Sent Alpha Orc Elite target identity sync", "player", playerID, "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "state", targetState, "opcode", opcode)
+	slog.Info("Sent Alpha Orc Elite target identity sync", "player", playerID, "spawn_id", def.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "state", targetState, "opcode", opcode)
 }
 
 func (s *GatewayServer) sendInventorySync(conn net.Conn, playerID string, stats *combat.EntityStats, playerInv *inventory.PlayerInventory) {
