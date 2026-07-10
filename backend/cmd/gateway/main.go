@@ -1534,37 +1534,32 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				slog.Warn("Failed to decode binary CS_ATTACK_REQUEST", "error", err)
 				break
 			}
-			requestedTargetID := req.TargetID
-			resolvedTargetID := req.TargetID
-			isDebugOrcEliteTarget := req.TargetID == "Orc_Elite"
 
-			if !isDebugOrcEliteTarget && s.creatureSpawnManager != nil {
-				if spawnState, exists := s.creatureSpawnManager.GetSpawnByRuntimeEntityID(req.TargetID); exists && spawnState.SpawnID == "debug_orc_elite_001" {
-					resolvedTargetID = "Orc_Elite"
-					isDebugOrcEliteTarget = true
-					slog.Info("Resolved debug Orc Elite attack target by runtime entity id", "player", playerID, "requested_target", requestedTargetID, "resolved_target", resolvedTargetID, "runtime_entity_id", spawnState.RuntimeEntityID)
-				}
+			resolution := resolveCreatureCombatTarget(s, req.TargetID)
+
+			if resolution.IsDebugOrcElite && resolution.RuntimeEntityID != "" {
+				slog.Info(
+					"Resolved debug Orc Elite attack target by runtime entity id",
+					"player", playerID,
+					"requested_target", resolution.RequestedTargetID,
+					"resolved_target", resolution.ResolvedTargetID,
+					"runtime_entity_id", resolution.RuntimeEntityID,
+				)
 			}
 
-			debugOrcEliteRuntimePrefix := "creature:debug_orc_elite_001:"
-			if !isDebugOrcEliteTarget && len(req.TargetID) > len(debugOrcEliteRuntimePrefix) && req.TargetID[:len(debugOrcEliteRuntimePrefix)] == debugOrcEliteRuntimePrefix {
-				slog.Warn("Rejected stale debug Orc Elite runtime target", "player", playerID, "requested_target", requestedTargetID)
-				errPayload := protocol.EncodeDamageEvent(playerID, requestedTargetID, 0, false, false, false, "stale target")
-				errPacket := &protocol.Packet{
-					Opcode:   protocol.SC_DAMAGE_EVENT,
-					Sequence: packet.Sequence,
-					Payload:  errPayload,
-				}
-				conn.Write(errPacket.Serialize())
+			if resolution.IsStaleRuntimeEntityID {
+				slog.Warn("Rejected stale debug Orc Elite runtime target", "player", playerID, "requested_target", resolution.RequestedTargetID)
+				errPayload := protocol.EncodeDamageEvent(playerID, resolution.RequestedTargetID, 0, false, false, false, "stale target")
+				conn.Write((&protocol.Packet{Opcode: protocol.SC_DAMAGE_EVENT, Sequence: packet.Sequence, Payload: errPayload}).Serialize())
 				break
 			}
-			if isDebugOrcEliteTarget {
-				if targetStats, exists := s.combatManager.GetEntityStats(resolvedTargetID); exists && targetStats.Health <= 0 {
+			if resolution.IsDebugOrcElite {
+				if targetStats, exists := s.combatManager.GetEntityStats(resolution.ResolvedTargetID); exists && targetStats.Health <= 0 {
 					timerRespawned := false
 
 					if s.creatureSpawnManager != nil {
-						if spawnState, due := s.creatureSpawnManager.TryRespawnDue("debug_orc_elite_001", time.Now().UTC()); due {
-							if s.combatManager.ReviveEntity(resolvedTargetID) {
+						if spawnState, due := s.creatureSpawnManager.TryRespawnDue(resolution.SpawnID, time.Now().UTC()); due {
+							if s.combatManager.ReviveEntity(resolution.ResolvedTargetID) {
 								timerRespawned = true
 								slog.Info("Orc Elite creature spawn timer respawned", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "version", spawnState.Version, "spawned_at", spawnState.SpawnedAt)
 							} else {
@@ -1574,23 +1569,23 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 					}
 
 					if !timerRespawned {
-						if s.combatManager.ReviveEntity(resolvedTargetID) {
-							slog.Info("Debug Orc Elite revived for retry flow", "player", playerID, "target", resolvedTargetID)
+						if s.combatManager.ReviveEntity(resolution.ResolvedTargetID) {
+							slog.Info("Debug Orc Elite revived for retry flow", "player", playerID, "target", resolution.ResolvedTargetID)
 							if s.creatureSpawnManager != nil {
-								if spawnState, revived := s.creatureSpawnManager.ReviveRespawn("debug_orc_elite_001"); revived {
+								if spawnState, revived := s.creatureSpawnManager.ReviveRespawn(resolution.SpawnID); revived {
 									slog.Info("Debug Orc Elite creature spawn state revived for retry flow", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "version", spawnState.Version)
 								} else {
-									slog.Warn("Debug Orc Elite creature spawn state revive skipped for retry flow", "spawn_id", "debug_orc_elite_001", "target", resolvedTargetID)
+									slog.Warn("Debug Orc Elite creature spawn state revive skipped for retry flow", "spawn_id", resolution.SpawnID, "target", resolution.ResolvedTargetID)
 								}
 							}
 						}
 					}
 				}
 			}
-			damage, isCrit, isProj, err := s.combatManager.ProcessAttackRequest(playerID, resolvedTargetID, req.WeaponType)
+			damage, isCrit, isProj, err := s.combatManager.ProcessAttackRequest(playerID, resolution.ResolvedTargetID, req.WeaponType)
 			if err != nil {
 				slog.Warn("Failed to process basic attack", "error", err)
-				errPayload := protocol.EncodeDamageEvent(playerID, resolvedTargetID, 0, false, false, false, err.Error())
+				errPayload := protocol.EncodeDamageEvent(playerID, resolution.ResolvedTargetID, 0, false, false, false, err.Error())
 				errPacket := &protocol.Packet{
 					Opcode:   protocol.SC_DAMAGE_EVENT,
 					Sequence: packet.Sequence,
@@ -1600,9 +1595,9 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 
-			if req.TargetID == "Orc_Elite" && damage > 0 && s.creatureSpawnManager != nil {
+			if resolution.IsDebugOrcElite && damage > 0 && s.creatureSpawnManager != nil {
 
-				if spawnState, recorded := s.creatureSpawnManager.AddDamageContribution("debug_orc_elite_001", playerID, damage); recorded {
+				if spawnState, recorded := s.creatureSpawnManager.AddDamageContribution(resolution.SpawnID, playerID, damage); recorded {
 
 					totalContribution := spawnState.DamageContributors[playerID]
 
@@ -1610,7 +1605,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 
 				} else {
 
-					slog.Warn("Failed to record Orc Elite damage contribution", "spawn_id", "debug_orc_elite_001", "player", playerID, "damage", damage)
+					slog.Warn("Failed to record Orc Elite damage contribution", "spawn_id", resolution.SpawnID, "player", playerID, "damage", damage)
 
 				}
 
@@ -1625,13 +1620,13 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 
 			if isProj {
 				// ProjÃ©til agendado. Broadcast visual do efeito de tiro via BroadcastEffects
-				spawnPayload := protocol.EncodeDamageEvent(playerID, resolvedTargetID, 0, false, false, true, req.WeaponType)
+				spawnPayload := protocol.EncodeDamageEvent(playerID, resolution.ResolvedTargetID, 0, false, false, true, req.WeaponType)
 				s.aoiManager.BroadcastEffects(playerID, protocol.SC_DAMAGE_EVENT, spawnPayload)
 				break
 			}
 
 			// Retorna evento de dano com sucesso para melee instantÃ¢neo
-			dmgPayload := protocol.EncodeDamageEvent(playerID, resolvedTargetID, damage, isCrit, damage > 0, true, "")
+			dmgPayload := protocol.EncodeDamageEvent(playerID, resolution.ResolvedTargetID, damage, isCrit, damage > 0, true, "")
 			dmgPacket := &protocol.Packet{
 				Opcode:   protocol.SC_DAMAGE_EVENT,
 				Sequence: packet.Sequence,
@@ -1643,10 +1638,10 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			s.aoiManager.BroadcastCombat(playerID, protocol.SC_DAMAGE_EVENT, dmgPayload)
 
 			// Verifica se o alvo morreu
-			targetStats, exists := s.combatManager.GetEntityStats(resolvedTargetID)
+			targetStats, exists := s.combatManager.GetEntityStats(resolution.ResolvedTargetID)
 			if exists && targetStats.Health <= 0 {
-				if !s.handleAlphaOrcEliteDeathReward(conn, playerID, resolvedTargetID, packet.Sequence) {
-					deadPayload := protocol.EncodeTargetDeadEvent(resolvedTargetID)
+				if !s.handleAlphaOrcEliteDeathReward(conn, playerID, resolution.ResolvedTargetID, packet.Sequence) {
+					deadPayload := protocol.EncodeTargetDeadEvent(resolution.ResolvedTargetID)
 					conn.Write((&protocol.Packet{Opcode: protocol.SC_TARGET_DEAD, Sequence: packet.Sequence, Payload: deadPayload}).Serialize())
 					s.aoiManager.BroadcastCombat(playerID, protocol.SC_TARGET_DEAD, deadPayload)
 				}
@@ -1662,32 +1657,27 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 
-			requestedTargetID := req.TargetID
-			resolvedTargetID := req.TargetID
-			isDebugOrcEliteTarget := req.TargetID == "Orc_Elite"
+			resolution := resolveCreatureCombatTarget(s, req.TargetID)
 
-			if !isDebugOrcEliteTarget && s.creatureSpawnManager != nil {
-				if spawnState, exists := s.creatureSpawnManager.GetSpawnByRuntimeEntityID(req.TargetID); exists && spawnState.SpawnID == "debug_orc_elite_001" {
-					resolvedTargetID = "Orc_Elite"
-					isDebugOrcEliteTarget = true
-					slog.Info("Resolved debug Orc Elite cast target by runtime entity id", "player", playerID, "skill_id", req.SkillID, "requested_target", requestedTargetID, "resolved_target", resolvedTargetID, "runtime_entity_id", spawnState.RuntimeEntityID)
-				}
+			if resolution.IsDebugOrcElite && resolution.RuntimeEntityID != "" {
+				slog.Info(
+					"Resolved debug Orc Elite cast target by runtime entity id",
+					"player", playerID,
+					"skill_id", req.SkillID,
+					"requested_target", resolution.RequestedTargetID,
+					"resolved_target", resolution.ResolvedTargetID,
+					"runtime_entity_id", resolution.RuntimeEntityID,
+				)
 			}
 
-			debugOrcEliteRuntimePrefix := "creature:debug_orc_elite_001:"
-			if !isDebugOrcEliteTarget && len(req.TargetID) > len(debugOrcEliteRuntimePrefix) && req.TargetID[:len(debugOrcEliteRuntimePrefix)] == debugOrcEliteRuntimePrefix {
-				slog.Warn("Rejected stale debug Orc Elite runtime cast target", "player", playerID, "skill_id", req.SkillID, "requested_target", requestedTargetID)
-				errPayload := protocol.EncodeDamageEvent(playerID, requestedTargetID, 0, false, false, false, "stale target")
-				errPacket := &protocol.Packet{
-					Opcode:   protocol.SC_DAMAGE_EVENT,
-					Sequence: packet.Sequence,
-					Payload:  errPayload,
-				}
-				conn.Write(errPacket.Serialize())
+			if resolution.IsStaleRuntimeEntityID {
+				slog.Warn("Rejected stale debug Orc Elite runtime cast target", "player", playerID, "skill_id", req.SkillID, "requested_target", resolution.RequestedTargetID)
+				errPayload := protocol.EncodeDamageEvent(playerID, resolution.RequestedTargetID, 0, false, false, false, "stale target")
+				conn.Write((&protocol.Packet{Opcode: protocol.SC_DAMAGE_EVENT, Sequence: packet.Sequence, Payload: errPayload}).Serialize())
 				break
 			}
 
-			res, err := s.combatManager.ProcessCastSkillRequest(playerID, req.SkillID, resolvedTargetID, req.TargetX, req.TargetY)
+			res, err := s.combatManager.ProcessCastSkillRequest(playerID, req.SkillID, resolution.ResolvedTargetID, req.TargetX, req.TargetY)
 			if err != nil {
 				slog.Warn("Failed to process cast skill", "error", err)
 				playerStats, statsExist := s.combatManager.GetEntityStats(playerID)
@@ -1748,7 +1738,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 
 			if res.IsProjectile {
 				// Habilidade de projÃ©til agendada. Broadcast de efeito visual via BroadcastEffects
-				spawnPayload := protocol.EncodeDamageEvent(playerID, resolvedTargetID, 0, false, false, true, res.Skill.Name)
+				spawnPayload := protocol.EncodeDamageEvent(playerID, resolution.ResolvedTargetID, 0, false, false, true, res.Skill.Name)
 				s.aoiManager.BroadcastEffects(playerID, protocol.SC_DAMAGE_EVENT, spawnPayload)
 				break
 			}
@@ -2607,6 +2597,58 @@ func grantAlphaOrcEliteItemLoot(pveMgr *pve.PveManager, playerInv *inventory.Pla
 	}
 
 	return lootTableFound, itemsDropped, itemsGranted, lootResults
+}
+
+type creatureCombatTargetResolution struct {
+	RequestedTargetID      string
+	ResolvedTargetID       string
+	RuntimeEntityID        string
+	SpawnID                string
+	CreatureID             string
+	IsManagedCreature      bool
+	IsDebugOrcElite        bool
+	IsStaleRuntimeEntityID bool
+}
+
+func resolveCreatureCombatTarget(s *GatewayServer, requestedTargetID string) creatureCombatTargetResolution {
+	res := creatureCombatTargetResolution{
+		RequestedTargetID: requestedTargetID,
+		ResolvedTargetID:  requestedTargetID,
+	}
+
+	if s.creatureSpawnManager != nil {
+		if spawnState, exists := s.creatureSpawnManager.GetSpawnByRuntimeEntityID(requestedTargetID); exists {
+			if spawnState.SpawnID == "debug_orc_elite_001" {
+				res.ResolvedTargetID = "Orc_Elite"
+				res.RuntimeEntityID = spawnState.RuntimeEntityID
+				res.SpawnID = spawnState.SpawnID
+				res.CreatureID = spawnState.CreatureID
+				res.IsManagedCreature = true
+				res.IsDebugOrcElite = true
+				return res
+			}
+		}
+	}
+
+	if requestedTargetID == "Orc_Elite" {
+		res.ResolvedTargetID = "Orc_Elite"
+		res.SpawnID = "debug_orc_elite_001"
+		res.IsManagedCreature = true
+		res.IsDebugOrcElite = true
+		return res
+	}
+
+	// A36: Check for stale runtime IDs specifically for the debug orc elite.
+	// This can be generalized later with creature profiles.
+	debugOrcEliteRuntimePrefix := "creature:debug_orc_elite_001:"
+	if len(requestedTargetID) > len(debugOrcEliteRuntimePrefix) && requestedTargetID[:len(debugOrcEliteRuntimePrefix)] == debugOrcEliteRuntimePrefix {
+		// It looks like a stale ID because it didn't resolve in GetSpawnByRuntimeEntityID.
+		res.IsStaleRuntimeEntityID = true
+		return res
+	}
+
+	// Default case: not a managed creature we know about.
+	return res
 }
 
 type creatureDeathRewardRequest struct {
