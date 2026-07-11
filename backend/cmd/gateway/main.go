@@ -285,6 +285,33 @@ func main() {
 	questManager := quest.NewQuestManager(sqlDB, combatManager, server.inventories)
 	npcManager := npc.NewNPCManager(combatManager)
 
+	mentorArion, mentorFound := npcManager.GetNPC("npc_class_trainer")
+	if !mentorFound {
+		slog.Error(
+			"Mentor Arion NPC missing from authoritative NPC configuration",
+			"npc_id", "npc_class_trainer",
+		)
+		os.Exit(1)
+	}
+
+	movementSystem.RegisterEntity(&movement.Entity{
+		ID:             mentorArion.ID,
+		Name:           mentorArion.Name,
+		X:              mentorArion.Position.X,
+		Y:              mentorArion.Position.Y,
+		Z:              mentorArion.Position.Z,
+		Type:           "npc",
+		BlocksMovement: true,
+	})
+
+	slog.Info(
+		"Registered Mentor Arion as authoritative movement blocker",
+		"npc_id", mentorArion.ID,
+		"x", mentorArion.Position.X,
+		"y", mentorArion.Position.Y,
+		"z", mentorArion.Position.Z,
+	)
+
 	socialManager := social.NewSocialManager(sqlDB, aoiManager)
 	server.socialManager = socialManager
 	pveMgr.RegisterGetPartyMembersCallback(socialManager.GetSharedXpPlayers)
