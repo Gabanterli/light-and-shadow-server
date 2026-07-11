@@ -7,12 +7,13 @@ import (
 
 // Entity representa qualquer entidade móvel no mundo de jogo (jogador ou NPC)
 type Entity struct {
-	ID    string  `json:"id"`
-	Name  string  `json:"name"`
-	X     float64 `json:"x"` // Coordenada X em Tiles
-	Y     float64 `json:"y"` // Coordenada Y em Tiles
-	Z     int     `json:"z"` // Floor (0 a 15)
-	Type  string  `json:"type"` // "player" ou "npc"
+	ID             string  `json:"id"`
+	Name           string  `json:"name"`
+	X              float64 `json:"x"`    // Coordenada X em Tiles
+	Y              float64 `json:"y"`    // Coordenada Y em Tiles
+	Z              int     `json:"z"`    // Floor (0 a 15)
+	Type           string  `json:"type"` // "player" ou "npc"
+	BlocksMovement bool    `json:"blocks_movement"`
 }
 
 // SpatialIndex gerencia o posicionamento de entidades em blocos 3D (X, Y, Z/Andar)
@@ -45,12 +46,30 @@ func getChunkKey(x, y float64) uint64 {
 
 // RegisterEntity adiciona uma nova entidade ao indexador espacial
 func (si *SpatialIndex) RegisterEntity(entity *Entity) {
+	if entity == nil || entity.ID == "" {
+		return
+	}
+
 	si.mu.Lock()
 	defer si.mu.Unlock()
 
-	// Valida andar
-	if entity.Z < 0 || entity.Z >= 16 {
+	if entity.Z < 0 || entity.Z >= len(si.floors) {
 		entity.Z = 0
+	}
+
+	// Registro idempotente: remove qualquer posição anterior do mesmo ID.
+	if existing, exists := si.entities[entity.ID]; exists {
+		oldKey := getChunkKey(existing.X, existing.Y)
+
+		if existing.Z >= 0 && existing.Z < len(si.floors) {
+			if chunkEntities := si.floors[existing.Z][oldKey]; chunkEntities != nil {
+				delete(chunkEntities, entity.ID)
+
+				if len(chunkEntities) == 0 {
+					delete(si.floors[existing.Z], oldKey)
+				}
+			}
+		}
 	}
 
 	si.entities[entity.ID] = entity
@@ -59,6 +78,7 @@ func (si *SpatialIndex) RegisterEntity(entity *Entity) {
 	if si.floors[entity.Z][key] == nil {
 		si.floors[entity.Z][key] = make(map[string]*Entity)
 	}
+
 	si.floors[entity.Z][key][entity.ID] = entity
 }
 
@@ -132,6 +152,38 @@ func (si *SpatialIndex) GetEntity(id string) (*Entity, bool) {
 	defer si.mu.RUnlock()
 	entity, exists := si.entities[id]
 	return entity, exists
+}
+
+// IsTileOccupied verifica se outra entidade bloqueante ocupa o tile informado.
+func (si *SpatialIndex) IsTileOccupied(excludeEntityID string, x, y float64, z int) bool {
+	if z < 0 || z >= len(si.floors) {
+		return false
+	}
+
+	si.mu.RLock()
+	defer si.mu.RUnlock()
+
+	key := getChunkKey(x, y)
+	chunkEntities, exists := si.floors[z][key]
+	if !exists {
+		return false
+	}
+
+	targetTileX := int(math.Floor(x))
+	targetTileY := int(math.Floor(y))
+
+	for _, entity := range chunkEntities {
+		if entity == nil || entity.ID == excludeEntityID || !entity.BlocksMovement {
+			continue
+		}
+
+		if int(math.Floor(entity.X)) == targetTileX &&
+			int(math.Floor(entity.Y)) == targetTileY {
+			return true
+		}
+	}
+
+	return false
 }
 
 // GetEntitiesInRegion retorna entidades presentes nos chunks vizinhos que cobrem a região pesquisada
