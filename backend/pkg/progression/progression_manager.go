@@ -64,6 +64,43 @@ func (pm *ProgressionManager) ChooseVocationWithOptions(playerID string, baseCla
 
 	targetClass := rules.RuleID(strings.ToLower(strings.TrimSpace(baseClass)))
 
+	// Fallback for development/testing without a database.
+	var currentClass rules.RuleID
+	switch strings.ToLower(strings.TrimSpace(pStats.Class)) {
+	case "", "novice":
+		currentClass = rules.StartingClassNovice
+	case "knight":
+		currentClass = rules.ClassKnight
+	case "mage":
+		currentClass = rules.ClassMage
+	case "archer":
+		currentClass = rules.ClassArcher
+	case "assassin":
+		currentClass = rules.ClassAssassin
+	case "cleric":
+		currentClass = rules.ClassCleric
+	default:
+		currentClass = rules.RuleID(strings.ToLower(strings.TrimSpace(pStats.Class)))
+	}
+
+	// 1. Authoritative check: Must be a novice. This applies to EVERYONE.
+	if currentClass != rules.StartingClassNovice {
+		return rules.ErrClassSelectionAlreadyChosen
+	}
+
+	// 2. Authoritative check: Target class must be a valid base class.
+	if !rules.IsOfficialBaseClass(targetClass) {
+		return rules.ErrInvalidBaseClass
+	}
+
+	// 3. Level check, with GM bypass.
+	if uint32(pStats.Level) < rules.ClassSelectionMinimumLevel {
+		if !opts.AllowDevBypass {
+			return rules.ErrClassSelectionLevelTooLow
+		}
+		slog.Info("Applying GM/Test character level bypass for class selection", "player", playerID, "reason", opts.DevReason)
+	}
+
 	// A41-B3: Persist class change atomically before mutating memory.
 	if pm.dbConn != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -74,40 +111,6 @@ func (pm *ProgressionManager) ChooseVocationWithOptions(playerID string, baseCla
 			return fmt.Errorf("failed to begin vocation transaction: %w", err)
 		}
 		defer tx.Rollback()
-
-		var dbClass sql.NullString
-		var dbLevel int
-		err = tx.QueryRowContext(ctx, `SELECT class, level FROM characters WHERE name = $1 FOR UPDATE`, playerID).Scan(&dbClass, &dbLevel)
-		if err != nil {
-			return fmt.Errorf("failed to fetch and lock character for vocation change: %w", err)
-		}
-
-		var dbCurrentClass rules.RuleID
-		switch strings.ToLower(strings.TrimSpace(dbClass.String)) {
-		case "", "novice":
-			dbCurrentClass = rules.StartingClassNovice
-		case "knight":
-			dbCurrentClass = rules.ClassKnight
-		case "mage":
-			dbCurrentClass = rules.ClassMage
-		case "archer":
-			dbCurrentClass = rules.ClassArcher
-		case "assassin":
-			dbCurrentClass = rules.ClassAssassin
-		case "cleric":
-			dbCurrentClass = rules.ClassCleric
-		default:
-			dbCurrentClass = rules.RuleID(strings.ToLower(strings.TrimSpace(dbClass.String)))
-		}
-
-		if !opts.AllowDevBypass {
-			if err := rules.CanSelectBaseClass(uint32(dbLevel), dbCurrentClass, targetClass); err != nil {
-				return fmt.Errorf("seleção de vocação rejeitada: %w", err)
-			}
-		} else {
-			slog.Info("Applying GM/Test character class selection bypass", "player", playerID, "reason", opts.DevReason)
-			// For GM bypass, we allow changing from any class, not just novice.
-		}
 
 		res, err := tx.ExecContext(ctx, `
 			UPDATE characters
@@ -124,56 +127,14 @@ func (pm *ProgressionManager) ChooseVocationWithOptions(playerID string, baseCla
 			return fmt.Errorf("failed to verify vocation update result: %w", err)
 		}
 		if rowsAffected != 1 {
-			// If the first update failed, it might be a GM re-selecting a class.
-			// The original query had a WHERE clause for 'novice'. The GM bypass should work on any class.
-			if opts.AllowDevBypass && (dbCurrentClass != rules.StartingClassNovice && dbCurrentClass != "") {
-				// If it's a GM re-selecting, we update the class directly without the novice check.
-				res, err = tx.ExecContext(ctx, `UPDATE characters SET class = $1, updated_at = CURRENT_TIMESTAMP WHERE name = $2`, string(targetClass), playerID)
-				if err != nil {
-					return fmt.Errorf("failed to persist GM vocation re-selection: %w", err)
-				}
-				rowsAffected, err = res.RowsAffected()
-				if err != nil {
-					return fmt.Errorf("failed to verify GM vocation re-selection result: %w", err)
-				}
-				if rowsAffected != 1 {
-					return fmt.Errorf("GM re-selection failed to update any rows (character not found?)")
-				}
-			} else {
-				return fmt.Errorf("vocation already chosen or race condition detected (rows affected: %d)", rowsAffected)
-			}
+			return fmt.Errorf("vocation already chosen or race condition detected (rows affected: %d)", rowsAffected)
 		}
 
 		if err := tx.Commit(); err != nil {
 			return fmt.Errorf("failed to commit vocation transaction: %w", err)
 		}
 
-		slog.Info("Canonical vocation persisted atomically", "player", playerID, "class", string(targetClass), "source_class", dbCurrentClass, "level", dbLevel)
-	} else {
-		// Fallback for development/testing without a database.
-		var currentClass rules.RuleID
-		switch strings.ToLower(strings.TrimSpace(pStats.Class)) {
-		case "", "novice":
-			currentClass = rules.StartingClassNovice
-		case "knight":
-			currentClass = rules.ClassKnight
-		case "mage":
-			currentClass = rules.ClassMage
-		case "archer":
-			currentClass = rules.ClassArcher
-		case "assassin":
-			currentClass = rules.ClassAssassin
-		case "cleric":
-			currentClass = rules.ClassCleric
-		default:
-			currentClass = rules.RuleID(strings.ToLower(strings.TrimSpace(pStats.Class)))
-		}
-
-		if !opts.AllowDevBypass {
-			if err := rules.CanSelectBaseClass(uint32(pStats.Level), currentClass, targetClass); err != nil {
-				return fmt.Errorf("seleção de vocação rejeitada: %w", err)
-			}
-		}
+		slog.Info("Canonical vocation persisted atomically", "player", playerID, "class", string(targetClass))
 	}
 
 	// Apply changes to in-memory state only after successful validation (and DB commit if applicable).
