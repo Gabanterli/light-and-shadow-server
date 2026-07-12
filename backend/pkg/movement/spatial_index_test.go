@@ -136,3 +136,189 @@ func TestSpatialIndex_UpdateEntityPosition(t *testing.T) {
 		}
 	})
 }
+
+// B3-E: Add edge-case validation tests for spatial index.
+func TestSpatialIndex_BlockingLifecycleAndEdgeCases(t *testing.T) {
+	t.Run("floor isolation for blockers", func(t *testing.T) {
+		si := NewSpatialIndex()
+
+		si.RegisterEntity(&Entity{
+			ID:             "floor1-blocker",
+			X:              50,
+			Y:              50,
+			Z:              1,
+			Type:           "creature",
+			BlocksMovement: true,
+		})
+
+		si.RegisterEntity(&Entity{
+			ID:             "floor2-blocker",
+			X:              50,
+			Y:              50,
+			Z:              2,
+			Type:           "creature",
+			BlocksMovement: true,
+		})
+
+		if !si.IsTileOccupied("player", 50, 50, 1) {
+			t.Error("expected blocker on floor 1")
+		}
+
+		if !si.IsTileOccupied("player", 50, 50, 2) {
+			t.Error("expected blocker on floor 2")
+		}
+
+		if si.IsTileOccupied("floor1-blocker", 50, 50, 1) {
+			t.Error("entity must not collide with itself")
+		}
+	})
+
+	t.Run("move blocker to occupied tile fails", func(t *testing.T) {
+		si := NewSpatialIndex()
+
+		si.RegisterEntity(&Entity{
+			ID:             "moving-blocker",
+			X:              10,
+			Y:              10,
+			Z:              1,
+			Type:           "creature",
+			BlocksMovement: true,
+		})
+
+		si.RegisterEntity(&Entity{
+			ID:             "destination-blocker",
+			X:              11,
+			Y:              10,
+			Z:              1,
+			Type:           "npc",
+			BlocksMovement: true,
+		})
+
+		moved, _ := si.UpdateEntityPosition("moving-blocker", 11, 10, 1)
+		if moved {
+			t.Fatal("expected movement to occupied tile to fail")
+		}
+
+		if !si.IsTileOccupied("player", 10, 10, 1) {
+			t.Error("origin must remain occupied after failed movement")
+		}
+
+		entity, exists := si.GetEntity("moving-blocker")
+		if !exists {
+			t.Fatal("moving blocker disappeared after failed movement")
+		}
+
+		if entity.X != 10 || entity.Y != 10 || entity.Z != 1 {
+			t.Errorf(
+				"moving blocker position changed after failed movement: got (%v,%v,%v)",
+				entity.X,
+				entity.Y,
+				entity.Z,
+			)
+		}
+	})
+
+	t.Run("remove blocker frees tile", func(t *testing.T) {
+		si := NewSpatialIndex()
+
+		si.RegisterEntity(&Entity{
+			ID:             "blocker1",
+			X:              50,
+			Y:              50,
+			Z:              1,
+			Type:           "creature",
+			BlocksMovement: true,
+		})
+
+		si.RegisterEntity(&Entity{
+			ID:             "blocker2",
+			X:              50,
+			Y:              50,
+			Z:              2,
+			Type:           "creature",
+			BlocksMovement: true,
+		})
+
+		si.RemoveEntity("blocker1")
+
+		if si.IsTileOccupied("player", 50, 50, 1) {
+			t.Error("expected floor 1 tile to be free after removing blocker1")
+		}
+
+		if !si.IsTileOccupied("player", 50, 50, 2) {
+			t.Error("blocker on floor 2 was incorrectly removed")
+		}
+	})
+
+	t.Run("chunk boundary collision", func(t *testing.T) {
+		si := NewSpatialIndex()
+
+		si.RegisterEntity(&Entity{
+			ID:             "boundary-blocker",
+			X:              32,
+			Y:              31,
+			Z:              1,
+			Type:           "npc",
+			BlocksMovement: true,
+		})
+
+		if !si.IsTileOccupied("player", 32, 31, 1) {
+			t.Error("expected blocker across chunk boundary to be detected")
+		}
+
+		moved, _ := si.UpdateEntityPosition("boundary-blocker", 31, 31, 1)
+		if !moved {
+			t.Fatal("expected movement across chunk boundary to succeed")
+		}
+
+		if si.IsTileOccupied("player", 32, 31, 1) {
+			t.Error("old boundary tile remained occupied after movement")
+		}
+
+		if !si.IsTileOccupied("player", 31, 31, 1) {
+			t.Error("new boundary tile was not occupied after movement")
+		}
+	})
+
+	t.Run("creature lifecycle blocking", func(t *testing.T) {
+		si := NewSpatialIndex()
+
+		si.RegisterEntity(&Entity{
+			ID:             "creature:orc:1",
+			X:              70,
+			Y:              70,
+			Z:              1,
+			Type:           "creature",
+			BlocksMovement: true,
+		})
+
+		if !si.IsTileOccupied("player", 70, 70, 1) {
+			t.Fatal("spawned creature must block its tile")
+		}
+
+		si.RemoveEntity("creature:orc:1")
+
+		if si.IsTileOccupied("player", 70, 70, 1) {
+			t.Fatal("dead creature must release its tile")
+		}
+
+		si.RegisterEntity(&Entity{
+			ID:             "creature:orc:2",
+			X:              70,
+			Y:              70,
+			Z:              1,
+			Type:           "creature",
+			BlocksMovement: true,
+		})
+
+		if !si.IsTileOccupied("player", 70, 70, 1) {
+			t.Fatal("respawned creature must block its tile")
+		}
+
+		si.RemoveEntity("creature:orc:1")
+
+		if !si.IsTileOccupied("player", 70, 70, 1) {
+			t.Fatal("stale runtime entity removal removed the current creature")
+		}
+	})
+}

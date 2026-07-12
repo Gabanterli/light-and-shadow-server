@@ -88,35 +88,51 @@ func (si *SpatialIndex) UpdateEntityPosition(id string, newX, newY float64, newZ
 	defer si.mu.Unlock()
 
 	entity, exists := si.entities[id]
-	if !exists {
+	if !exists || entity == nil {
 		return false, nil
 	}
 
-	oldX, oldY, oldZ := entity.X, entity.Y, entity.Z
-	oldKey := getChunkKey(oldX, oldY)
-
-	// Valida novo andar
-	if newZ < 0 || newZ >= 16 {
-		newZ = 0
+	if newZ < 0 || newZ >= len(si.floors) {
+		return false, entity
 	}
 
-	// Se mudou de posição ou andar, re-indexa
-	if oldKey != getChunkKey(newX, newY) || oldZ != newZ {
-		// Remove do chunk antigo
-		if si.floors[oldZ][oldKey] != nil {
-			delete(si.floors[oldZ][oldKey], id)
-			if len(si.floors[oldZ][oldKey]) == 0 {
+	// Entidades bloqueantes não podem ocupar atomicamente um tile que já
+	// contenha outra entidade bloqueante.
+	if entity.BlocksMovement && si.isTileOccupiedLocked(id, newX, newY, newZ) {
+		return false, entity
+	}
+
+	oldX := entity.X
+	oldY := entity.Y
+	oldZ := entity.Z
+
+	oldKey := getChunkKey(oldX, oldY)
+	newKey := getChunkKey(newX, newY)
+
+	positionChanged :=
+		oldX != newX ||
+			oldY != newY ||
+			oldZ != newZ
+
+	if !positionChanged {
+		return true, entity
+	}
+
+	if oldZ >= 0 && oldZ < len(si.floors) {
+		if oldChunk := si.floors[oldZ][oldKey]; oldChunk != nil {
+			delete(oldChunk, id)
+
+			if len(oldChunk) == 0 {
 				delete(si.floors[oldZ], oldKey)
 			}
 		}
-
-		// Adiciona no novo chunk
-		newKey := getChunkKey(newX, newY)
-		if si.floors[newZ][newKey] == nil {
-			si.floors[newZ][newKey] = make(map[string]*Entity)
-		}
-		si.floors[newZ][newKey][id] = entity
 	}
+
+	if si.floors[newZ][newKey] == nil {
+		si.floors[newZ][newKey] = make(map[string]*Entity)
+	}
+
+	si.floors[newZ][newKey][id] = entity
 
 	entity.X = newX
 	entity.Y = newY
@@ -125,6 +141,7 @@ func (si *SpatialIndex) UpdateEntityPosition(id string, newX, newY float64, newZ
 	return true, entity
 }
 
+// B3-C: RemoveEntity is part of the blocking creature lifecycle.
 // RemoveEntity desregistra uma entidade do indexador espacial
 func (si *SpatialIndex) RemoveEntity(id string) {
 	si.mu.Lock()
@@ -154,14 +171,21 @@ func (si *SpatialIndex) GetEntity(id string) (*Entity, bool) {
 	return entity, exists
 }
 
+// B3-D: IsTileOccupied is the centralized authority for spatial occupancy queries.
 // IsTileOccupied verifica se outra entidade bloqueante ocupa o tile informado.
 func (si *SpatialIndex) IsTileOccupied(excludeEntityID string, x, y float64, z int) bool {
+	si.mu.RLock()
+	defer si.mu.RUnlock()
+
+	return si.isTileOccupiedLocked(excludeEntityID, x, y, z)
+}
+
+// isTileOccupiedLocked consulta a ocupação sem adquirir um novo lock.
+// O chamador deve possuir si.mu em modo de leitura ou escrita.
+func (si *SpatialIndex) isTileOccupiedLocked(excludeEntityID string, x, y float64, z int) bool {
 	if z < 0 || z >= len(si.floors) {
 		return false
 	}
-
-	si.mu.RLock()
-	defer si.mu.RUnlock()
 
 	key := getChunkKey(x, y)
 	chunkEntities, exists := si.floors[z][key]
@@ -173,12 +197,22 @@ func (si *SpatialIndex) IsTileOccupied(excludeEntityID string, x, y float64, z i
 	targetTileY := int(math.Floor(y))
 
 	for _, entity := range chunkEntities {
-		if entity == nil || entity.ID == excludeEntityID || !entity.BlocksMovement {
+		if entity == nil {
 			continue
 		}
 
-		if int(math.Floor(entity.X)) == targetTileX &&
-			int(math.Floor(entity.Y)) == targetTileY {
+		if entity.ID == excludeEntityID {
+			continue
+		}
+
+		if !entity.BlocksMovement {
+			continue
+		}
+
+		entityTileX := int(math.Floor(entity.X))
+		entityTileY := int(math.Floor(entity.Y))
+
+		if entityTileX == targetTileX && entityTileY == targetTileY {
 			return true
 		}
 	}

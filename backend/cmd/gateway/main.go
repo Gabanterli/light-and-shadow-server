@@ -556,6 +556,12 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			s.questManager.CleanPlayerState(playerID)
 			s.socialManager.OnPlayerLogout(playerID)
 			slog.Info("Cleaned up player states from systems on disconnect", "player", playerID)
+
+			// B3-B: Invalida o estado de diálogo no logout.
+			if npcID, cleared := s.questManager.ClearDialogueState(playerID); cleared {
+				slog.Info("Ephemeral dialogue state invalidated on disconnect", "player", playerID, "npc", npcID)
+			}
+
 		}
 	}()
 
@@ -847,6 +853,12 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			// Carrega e sincroniza estado de quests e diÃ¡logos de NPCs (Sprint 3 Task 3)
 			_ = s.questManager.GetPlayerState(playerID)
 			s.questManager.SyncAllActiveQuests(playerID)
+			// B3-B: Limpa qualquer estado de diálogo obsoleto no character switch.
+			if npcID, cleared := s.questManager.ClearDialogueState(playerID); cleared {
+				slog.Info("Stale dialogue state invalidated on character select", "player", playerID, "npc", npcID)
+			}
+
+			s.socialManager.OnPlayerLogin(playerID)
 
 			// Registra o jogador no CombatManager (com seus bÃ´nus de atributos)
 			s.combatManager.RegisterEntity(stats, savedX, savedY)
@@ -895,6 +907,16 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 					slog.Info("Registered Orc Elite creature spawn state", "spawn_id", spawnState.SpawnID, "creature_id", spawnState.CreatureID, "runtime_entity_id", spawnState.RuntimeEntityID, "x", spawnState.X, "y", spawnState.Y, "z", spawnState.Z)
 				}
 			}
+
+			// B3-C: Register creature as a movement blocker in the spatial index.
+			s.spatialIndex.RegisterEntity(&movement.Entity{
+				ID:             def.TargetID,
+				X:              savedX + def.OffsetX,
+				Y:              savedY + def.OffsetY,
+				Z:              int(savedZ) + def.OffsetZ,
+				Type:           "creature",
+				BlocksMovement: true, // Orc Elite is a blocking creature.
+			})
 			response := &protocol.Packet{
 				Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
 				Sequence: packet.Sequence,
@@ -947,9 +969,6 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				conn.Write(chunkPacket.Serialize())
 			}
 			slog.Info("Initial sliding chunks streamed to client", "playerID", playerID)
-
-			// Trigger social login events
-			s.socialManager.OnPlayerLogin(playerID)
 
 		case protocol.CS_INVENTORY_REQUEST:
 			if playerID == "" {
@@ -1111,6 +1130,9 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 
+			// B3-B: Inicia a sessão de diálogo efêmera.
+			s.questManager.BeginDialogue(playerID, req.NPCID)
+
 			// Define estado de conversa atual no jogador
 			s.questManager.SetDialogueFlag(playerID, req.NPCID, node.NodeID)
 
@@ -1169,6 +1191,11 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				slog.Warn("Dialogue response rejected due to invalid dialogue state", "player", playerID, "npc", req.NPCID, "request_node", req.NodeID, "current_node", currentFlag, "next_node", req.NextNodeID)
 				break
 			}
+			// B3-B: Invalida o diálogo se o NPC não for mais visível ou válido.
+			if _, err := s.npcManager.GetVisibleNode(playerID, req.NPCID, req.NodeID, s.questManager); err != nil { // B3-B: Uses new QuestManager API
+				s.invalidateAndCloseDialogue(playerID, conn, req.NPCID, 3, "NPC became unavailable")
+				break
+			}
 
 			currentNode, err := s.npcManager.GetVisibleNode(playerID, req.NPCID, req.NodeID, s.questManager)
 			if err != nil {
@@ -1195,6 +1222,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			if selectedAction == "choose_class" {
 				classID := strings.ToLower(strings.TrimSpace(selectedValue))
 				if classID == "" {
+					// B3-B: Rejeita ação de diálogo com valor inválido.
 					slog.Warn("Dialogue choose_class action rejected because class value is empty", "player", playerID, "npc", req.NPCID, "current_node", req.NodeID, "next_node", req.NextNodeID)
 					respPayload := protocol.EncodeChooseVocationResponse(false, "classe inválida no diálogo", "")
 					conn.Write((&protocol.Packet{Opcode: protocol.SC_CHOOSE_VOCATION_RESP, Sequence: packet.Sequence, Payload: respPayload}).Serialize())
@@ -1235,6 +1263,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			// If next node is "end" or empty, close dialogue only after option authorization.
 			if req.NextNodeID == "end" || req.NextNodeID == "" {
 				s.questManager.SetDialogueFlag(playerID, req.NPCID, "completed_conversation")
+				s.invalidateAndCloseDialogue(playerID, conn, req.NPCID, 0, "Conversation ended")
 				break
 			}
 
@@ -1578,6 +1607,11 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 
+			// B3-B: Cancela diálogo se o jogador se mover para longe.
+			if s.questManager.IsPlayerInDialogue(playerID) { // B3-B: Uses new QuestManager API
+				s.invalidateDialogueOnMove(playerID, conn)
+			}
+
 			// Cancela coleta ativa se o jogador se mover (Sprint 4 Task 1)
 			s.cancelGatheringIfActive(playerID)
 
@@ -1791,6 +1825,10 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			targetStats, exists := s.combatManager.GetEntityStats(resolution.ResolvedTargetID)
 			if exists && targetStats.Health <= 0 {
 				if !s.handleAlphaOrcEliteDeathReward(conn, playerID, resolution.ResolvedTargetID, packet.Sequence) {
+					// B3-C: Ensure blocker is removed even on non-rewarded death.
+					if resolution.IsDebugOrcElite {
+						s.spatialIndex.RemoveEntity(resolution.ResolvedTargetID)
+					}
 					deadPayload := protocol.EncodeTargetDeadEvent(resolution.ResolvedTargetID)
 					conn.Write((&protocol.Packet{Opcode: protocol.SC_TARGET_DEAD, Sequence: packet.Sequence, Payload: deadPayload}).Serialize())
 					s.aoiManager.BroadcastCombat(playerID, protocol.SC_TARGET_DEAD, deadPayload)
@@ -1918,6 +1956,10 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				targetStats, exists := s.combatManager.GetEntityStats(hit.TargetID)
 				if exists && targetStats.Health <= 0 {
 					if !s.handleAlphaOrcEliteDeathReward(conn, playerID, hit.TargetID, packet.Sequence) {
+						if resolution.IsDebugOrcElite {
+							s.spatialIndex.RemoveEntity(hit.TargetID)
+						}
+
 						deadPayload := protocol.EncodeTargetDeadEvent(hit.TargetID)
 						deadPacket := &protocol.Packet{
 							Opcode:   protocol.SC_TARGET_DEAD,
@@ -3082,6 +3124,10 @@ func (s *GatewayServer) handleCreatureDeathReward(req creatureDeathRewardRequest
 		return
 	}
 
+	// B3-C: Remove blocker on death.
+	s.spatialIndex.RemoveEntity(req.Profile.TargetID)
+	slog.Info("Removed creature blocker from spatial index on death", "spawn_id", req.Profile.SpawnID, "target", req.Profile.TargetID)
+
 	deadRuntimeEntityID := spawnState.RuntimeEntityID
 	shouldGrantLoot := true
 
@@ -3322,6 +3368,10 @@ func (s *GatewayServer) startCreatureRespawnSchedulerLoop() {
 				if s.combatManager.ReviveEntity(def.TargetID) {
 					slog.Info("Orc Elite creature spawn scheduler respawned", "spawn_id", spawnState.SpawnID, "runtime_entity_id", spawnState.RuntimeEntityID, "version", spawnState.Version, "spawned_at", spawnState.SpawnedAt)
 
+					// B3-C: Re-register blocker on respawn.
+					s.spatialIndex.RegisterEntity(&movement.Entity{
+						ID: def.TargetID, X: spawnState.X, Y: spawnState.Y, Z: spawnState.Z, Type: "creature", BlocksMovement: true,
+					})
 					respawnPayload := encodeAlphaOrcEliteTargetSyncPayload(def.TargetID, spawnState.RuntimeEntityID, spawnState.X, spawnState.Y, spawnState.Z)
 
 					respawnPacket := &protocol.Packet{
@@ -3565,6 +3615,36 @@ func (s *GatewayServer) broadcastToAll(packet *protocol.Packet) {
 	}
 }
 
+// B3-B: Invalida e fecha o dilogo se o jogador se afastar do NPC.
+func (s *GatewayServer) invalidateDialogueOnMove(playerID string, conn net.Conn) {
+	npcID, ok := s.questManager.GetCurrentDialogueNPC(playerID)
+	if !ok {
+		return
+	}
+
+	if err := s.npcManager.ValidateInteractionDistance(playerID, npcID, s.spatialIndex); err != nil {
+		slog.Info("Dialogue invalidated due to distance", "player", playerID, "npc", npcID, "error", err)
+		s.invalidateAndCloseDialogue(playerID, conn, npcID, 1, "You moved too far away.")
+	}
+}
+
+// B3-B: Centraliza a lgica de invalidao e notificao de fechamento de dilogo.
+func (s *GatewayServer) invalidateAndCloseDialogue(playerID string, conn net.Conn, npcID string, reasonCode uint8, message string) {
+	if _, ok := s.questManager.ClearDialogueState(playerID); ok {
+		s.sendDialogueClose(conn, npcID, reasonCode, message)
+	}
+}
+
+// B3-B: Envia o pacote de fechamento de dilogo para o cliente.
+func (s *GatewayServer) sendDialogueClose(conn net.Conn, npcID string, reasonCode uint8, message string) {
+	if conn == nil {
+		return
+	}
+	payload := protocol.EncodeDialogueClose(npcID, reasonCode, message)
+	packet := &protocol.Packet{Opcode: protocol.SC_DIALOGUE_CLOSE, Payload: payload}
+	conn.Write(packet.Serialize())
+}
+
 // cancelGatheringIfActive cancela a coleta ativa do jogador caso ele se mova ou cancele (Sprint 4 Task 1)
 func (s *GatewayServer) cancelGatheringIfActive(playerID string) {
 	s.activeGatheringsMu.Lock()
@@ -3663,3 +3743,7 @@ func (s *GatewayServer) broadcastTradeUpdate(playerID string) {
 		connB.Write(serialized)
 	}
 }
+
+// B3-B: Invalida e fecha o diálogo se o jogador se afastar do NPC.
+// B3-B: Centraliza a lógica de invalidação e notificação de fechamento de diálogo.
+// B3-B: Envia o pacote de fechamento de diálogo para o cliente.

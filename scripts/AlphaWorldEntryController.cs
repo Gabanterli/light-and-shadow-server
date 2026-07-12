@@ -651,6 +651,26 @@ content.AddChild(_alphaDialogueTextLabel);
         GD.Print($"Alpha dialogue window closed: reason={reason}");
     }
 
+    private void HandleAlphaDialogueClosePacket(Packet packet)
+    {
+        try
+        {
+            var data = BinaryProtocol.DecodeDialogueClose(packet.Payload);
+            CallDeferred(nameof(ApplyAlphaDialogueClose), data.NpcId, data.ReasonCode, data.Message);
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Alpha DialogueClose decode failed: {ex.Message}");
+            CallDeferred(nameof(SetAlphaSystemMessage), $"DialogueClose decode failed: {ex.GetType().Name}");
+        }
+    }
+
+    private void ApplyAlphaDialogueClose(string npcId, byte reasonCode, string message)
+    {
+        var feedback = string.IsNullOrWhiteSpace(message) ? "Diálogo encerrado." : message;
+        CloseAlphaDialogueWindow(feedback);
+    }
+
     private void RefreshAlphaDialogueProximityState()
     {
         if (!_isAlphaDialogueOpen)
@@ -1004,6 +1024,10 @@ content.AddChild(_alphaDialogueTextLabel);
                 else if (packet.Opcode == BinaryProtocol.SC_DIALOGUE_OPEN)
                 {
                     HandleAlphaDialogueOpenPacket(packet);
+                }
+                else if (packet.Opcode == BinaryProtocol.SC_DIALOGUE_CLOSE)
+                {
+                    HandleAlphaDialogueClosePacket(packet);
                 }
                 else if (packet.Opcode == BinaryProtocol.SC_ALPHA_CAPABILITIES)
                 {
@@ -1881,7 +1905,7 @@ content.AddChild(_alphaDialogueTextLabel);
                 return;
             }
 
-            SetAlphaCombatMessage("No attack: right-click did not hit a valid target.");
+            SetAlphaCombatMessage("No valid target."); // B3-F: Feedback for empty right-click
         }
     }
     private void OnAlphaLeftClickMoveRequested(InputEventMouseButton mouseButton)
@@ -1953,8 +1977,8 @@ content.AddChild(_alphaDialogueTextLabel);
             return false;
         }
 
-        SetAlphaSystemMessage($"Mentor Arion selected at tile {clickedTile.X},{clickedTile.Y}. Sending NPC interaction.");
-        SetAlphaCombatMessage($"NPC selected: Mentor Arion at {clickedTile.X},{clickedTile.Y}.");
+        SetAlphaSystemMessage($"Interacting with Mentor Arion..."); // B3-F: Interaction feedback
+        SetAlphaCombatMessage($"Interacting with Mentor Arion at {clickedTile.X},{clickedTile.Y}.");
         GD.Print($"Alpha Mentor Arion interaction requested: npc={AlphaMentorArionNpcId}, tile={clickedTile}");
         _ = SendAlphaNpcInteractRequestAsync(AlphaMentorArionNpcId);
         return true;
@@ -2031,8 +2055,8 @@ content.AddChild(_alphaDialogueTextLabel);
         }
 
         RefreshBattleTargetState();
-        RefreshAlphaSpellbookShellState();
-        SetAlphaCombatMessage("Target selected: Orc_Elite.");
+        RefreshAlphaSpellbookShellState(); // B3-F: Interaction feedback
+        SetAlphaCombatMessage("Target selected: Orc_Elite. Auto-attack started.");
         SetAlphaSystemMessage("Alpha target selected.");
         StartAlphaAutoAttackLoop();
     }

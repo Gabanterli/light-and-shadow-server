@@ -360,6 +360,7 @@ func (ms *MovementSystem) ValidateAndMove(playerID string, targetX, targetY floa
 	now := time.Now()
 
 	// 0. Cooldown Check (PATCH 3 â€” Movement Cooldown)
+	// B3-D: Centralized validation continues to use existing cooldown logic.
 	if now.Before(state.NextAllowedMoveTime) {
 		return false, state.LastX, state.LastY, state.LastZ
 	}
@@ -369,7 +370,7 @@ func (ms *MovementSystem) ValidateAndMove(playerID string, targetX, targetY floa
 		return false, state.LastX, state.LastY, state.LastZ
 	}
 
-	// ColisÃ£o dinÃ¢mica autoritativa com entidades bloqueantes.
+	// B3-D: Centralized authoritative spatial occupancy check for dynamic entities.
 	if ms.spatialIndex.IsTileOccupied(playerID, targetX, targetY, targetZ) {
 		return false, state.LastX, state.LastY, state.LastZ
 	}

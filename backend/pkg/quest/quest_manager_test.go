@@ -1,6 +1,8 @@
 package quest
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -142,4 +144,79 @@ func TestEventBusQuestIntegration(t *testing.T) {
 	if qState.Objectives[0].CurrentQty != 1 {
 		t.Errorf("Expected asynchronous event loop to update monster kill objective to 1, got %d", qState.Objectives[0].CurrentQty)
 	}
+}
+
+// B3-B, B3-E: Test ephemeral dialogue session management.
+func TestQuestManager_DialogueSession(t *testing.T) {
+	qm := NewQuestManager(nil, nil, nil)
+	playerID := "player1"
+	npcID := "npc_mentor"
+
+	t.Run("begin and check dialogue", func(t *testing.T) {
+		qm.BeginDialogue(playerID, npcID)
+		if !qm.IsPlayerInDialogue(playerID) {
+			t.Error("Expected IsPlayerInDialogue to be true after beginning a session")
+		}
+		currentNPC, ok := qm.GetCurrentDialogueNPC(playerID)
+		if !ok || currentNPC != npcID {
+			t.Errorf("Expected GetCurrentDialogueNPC to return '%s', but got '%s'", npcID, currentNPC)
+		}
+	})
+
+	t.Run("clear dialogue state", func(t *testing.T) {
+		// Ensure state exists before clearing
+		qm.BeginDialogue(playerID, npcID)
+
+		clearedNPC, ok := qm.ClearDialogueState(playerID)
+		if !ok || clearedNPC != npcID {
+			t.Errorf("Expected ClearDialogueState to return '%s' and true, but got '%s' and %v", npcID, clearedNPC, ok)
+		}
+		if qm.IsPlayerInDialogue(playerID) {
+			t.Error("Expected IsPlayerInDialogue to be false after clearing a session")
+		}
+	})
+
+	t.Run("clear dialogue state is idempotent", func(t *testing.T) {
+		_, ok := qm.ClearDialogueState(playerID)
+		if ok {
+			t.Error("Expected second call to ClearDialogueState to return false, but it returned true")
+		}
+	})
+
+	t.Run("begin dialogue replaces previous session", func(t *testing.T) {
+		newNpcID := "npc_guard"
+		qm.BeginDialogue(playerID, npcID)
+		qm.BeginDialogue(playerID, newNpcID)
+
+		currentNPC, ok := qm.GetCurrentDialogueNPC(playerID)
+		if !ok || currentNPC != newNpcID {
+			t.Errorf("Expected new dialogue session to replace the old one, wanted '%s', got '%s'", newNpcID, currentNPC)
+		}
+	})
+
+	t.Run("clearing dialogue does not affect persistent flags", func(t *testing.T) {
+		persistentFlag := "some_quest_flag"
+		qm.SetDialogueFlag(playerID, npcID, persistentFlag)
+		qm.BeginDialogue(playerID, npcID)
+
+		qm.ClearDialogueState(playerID)
+
+		if qm.GetDialogueFlag(playerID, npcID) != persistentFlag {
+			t.Error("Clearing ephemeral dialogue state should not affect persistent dialogue flags")
+		}
+	})
+
+	t.Run("concurrent access", func(t *testing.T) {
+		var wg sync.WaitGroup
+		for i := 0; i < 100; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				player := fmt.Sprintf("player_%d", i)
+				qm.BeginDialogue(player, "npc_stress")
+				_ = qm.IsPlayerInDialogue(player)
+			}(i)
+		}
+		wg.Wait()
+	})
 }

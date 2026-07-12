@@ -104,6 +104,9 @@ type QuestManager struct {
 
 	// Callbacks ou canais de notificação para o cliente
 	onQuestUpdated func(playerID string, questID string, state *CharacterQuestState)
+
+	activeDialogueMu          sync.RWMutex
+	activeDialogueNPCByPlayer map[string]string
 }
 
 // NewQuestManager instancia o QuestManager
@@ -969,4 +972,76 @@ func (qm *QuestManager) triggerUpdateCallback(playerID string, questID string, s
 	if cb != nil {
 		cb(playerID, questID, state)
 	}
+}
+
+// BeginDialogue registra a sessão efêmera de diálogo autoritativa do jogador.
+func (qm *QuestManager) BeginDialogue(playerID, npcID string) {
+	if qm == nil || playerID == "" || npcID == "" {
+		return
+	}
+
+	qm.activeDialogueMu.Lock()
+	defer qm.activeDialogueMu.Unlock()
+
+	if qm.activeDialogueNPCByPlayer == nil {
+		qm.activeDialogueNPCByPlayer = make(map[string]string)
+	}
+
+	qm.activeDialogueNPCByPlayer[playerID] = npcID
+}
+
+// IsPlayerInDialogue informa se o jogador possui uma sessão efêmera ativa.
+func (qm *QuestManager) IsPlayerInDialogue(playerID string) bool {
+	if qm == nil || playerID == "" {
+		return false
+	}
+
+	qm.activeDialogueMu.RLock()
+	defer qm.activeDialogueMu.RUnlock()
+
+	if qm.activeDialogueNPCByPlayer == nil {
+		return false
+	}
+
+	_, exists := qm.activeDialogueNPCByPlayer[playerID]
+	return exists
+}
+
+// GetCurrentDialogueNPC retorna o NPC da sessão efêmera ativa do jogador.
+func (qm *QuestManager) GetCurrentDialogueNPC(playerID string) (string, bool) {
+	if qm == nil || playerID == "" {
+		return "", false
+	}
+
+	qm.activeDialogueMu.RLock()
+	defer qm.activeDialogueMu.RUnlock()
+
+	if qm.activeDialogueNPCByPlayer == nil {
+		return "", false
+	}
+
+	npcID, exists := qm.activeDialogueNPCByPlayer[playerID]
+	return npcID, exists
+}
+
+// ClearDialogueState remove somente a sessão efêmera ativa de diálogo.
+func (qm *QuestManager) ClearDialogueState(playerID string) (string, bool) {
+	if qm == nil || playerID == "" {
+		return "", false
+	}
+
+	qm.activeDialogueMu.Lock()
+	defer qm.activeDialogueMu.Unlock()
+
+	if qm.activeDialogueNPCByPlayer == nil {
+		return "", false
+	}
+
+	npcID, exists := qm.activeDialogueNPCByPlayer[playerID]
+	if !exists {
+		return "", false
+	}
+
+	delete(qm.activeDialogueNPCByPlayer, playerID)
+	return npcID, true
 }

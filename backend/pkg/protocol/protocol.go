@@ -51,6 +51,7 @@ const (
 	CS_NPC_INTERACT      uint16 = 5000
 	SC_DIALOGUE_OPEN     uint16 = 5001
 	CS_DIALOGUE_RESPONSE uint16 = 5002
+	SC_DIALOGUE_CLOSE    uint16 = 5007 // B3-B: Authoritative dialogue close
 	CS_ACCEPT_QUEST      uint16 = 5003
 	CS_COMPLETE_QUEST    uint16 = 5004
 	SC_QUEST_UPDATE      uint16 = 5005
@@ -765,6 +766,21 @@ func EncodeDialogueResponseRequest(npcID, nodeID, nextNodeID string) []byte {
 	return buf
 }
 
+// B3-B: EncodeDialogueClose serializa o evento de fechamento de diálogo.
+func EncodeDialogueClose(npcID string, reasonCode uint8, message string) []byte {
+	size := 2 + len(npcID) + 1 + 2 + len(message)
+	buf := make([]byte, size)
+	offset := 0
+
+	WriteString(buf, npcID, &offset)
+	buf[offset] = reasonCode
+	offset++
+	WriteString(buf, message, &offset)
+
+	return buf
+}
+
+// B3-B: EncodeDialogueClose serializa o evento de fechamento de dilogo.
 type AcceptQuestRequest struct {
 	QuestID string
 }

@@ -12,6 +12,7 @@ public static class BinaryProtocol
     public const ushort SC_DIALOGUE_OPEN = 5001;
     public const ushort CS_DIALOGUE_RESPONSE = 5002;
     public const ushort SC_CHOOSE_VOCATION_RESP = 9101;
+    public const ushort SC_DIALOGUE_CLOSE = 5007;
     public const ushort SC_ALPHA_CAPABILITIES = 9104;
     public const ushort SC_CAST_SKILL_RESULT = 3006;
     public static byte[] EncodeLoginRequest(string username, string password)
@@ -437,6 +438,22 @@ public static class BinaryProtocol
         };
     }
 
+    // B3-B: Decode dialogue close event
+    public static DialogueCloseData DecodeDialogueClose(byte[] payload)
+    {
+        var offset = 0;
+        var npcId = ReadStringUInt16(payload, offset, out offset);
+        var reasonCode = payload[offset++];
+        var message = ReadStringUInt16(payload, offset, out offset);
+
+        return new DialogueCloseData {
+            NpcId = npcId,
+            ReasonCode = reasonCode,
+            Message = message
+        };
+    }
+
+    // B3-B: Decode dialogue close event
     public static TargetDeadEventData DecodeTargetDeadEvent(byte[] payload)
     {
         var offset = 0;
@@ -809,7 +826,15 @@ public sealed class CastSkillResultData
     public double MaxMana { get; set; }
 }
 
+// B3-B: Data for authoritative dialogue close
+public sealed class DialogueCloseData
+{
+    public string NpcId { get; set; } = string.Empty;
+    public byte ReasonCode { get; set; }
+    public string Message { get; set; } = string.Empty;
+}
 
+// B3-B: Data for authoritative dialogue close
 public sealed class LootResultEventData
 {
     public string TableID { get; set; } = string.Empty;
