@@ -38,6 +38,7 @@ import (
 	"github.com/light-and-shadow/backend/pkg/pvp"
 	"github.com/light-and-shadow/backend/pkg/quest"
 	"github.com/light-and-shadow/backend/pkg/social"
+	"github.com/light-and-shadow/backend/pkg/worldmap"
 
 	"database/sql"
 )
@@ -51,6 +52,7 @@ type GatewayServer struct {
 	clientsMu                sync.Mutex
 	clients                  map[net.Conn]bool
 	wg                       sync.WaitGroup
+	worldMapProvider         worldmap.Provider
 	spatialIndex             *movement.SpatialIndex
 	chunkManager             *movement.ChunkManager
 	aoiManager               *movement.AOIManager
@@ -178,6 +180,42 @@ func main() {
 		os.Exit(1)
 	}
 
+	// B4-A1: Select the authoritative world map provider once during startup.
+	worldMapMode, err := config.ParseWorldMapMode(cfg.WorldMapMode)
+	if err != nil {
+		slog.Error(
+			"Invalid world map mode configuration; refusing to start Gateway",
+			"error", err,
+		)
+		os.Exit(1)
+	}
+
+	var mapProvider worldmap.Provider
+
+	switch worldMapMode {
+	case worldmap.ModeDebug:
+		mapProvider = worldmap.NewDebugProvider()
+
+	case worldmap.ModeProduction:
+		slog.Error(
+			"Production world map mode selected, but production provider is not implemented",
+		)
+		os.Exit(1)
+
+	default:
+		slog.Error(
+			"Unsupported world map mode; refusing to start Gateway",
+			"mode", worldMapMode,
+		)
+		os.Exit(1)
+	}
+
+	slog.Info(
+		"World map provider initialized",
+		"mode", mapProvider.Mode(),
+		"world_id", mapProvider.WorldID(),
+		"version", mapProvider.Version(),
+	)
 	// Inicialização de bancos de dados (tolerante a fallbacks locais)
 	pgPool, err := db.NewPostgresPool(cfg.PostgresDSN)
 	if err != nil {
@@ -246,6 +284,7 @@ func main() {
 		pgPool:                   pgPool,
 		redisClient:              redisClient,
 		clients:                  make(map[net.Conn]bool),
+		worldMapProvider:         mapProvider,
 		spatialIndex:             spatialIndex,
 		chunkManager:             chunkManager,
 		aoiManager:               aoiManager,
