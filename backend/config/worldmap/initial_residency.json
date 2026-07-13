@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "world_id": "light_and_shadow_world",
+  "world_version": 1,
+  "resident_chunks": [
+    {
+      "world_space_id": "main_continent",
+      "chunk_x": 3,
+      "chunk_y": 3,
+      "z": 0
+    }
+  ]
+}
