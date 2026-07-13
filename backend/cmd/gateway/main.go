@@ -238,7 +238,16 @@ func main() {
 	spatialIndex := movement.NewSpatialIndex()
 	chunkManager := movement.NewChunkManager()
 	aoiManager := movement.NewAOIManager(spatialIndex)
-	movementSystem := movement.NewMovementSystem(spatialIndex, chunkManager, aoiManager)
+	staticStepValidator := newWorldMapStaticStepValidator(
+		staticCollisionIndex,
+	)
+	movementSystem :=
+		movement.NewMovementSystemWithStaticStepValidator(
+			spatialIndex,
+			chunkManager,
+			aoiManager,
+			staticStepValidator,
+		)
 
 	// Inicializa Sistema de Combate Autorizativo (Sprint 2 Task 5)
 	combatManager := combat.NewCombatManager(chunkManager, alphaSkills)
@@ -893,7 +902,13 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			s.inventoriesMu.Unlock()
 
 			s.aoiManager.RegisterPlayer(playerID, conn)
-			s.movementSystem.InitPlayerState(playerID, savedX, savedY, int(savedZ))
+			s.movementSystem.InitPlayerStateInWorldSpace(
+				playerID,
+				string(worldmap.WorldSpaceMainContinent),
+				savedX,
+				savedY,
+				int(savedZ),
+			)
 
 			// Carrega e sincroniza estado de quests e diÃ¡logos de NPCs (Sprint 3 Task 3)
 			_ = s.questManager.GetPlayerState(playerID)

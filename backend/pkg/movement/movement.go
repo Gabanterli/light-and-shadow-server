@@ -53,8 +53,35 @@ type PlayerMoveState struct {
 	Sequence            uint32
 	IsInit              bool
 	NextAllowedMoveTime time.Time
+	WorldSpaceID        string // Authoritative identity used by static terrain
 	CurrentContinent    string // Metadados de continente (Sprint 3 Task 5 Patch 6)
 	CurrentRegionID     string // Metadados de ID de regiÃ£o (Sprint 3 Task 5 Patch 6)
+}
+
+// StaticStep describes one authoritative movement attempt without coupling the
+// movement package to a concrete world-map implementation.
+type StaticStep struct {
+	WorldSpaceID string
+	FromX        float64
+	FromY        float64
+	FromZ        int
+	ToX          float64
+	ToY          float64
+	ToZ          int
+}
+
+// StaticStepValidator validates immutable terrain for one movement step.
+// Implementations must return a non-nil error for blocked, unavailable,
+// malformed or otherwise invalid terrain.
+type StaticStepValidator interface {
+	ValidateStaticStep(step StaticStep) error
+}
+
+// playerMovementLockEntry serializes one player's movement requests. The
+// reference count includes both the current owner and queued waiters.
+type playerMovementLockEntry struct {
+	mutex      sync.Mutex
+	references int
 }
 
 // BossSpawnCallback define uma assinatura para invocaÃ§Ã£o de chefe mundial
@@ -62,14 +89,17 @@ type BossSpawnCallback func(bossID string, x, y float64, z int) error
 
 // MovementSystem coordena a fÃ­sica autoritativa de movimentaÃ§Ã£o e colisÃµes no servidor
 type MovementSystem struct {
-	mu                 sync.RWMutex
-	spatialIndex       *SpatialIndex
-	chunkManager       *ChunkManager
-	aoiManager         *AOIManager
-	playerStates       map[string]*PlayerMoveState
-	LevelProvider      func(string) int // Callback para obter level do jogador (Sprint 3 Task 5)
-	regions            []WorldRegion
-	bossSpawnCallbacks map[string][]BossSpawnCallback // continent_name -> callbacks de spawn
+	mu                    sync.RWMutex
+	spatialIndex          *SpatialIndex
+	chunkManager          *ChunkManager
+	aoiManager            *AOIManager
+	staticStepValidator   StaticStepValidator
+	playerStates          map[string]*PlayerMoveState
+	playerMovementLocksMu sync.Mutex
+	playerMovementLocks   map[string]*playerMovementLockEntry
+	LevelProvider         func(string) int // Callback para obter level do jogador (Sprint 3 Task 5)
+	regions               []WorldRegion
+	bossSpawnCallbacks    map[string][]BossSpawnCallback // continent_name -> callbacks de spawn
 }
 
 // RegisterEntity registra uma entidade no SpatialIndex autoritativo.
@@ -93,16 +123,70 @@ func (ms *MovementSystem) UpdateEntityPosition(entityID string, x, y float64, z 
 }
 
 // NewMovementSystem inicializa o sistema de movimentaÃ§Ã£o autoritativo e carrega regiÃµes
-func NewMovementSystem(si *SpatialIndex, cm *ChunkManager, aoi *AOIManager) *MovementSystem {
+// NewMovementSystem preserves the legacy/debug terrain behavior.
+func NewMovementSystem(
+	si *SpatialIndex,
+	cm *ChunkManager,
+	aoi *AOIManager,
+) *MovementSystem {
+	return NewMovementSystemWithStaticStepValidator(
+		si,
+		cm,
+		aoi,
+		nil,
+	)
+}
+
+// NewMovementSystemWithStaticStepValidator creates an authoritative movement
+// system with an optional immutable production-terrain validator.
+func NewMovementSystemWithStaticStepValidator(
+	si *SpatialIndex,
+	cm *ChunkManager,
+	aoi *AOIManager,
+	staticStepValidator StaticStepValidator,
+) *MovementSystem {
 	ms := &MovementSystem{
-		spatialIndex:       si,
-		chunkManager:       cm,
-		aoiManager:         aoi,
-		playerStates:       make(map[string]*PlayerMoveState),
-		bossSpawnCallbacks: make(map[string][]BossSpawnCallback),
+		spatialIndex:        si,
+		chunkManager:        cm,
+		aoiManager:          aoi,
+		staticStepValidator: staticStepValidator,
+		playerStates:        make(map[string]*PlayerMoveState),
+		playerMovementLocks: make(map[string]*playerMovementLockEntry),
+		bossSpawnCallbacks:  make(map[string][]BossSpawnCallback),
 	}
 	ms.loadWorldRegions()
 	return ms
+}
+
+// lockPlayerMovement acquires one reference-counted player-specific lock and
+// returns an idempotence-by-contract release function for a single defer.
+func (ms *MovementSystem) lockPlayerMovement(
+	playerID string,
+) func() {
+	ms.playerMovementLocksMu.Lock()
+
+	entry, exists := ms.playerMovementLocks[playerID]
+	if !exists {
+		entry = &playerMovementLockEntry{}
+		ms.playerMovementLocks[playerID] = entry
+	}
+
+	entry.references++
+	ms.playerMovementLocksMu.Unlock()
+
+	entry.mutex.Lock()
+
+	return func() {
+		entry.mutex.Unlock()
+
+		ms.playerMovementLocksMu.Lock()
+		defer ms.playerMovementLocksMu.Unlock()
+
+		entry.references--
+		if entry.references == 0 {
+			delete(ms.playerMovementLocks, playerID)
+		}
+	}
 }
 
 // loadWorldRegions busca e carrega as regiÃµes definidas no JSON de forma resiliente
@@ -187,16 +271,33 @@ func (ms *MovementSystem) loadWorldRegions() {
 }
 
 // GetRegionByCoords busca qual regiÃ£o contÃ©m as coordenadas dadas
-func (ms *MovementSystem) GetRegionByCoords(x, y float64) *WorldRegion {
+func (ms *MovementSystem) GetRegionByCoords(
+	x, y float64,
+) *WorldRegion {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
-	for _, reg := range ms.regions {
-		for _, box := range reg.BoundingBoxes {
-			if x >= box.MinX && x <= box.MaxX && y >= box.MinY && y <= box.MaxY {
-				return &reg
+
+	return ms.getRegionByCoordsLocked(x, y)
+}
+
+// getRegionByCoordsLocked resolves one region while the caller already owns
+// ms.mu for reading or writing.
+func (ms *MovementSystem) getRegionByCoordsLocked(
+	x, y float64,
+) *WorldRegion {
+	for regionIndex := range ms.regions {
+		region := &ms.regions[regionIndex]
+
+		for _, box := range region.BoundingBoxes {
+			if x >= box.MinX &&
+				x <= box.MaxX &&
+				y >= box.MinY &&
+				y <= box.MaxY {
+				return region
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -284,36 +385,70 @@ func (ms *MovementSystem) TriggerWorldBosses(continentName string, bossID string
 	return nil
 }
 
-// InitPlayerState define a posiÃ§Ã£o inicial confiÃ¡vel do jogador no servidor e resolve o continente
-func (ms *MovementSystem) InitPlayerState(playerID string, x, y float64, z int) {
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
+// InitPlayerState preserves the legacy initialization contract by assigning
+// the canonical Alpha world-space identity.
+func (ms *MovementSystem) InitPlayerState(
+	playerID string,
+	x, y float64,
+	z int,
+) {
+	ms.InitPlayerStateInWorldSpace(
+		playerID,
+		"main_continent",
+		x,
+		y,
+		z,
+	)
+}
 
-	// Identifica a regiÃ£o inicial pelas coordenadas
+// InitPlayerStateInWorldSpace defines the trusted initial position and explicit
+// world-space identity used by authoritative static terrain validation.
+func (ms *MovementSystem) InitPlayerStateInWorldSpace(
+	playerID string,
+	worldSpaceID string,
+	x, y float64,
+	z int,
+) {
+	unlockPlayer := ms.lockPlayerMovement(playerID)
+	defer unlockPlayer()
+
+	if worldSpaceID == "" {
+		worldSpaceID = "main_continent"
+	}
+
+	ms.mu.Lock()
+
 	regionID := "main_continent"
 	continent := "Main Continent"
-	for _, reg := range ms.regions {
-		for _, box := range reg.BoundingBoxes {
-			if x >= box.MinX && x <= box.MaxX && y >= box.MinY && y <= box.MaxY {
-				regionID = reg.RegionID
-				continent = reg.ContinentName
+	for _, region := range ms.regions {
+		for _, box := range region.BoundingBoxes {
+			if x >= box.MinX &&
+				x <= box.MaxX &&
+				y >= box.MinY &&
+				y <= box.MaxY {
+				regionID = region.RegionID
+				continent = region.ContinentName
 				break
 			}
 		}
 	}
 
+	now := time.Now()
+
 	ms.playerStates[playerID] = &PlayerMoveState{
 		LastX:               x,
 		LastY:               y,
 		LastZ:               z,
-		LastTime:            time.Now(),
+		LastTime:            now,
 		IsInit:              true,
-		NextAllowedMoveTime: time.Now(),
+		NextAllowedMoveTime: now,
+		WorldSpaceID:        worldSpaceID,
 		CurrentContinent:    continent,
 		CurrentRegionID:     regionID,
 	}
 
-	// Insere no indexador espacial se nÃ£o existir
+	ms.mu.Unlock()
+
 	ms.spatialIndex.RegisterEntity(&Entity{
 		ID:   playerID,
 		Name: "Player_" + playerID,
@@ -325,7 +460,12 @@ func (ms *MovementSystem) InitPlayerState(playerID string, x, y float64, z int) 
 }
 
 // RemovePlayerState limpa recursos de movimentaÃ§Ã£o do jogador ao desconectar
-func (ms *MovementSystem) RemovePlayerState(playerID string) {
+func (ms *MovementSystem) RemovePlayerState(
+	playerID string,
+) {
+	unlockPlayer := ms.lockPlayerMovement(playerID)
+	defer unlockPlayer()
+
 	ms.mu.Lock()
 	delete(ms.playerStates, playerID)
 	ms.mu.Unlock()
@@ -334,102 +474,202 @@ func (ms *MovementSystem) RemovePlayerState(playerID string) {
 }
 
 // ValidateAndMove realiza as checagens autoritativas (velocidade, colisÃµes de mapa, andares)
-func (ms *MovementSystem) ValidateAndMove(playerID string, targetX, targetY float64, targetZ int, seq uint32) (bool, float64, float64, int) {
+func (ms *MovementSystem) ValidateAndMove(
+	playerID string,
+	targetX, targetY float64,
+	targetZ int,
+	seq uint32,
+) (bool, float64, float64, int) {
+	unlockPlayer := ms.lockPlayerMovement(playerID)
+	defer unlockPlayer()
+
+	entity, entityFound :=
+		ms.spatialIndex.GetEntity(playerID)
+
 	ms.mu.Lock()
+
 	state, exists := ms.playerStates[playerID]
 	if !exists {
 		ms.mu.Unlock()
-		ms.InitPlayerState(playerID, targetX, targetY, targetZ)
-		return true, targetX, targetY, targetZ
+		return false, 0, 0, 0
 	}
+
+	if entityFound {
+		const teleportThreshold = 2.0
+
+		if math.Abs(entity.X-state.LastX) > teleportThreshold ||
+			math.Abs(entity.Y-state.LastY) > teleportThreshold ||
+			entity.Z != state.LastZ {
+			state.LastX = entity.X
+			state.LastY = entity.Y
+			state.LastZ = entity.Z
+
+			slog.Info(
+				"Detected external teleport, resetting cached movement system coordinate state",
+				"player",
+				playerID,
+				"new_x",
+				entity.X,
+				"new_y",
+				entity.Y,
+				"new_z",
+				entity.Z,
+			)
+		}
+	}
+
+	lastX := state.LastX
+	lastY := state.LastY
+	lastZ := state.LastZ
+	lastTime := state.LastTime
+	nextAllowedMoveTime := state.NextAllowedMoveTime
+	worldSpaceID := state.WorldSpaceID
+
 	ms.mu.Unlock()
 
-	// DetecÃ§Ã£o de Teleporte Externo (Compatibilidade de regressÃ£o com instÃ¢ncias de masmorras/morte/teleportes)
-	if ent, ok := ms.spatialIndex.GetEntity(playerID); ok {
-		const TeleportThreshold = 2.0
-		if math.Abs(ent.X-state.LastX) > TeleportThreshold || math.Abs(ent.Y-state.LastY) > TeleportThreshold || ent.Z != state.LastZ {
-			ms.mu.Lock()
-			state.LastX = ent.X
-			state.LastY = ent.Y
-			state.LastZ = ent.Z
-			ms.mu.Unlock()
-			slog.Info("Detected external teleport, resetting cached movement system coordinate state", "player", playerID, "new_x", ent.X, "new_y", ent.Y)
-		}
+	reject := func() (bool, float64, float64, int) {
+		return false, lastX, lastY, lastZ
 	}
 
 	now := time.Now()
 
-	// 0. Cooldown Check (PATCH 3 â€” Movement Cooldown)
-	// B3-D: Centralized validation continues to use existing cooldown logic.
-	if now.Before(state.NextAllowedMoveTime) {
-		return false, state.LastX, state.LastY, state.LastZ
+	if now.Before(nextAllowedMoveTime) {
+		return reject()
 	}
 
-	// 1. Verificar ColisÃ£o de ObstÃ¡culo EstÃ¡tico no Chunk
-	if ms.chunkManager.IsBlocked(int(targetX), int(targetY)) {
-		return false, state.LastX, state.LastY, state.LastZ
+	if ms.staticStepValidator != nil {
+		err := ms.staticStepValidator.ValidateStaticStep(
+			StaticStep{
+				WorldSpaceID: worldSpaceID,
+				FromX:        lastX,
+				FromY:        lastY,
+				FromZ:        lastZ,
+				ToX:          targetX,
+				ToY:          targetY,
+				ToZ:          targetZ,
+			},
+		)
+		if err != nil {
+			return reject()
+		}
+	} else if ms.chunkManager.IsBlocked(
+		int(targetX),
+		int(targetY),
+	) {
+		return reject()
 	}
 
-	// B3-D: Centralized authoritative spatial occupancy check for dynamic entities.
-	if ms.spatialIndex.IsTileOccupied(playerID, targetX, targetY, targetZ) {
-		return false, state.LastX, state.LastY, state.LastZ
+	if ms.spatialIndex.IsTileOccupied(
+		playerID,
+		targetX,
+		targetY,
+		targetZ,
+	) {
+		return reject()
 	}
 
-	// 1.5 ValidaÃ§Ã£o Autoritativa de RegiÃ£o baseada em world_regions.json (Sprint 3 Task 5 Patch 6)
-	targetRegion := ms.GetRegionByCoords(targetX, targetY)
+	targetRegion := ms.GetRegionByCoords(
+		targetX,
+		targetY,
+	)
 	if targetRegion != nil {
 		level := 1
 		if ms.LevelProvider != nil {
 			level = ms.LevelProvider(playerID)
 		}
+
 		if level < targetRegion.MinLevel {
-			slog.Warn("Level requirement not met for region access", "player", playerID, "level", level, "required", targetRegion.MinLevel, "region", targetRegion.ContinentName)
-			return false, state.LastX, state.LastY, state.LastZ
+			slog.Warn(
+				"Level requirement not met for region access",
+				"player",
+				playerID,
+				"level",
+				level,
+				"required",
+				targetRegion.MinLevel,
+				"region",
+				targetRegion.ContinentName,
+			)
+
+			return reject()
 		}
 	}
 
-	// 2. ValidaÃ§Ã£o Autoritativa de Velocidade (Anti-Speedhack com tolerÃ¢ncia a Jitter)
-	dt := now.Sub(state.LastTime).Seconds()
-	dx := targetX - state.LastX
-	dy := targetY - state.LastY
+	deltaTime := now.Sub(lastTime).Seconds()
+	deltaX := targetX - lastX
+	deltaY := targetY - lastY
+	distance := math.Sqrt(
+		deltaX*deltaX +
+			deltaY*deltaY,
+	)
 
-	distance := math.Sqrt(dx*dx + dy*dy)
-	const BaseSpeed = 4.0
-	const Tolerance = 1.15
-	maxAllowedDistance := (BaseSpeed * dt) * Tolerance
+	const (
+		baseSpeed    = 4.0
+		tolerance    = 1.15
+		maxLagBuffer = 1.5
+	)
 
-	if distance > 0.01 && dt > 0.0 {
-		const MaxLagBuffer = 1.5
-		if distance > maxAllowedDistance+MaxLagBuffer {
-			slog.Warn("Speedhack check rejected movement", "player", playerID, "distance", distance, "max_allowed", maxAllowedDistance+MaxLagBuffer)
-			return false, state.LastX, state.LastY, state.LastZ
-		}
+	maxAllowedDistance :=
+		baseSpeed * deltaTime * tolerance
+
+	if distance > 0.01 &&
+		deltaTime > 0 &&
+		distance > maxAllowedDistance+maxLagBuffer {
+		slog.Warn(
+			"Speedhack check rejected movement",
+			"player",
+			playerID,
+			"distance",
+			distance,
+			"max_allowed",
+			maxAllowedDistance+maxLagBuffer,
+		)
+
+		return reject()
 	}
 
-	// 3. Atualizar Estado VÃ¡lido, Metadados de Continente e Ãndices Espaciais
 	ms.mu.Lock()
+
+	state, exists = ms.playerStates[playerID]
+	if !exists {
+		ms.mu.Unlock()
+		return false, 0, 0, 0
+	}
+
 	state.LastX = targetX
 	state.LastY = targetY
 	state.LastZ = targetZ
 	state.LastTime = now
 	state.Sequence = seq
-	state.NextAllowedMoveTime = now.Add(250 * time.Millisecond)
+	state.NextAllowedMoveTime = now.Add(
+		250 * time.Millisecond,
+	)
 
-	// Atualiza metadados do continente no player state
 	if targetRegion != nil {
-		state.CurrentContinent = targetRegion.ContinentName
-		state.CurrentRegionID = targetRegion.RegionID
+		state.CurrentContinent =
+			targetRegion.ContinentName
+		state.CurrentRegionID =
+			targetRegion.RegionID
 	} else {
 		state.CurrentContinent = "Main Continent"
 		state.CurrentRegionID = "main_continent"
 	}
+
 	ms.mu.Unlock()
 
-	// Sincroniza a nova posiÃ§Ã£o no SpatialIndex
-	ms.spatialIndex.UpdateEntityPosition(playerID, targetX, targetY, targetZ)
+	ms.spatialIndex.UpdateEntityPosition(
+		playerID,
+		targetX,
+		targetY,
+		targetZ,
+	)
 
-	// Dispara o recÃ¡lculo e transmissÃ£o de AOI de visibilidade (Spawn / Despawn de vizinhos)
-	ms.aoiManager.UpdatePlayerAOI(playerID, targetX, targetY, targetZ)
+	ms.aoiManager.UpdatePlayerAOI(
+		playerID,
+		targetX,
+		targetY,
+		targetZ,
+	)
 
 	return true, targetX, targetY, targetZ
 }
