@@ -166,8 +166,47 @@ func TestCanonicalWorldSpaceManifests(t *testing.T) {
 			if manifest.MinFloor != 0 || manifest.MaxFloor != 15 {
 				t.Errorf("floor range: got %d-%d, want 0-15", manifest.MinFloor, manifest.MaxFloor)
 			}
-			if len(manifest.Chunks) != 0 {
-				t.Errorf("chunks array should be empty, but has length %d", len(manifest.Chunks))
+			wantChunkCount := 0
+			if expected.ID == WorldSpaceMainContinent {
+				wantChunkCount = 1
+			}
+
+			if len(manifest.Chunks) != wantChunkCount {
+				t.Fatalf(
+					"chunks array length = %d, want %d",
+					len(manifest.Chunks),
+					wantChunkCount,
+				)
+			}
+
+			if expected.ID == WorldSpaceMainContinent {
+				reference := manifest.Chunks[0]
+
+				if reference.ChunkX != 3 ||
+					reference.ChunkY != 3 ||
+					reference.Z != 0 {
+					t.Errorf(
+						"bootstrap chunk coordinate = (%d,%d,%d), want (3,3,0)",
+						reference.ChunkX,
+						reference.ChunkY,
+						reference.Z,
+					)
+				}
+
+				if reference.File != "chunks/main_continent/3_3_0.json" {
+					t.Errorf(
+						"bootstrap chunk file = %q, want %q",
+						reference.File,
+						"chunks/main_continent/3_3_0.json",
+					)
+				}
+
+				if reference.ContentHash != "sha256:81062edbfc2797a9b6f33e20381a2edf1169b56ef189add13992ed97c253bdea" {
+					t.Errorf(
+						"bootstrap chunk hash = %q, want canonical hash",
+						reference.ContentHash,
+					)
+				}
 			}
 		})
 	}
@@ -182,7 +221,51 @@ func TestNoExtraManifests(t *testing.T) {
 		t.Fatalf("failed to read world_spaces directory: %v", err)
 	}
 
-	if len(entries) != 7 {
-		t.Errorf("expected exactly 7 manifest files in world_spaces, but found %d", len(entries))
+	expectedManifestFiles := map[string]struct{}{
+		"main_continent.json":    {},
+		"fire_continent.json":    {},
+		"ice_continent.json":     {},
+		"holy_continent.json":    {},
+		"shadow_continent.json":  {},
+		"nature_continent.json":  {},
+		"abyssia_continent.json": {},
+	}
+
+	foundChunksDirectory := false
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			if entry.Name() == "chunks" {
+				foundChunksDirectory = true
+				continue
+			}
+
+			t.Errorf(
+				"unexpected directory in world_spaces: %q",
+				entry.Name(),
+			)
+			continue
+		}
+
+		if _, expected := expectedManifestFiles[entry.Name()]; !expected {
+			t.Errorf(
+				"unexpected file in world_spaces: %q",
+				entry.Name(),
+			)
+			continue
+		}
+
+		delete(expectedManifestFiles, entry.Name())
+	}
+
+	if len(expectedManifestFiles) != 0 {
+		t.Errorf(
+			"missing canonical world-space manifests: %v",
+			expectedManifestFiles,
+		)
+	}
+
+	if !foundChunksDirectory {
+		t.Error("canonical chunks directory was not found")
 	}
 }

@@ -230,12 +230,48 @@ func TestLoadManifestSnapshotCanonical(t *testing.T) {
 			)
 		}
 
-		if len(worldSpace.Chunks) != 0 {
+		wantChunkCount := 0
+		if worldSpaceID == WorldSpaceMainContinent {
+			wantChunkCount = 1
+		}
+
+		if len(worldSpace.Chunks) != wantChunkCount {
 			t.Fatalf(
-				"%q has %d chunk references, want 0",
+				"%q has %d chunk references, want %d",
 				worldSpaceID,
 				len(worldSpace.Chunks),
+				wantChunkCount,
 			)
+		}
+
+		if worldSpaceID == WorldSpaceMainContinent {
+			reference := worldSpace.Chunks[0]
+
+			if reference.ChunkX != 3 ||
+				reference.ChunkY != 3 ||
+				reference.Z != 0 {
+				t.Fatalf(
+					"bootstrap chunk coordinate = (%d,%d,%d), want (3,3,0)",
+					reference.ChunkX,
+					reference.ChunkY,
+					reference.Z,
+				)
+			}
+
+			if reference.File != "chunks/main_continent/3_3_0.json" {
+				t.Fatalf(
+					"bootstrap chunk file = %q, want %q",
+					reference.File,
+					"chunks/main_continent/3_3_0.json",
+				)
+			}
+
+			if reference.ContentHash != "sha256:81062edbfc2797a9b6f33e20381a2edf1169b56ef189add13992ed97c253bdea" {
+				t.Fatalf(
+					"bootstrap chunk hash = %q, want canonical hash",
+					reference.ContentHash,
+				)
+			}
 		}
 	}
 }

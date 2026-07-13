@@ -10,5 +10,13 @@
   "chunk_size": 32,
   "min_floor": 0,
   "max_floor": 15,
-  "chunks": []
+  "chunks": [
+    {
+      "chunk_x": 3,
+      "chunk_y": 3,
+      "z": 0,
+      "file": "chunks/main_continent/3_3_0.json",
+      "content_hash": "sha256:81062edbfc2797a9b6f33e20381a2edf1169b56ef189add13992ed97c253bdea"
+    }
+  ]
 }

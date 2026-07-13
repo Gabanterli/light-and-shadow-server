@@ -252,12 +252,141 @@ func TestInitializeWorldMapProviderProductionRejectsMissingFile(
 	}
 }
 
-func TestInitializeWorldMapProviderRejectsCanonicalEmptyWorld(
+func TestInitializeWorldMapProviderAcceptsCanonicalPublishedWorld(
 	t *testing.T,
 ) {
 	provider, err := initializeWorldMapProvider(
 		worldmap.ModeProduction,
 		canonicalManifestPathForGatewayBootstrapTest(t),
+	)
+	if err != nil {
+		t.Fatalf(
+			"initialize canonical production world map: %v",
+			err,
+		)
+	}
+
+	if provider == nil {
+		t.Fatal("canonical production provider is nil")
+	}
+
+	if provider.Mode() != worldmap.ModeProduction {
+		t.Fatalf(
+			"provider Mode() = %q, want %q",
+			provider.Mode(),
+			worldmap.ModeProduction,
+		)
+	}
+
+	productionProvider, ok :=
+		provider.(*worldmap.ProductionProvider)
+	if !ok {
+		t.Fatalf(
+			"provider type = %T, want *worldmap.ProductionProvider",
+			provider,
+		)
+	}
+
+	references, err := productionProvider.ChunkReferences(
+		worldmap.WorldSpaceMainContinent,
+	)
+	if err != nil {
+		t.Fatalf(
+			"main continent ChunkReferences failed: %v",
+			err,
+		)
+	}
+
+	if len(references) != 1 {
+		t.Fatalf(
+			"main continent reference count = %d, want 1",
+			len(references),
+		)
+	}
+
+	reference := references[0]
+
+	if reference.ChunkX != 3 ||
+		reference.ChunkY != 3 ||
+		reference.Z != 0 {
+		t.Fatalf(
+			"canonical chunk coordinate = (%d,%d,%d), want (3,3,0)",
+			reference.ChunkX,
+			reference.ChunkY,
+			reference.Z,
+		)
+	}
+
+	if reference.File != "chunks/main_continent/3_3_0.json" {
+		t.Fatalf(
+			"canonical chunk file = %q, want %q",
+			reference.File,
+			"chunks/main_continent/3_3_0.json",
+		)
+	}
+
+	if reference.ContentHash !=
+		"sha256:81062edbfc2797a9b6f33e20381a2edf1169b56ef189add13992ed97c253bdea" {
+		t.Fatalf(
+			"canonical chunk hash = %q, want canonical hash",
+			reference.ContentHash,
+		)
+	}
+}
+
+func TestInitializeWorldMapProviderRejectsWorldWithoutPublishedChunks(
+	t *testing.T,
+) {
+	canonicalSnapshot, err := worldmap.LoadManifestSnapshot(
+		canonicalManifestPathForGatewayBootstrapTest(t),
+	)
+	if err != nil {
+		t.Fatalf(
+			"load canonical snapshot for empty fixture: %v",
+			err,
+		)
+	}
+
+	rootManifest := canonicalSnapshot.RootManifest()
+	fixtureRoot := t.TempDir()
+
+	for _, reference := range rootManifest.WorldSpaces {
+		manifest, found := canonicalSnapshot.WorldSpace(
+			reference.WorldSpaceID,
+		)
+		if !found {
+			t.Fatalf(
+				"canonical world space %q not found",
+				reference.WorldSpaceID,
+			)
+		}
+
+		manifest.Chunks = []worldmap.ChunkReference{}
+
+		writeJSONForGatewayBootstrapTest(
+			t,
+			filepath.Join(
+				fixtureRoot,
+				filepath.FromSlash(reference.ManifestFile),
+			),
+			manifest,
+		)
+	}
+
+	rootManifestPath := filepath.Join(
+		fixtureRoot,
+		"world_manifest.json",
+	)
+
+	writeJSONForGatewayBootstrapTest(
+		t,
+		rootManifestPath,
+		rootManifest,
+	)
+
+	provider, err := initializeWorldMapProvider(
+		worldmap.ModeProduction,
+		rootManifestPath,
 	)
 
 	if provider != nil {
@@ -277,7 +406,6 @@ func TestInitializeWorldMapProviderRejectsCanonicalEmptyWorld(
 		)
 	}
 }
-
 func TestInitializeWorldMapProviderProductionReadyFixture(
 	t *testing.T,
 ) {

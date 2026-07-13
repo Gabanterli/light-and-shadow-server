@@ -339,7 +339,7 @@ func TestProductionProviderMissingWorldSpaceErrors(
 	})
 }
 
-func TestProductionProviderCanonicalEmptyChunks(
+func TestProductionProviderCanonicalChunkReferences(
 	t *testing.T,
 ) {
 	snapshot :=
@@ -347,6 +347,12 @@ func TestProductionProviderCanonicalEmptyChunks(
 
 	provider :=
 		newProductionProviderForTest(t, snapshot)
+
+	bootstrapCoordinate := ChunkCoordinate{
+		ChunkX: 3,
+		ChunkY: 3,
+		Z:      0,
+	}
 
 	for _, worldSpaceID := range provider.WorldSpaceIDs() {
 		t.Run(string(worldSpaceID), func(t *testing.T) {
@@ -365,14 +371,69 @@ func TestProductionProviderCanonicalEmptyChunks(
 				)
 			}
 
-			if len(references) != 0 {
+			wantReferenceCount := 0
+			if worldSpaceID == WorldSpaceMainContinent {
+				wantReferenceCount = 1
+			}
+
+			if len(references) != wantReferenceCount {
 				t.Fatalf(
-					"reference count = %d, want 0",
+					"reference count = %d, want %d",
 					len(references),
+					wantReferenceCount,
 				)
 			}
 
-			coordinate := ChunkCoordinate{
+			if worldSpaceID == WorldSpaceMainContinent {
+				reference := references[0]
+
+				if reference.ChunkX != 3 ||
+					reference.ChunkY != 3 ||
+					reference.Z != 0 {
+					t.Fatalf(
+						"bootstrap coordinate = (%d,%d,%d), want (3,3,0)",
+						reference.ChunkX,
+						reference.ChunkY,
+						reference.Z,
+					)
+				}
+
+				if reference.File != "chunks/main_continent/3_3_0.json" {
+					t.Fatalf(
+						"bootstrap file = %q, want %q",
+						reference.File,
+						"chunks/main_continent/3_3_0.json",
+					)
+				}
+
+				if reference.ContentHash != "sha256:81062edbfc2797a9b6f33e20381a2edf1169b56ef189add13992ed97c253bdea" {
+					t.Fatalf(
+						"bootstrap hash = %q, want canonical hash",
+						reference.ContentHash,
+					)
+				}
+
+				lookupReference, err := provider.ChunkReference(
+					worldSpaceID,
+					bootstrapCoordinate,
+				)
+				if err != nil {
+					t.Fatalf(
+						"bootstrap ChunkReference failed: %v",
+						err,
+					)
+				}
+
+				if lookupReference != reference {
+					t.Fatalf(
+						"bootstrap lookup = %+v, want %+v",
+						lookupReference,
+						reference,
+					)
+				}
+			}
+
+			missingCoordinate := ChunkCoordinate{
 				ChunkX: 0,
 				ChunkY: 0,
 				Z:      0,
@@ -380,7 +441,7 @@ func TestProductionProviderCanonicalEmptyChunks(
 
 			_, err = provider.ChunkReference(
 				worldSpaceID,
-				coordinate,
+				missingCoordinate,
 			)
 
 			var target *ChunkReferenceNotFoundError
@@ -393,7 +454,6 @@ func TestProductionProviderCanonicalEmptyChunks(
 		})
 	}
 }
-
 func TestProductionProviderPublishedChunks(t *testing.T) {
 	snapshot :=
 		snapshotWithPublishedChunksForProviderTest(t)
