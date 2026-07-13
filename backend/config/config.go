@@ -6,16 +6,17 @@ import (
 )
 
 type Config struct {
-	GatewayPort   int
-	AuthPort      int
-	WorldPort     int
-	PostgresDSN   string
-	RedisAddr     string
-	RedisPassword string
-	RedisDB       int
-	LogLevel      string
-	EnableDevGM   bool
-	WorldMapMode  string
+	GatewayPort          int
+	AuthPort             int
+	WorldPort            int
+	PostgresDSN          string
+	RedisAddr            string
+	RedisPassword        string
+	RedisDB              int
+	LogLevel             string
+	EnableDevGM          bool
+	WorldMapMode         string
+	WorldMapManifestPath string
 }
 
 func LoadConfig() *Config {
@@ -26,17 +27,22 @@ func LoadConfig() *Config {
 	enableDevGM, _ := strconv.ParseBool(getEnv("LS_ENABLE_DEV_GM", "false"))
 
 	worldMapMode := getEnv("LS_WORLD_MAP_MODE", "debug")
+	worldMapManifestPath := getEnv(
+		"LS_WORLD_MAP_MANIFEST_PATH",
+		"config/worldmap/world_manifest.json",
+	)
 	return &Config{
-		GatewayPort:   gatewayPort,
-		AuthPort:      authPort,
-		WorldPort:     worldPort,
-		PostgresDSN:   getEnv("POSTGRES_DSN", "postgres://postgres:postgres@localhost:5432/light_and_shadow?sslmode=disable"),
-		RedisAddr:     getEnv("REDIS_ADDR", "localhost:6379"),
-		RedisPassword: getEnv("REDIS_PASSWORD", ""),
-		RedisDB:       redisDB,
-		LogLevel:      getEnv("LOG_LEVEL", "info"),
-		EnableDevGM:   enableDevGM,
-		WorldMapMode:  worldMapMode,
+		GatewayPort:          gatewayPort,
+		AuthPort:             authPort,
+		WorldPort:            worldPort,
+		PostgresDSN:          getEnv("POSTGRES_DSN", "postgres://postgres:postgres@localhost:5432/light_and_shadow?sslmode=disable"),
+		RedisAddr:            getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPassword:        getEnv("REDIS_PASSWORD", ""),
+		RedisDB:              redisDB,
+		LogLevel:             getEnv("LOG_LEVEL", "info"),
+		EnableDevGM:          enableDevGM,
+		WorldMapMode:         worldMapMode,
+		WorldMapManifestPath: worldMapManifestPath,
 	}
 }
 

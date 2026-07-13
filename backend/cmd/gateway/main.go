@@ -190,26 +190,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	var mapProvider worldmap.Provider
-
-	switch worldMapMode {
-	case worldmap.ModeDebug:
-		mapProvider = worldmap.NewDebugProvider()
-
-	case worldmap.ModeProduction:
+	mapProvider, err := initializeWorldMapProvider(
+		worldMapMode,
+		cfg.WorldMapManifestPath,
+	)
+	if err != nil {
 		slog.Error(
-			"Production world map mode selected, but production provider is not implemented",
-		)
-		os.Exit(1)
-
-	default:
-		slog.Error(
-			"Unsupported world map mode; refusing to start Gateway",
+			"World map provider initialization failed; refusing to start Gateway",
 			"mode", worldMapMode,
+			"manifest_path", cfg.WorldMapManifestPath,
+			"error", err,
 		)
 		os.Exit(1)
 	}
-
 	slog.Info(
 		"World map provider initialized",
 		"mode", mapProvider.Mode(),
