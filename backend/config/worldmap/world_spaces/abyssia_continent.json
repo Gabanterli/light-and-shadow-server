@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "world_id": "light_and_shadow_world",
+  "world_version": 1,
+  "world_space_id": "abyssia_continent",
+  "display_name": "Abyssia",
+  "geographic_position": "extreme_north",
+  "width_tiles": 16000,
+  "height_tiles": 16000,
+  "chunk_size": 32,
+  "min_floor": 0,
+  "max_floor": 15,
+  "chunks": []
+}

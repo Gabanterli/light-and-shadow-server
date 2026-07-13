@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "world_id": "light_and_shadow_world",
+  "world_version": 1,
+  "world_space_id": "holy_continent",
+  "display_name": "Holy Continent",
+  "geographic_position": "east",
+  "width_tiles": 12000,
+  "height_tiles": 12000,
+  "chunk_size": 32,
+  "min_floor": 0,
+  "max_floor": 15,
+  "chunks": []
+}

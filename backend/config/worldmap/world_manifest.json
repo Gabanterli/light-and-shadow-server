@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "world_id": "light_and_shadow_world",
+  "world_version": 1,
+  "world_spaces": [
+    {
+      "world_space_id": "main_continent",
+      "display_name": "Main Continent",
+      "geographic_position": "central",
+      "manifest_file": "world_spaces/main_continent.json"
+    },
+    {
+      "world_space_id": "fire_continent",
+      "display_name": "Fire Continent",
+      "geographic_position": "south",
+      "manifest_file": "world_spaces/fire_continent.json"
+    },
+    {
+      "world_space_id": "ice_continent",
+      "display_name": "Ice Continent",
+      "geographic_position": "north",
+      "manifest_file": "world_spaces/ice_continent.json"
+    },
+    {
+      "world_space_id": "holy_continent",
+      "display_name": "Holy Continent",
+      "geographic_position": "east",
+      "manifest_file": "world_spaces/holy_continent.json"
+    },
+    {
+      "world_space_id": "shadow_continent",
+      "display_name": "Shadow Continent",
+      "geographic_position": "west",
+      "manifest_file": "world_spaces/shadow_continent.json"
+    },
+    {
+      "world_space_id": "nature_continent",
+      "display_name": "Nature Continent",
+      "geographic_position": "intermediate",
+      "manifest_file": "world_spaces/nature_continent.json"
+    },
+    {
+      "world_space_id": "abyssia_continent",
+      "display_name": "Abyssia",
+      "geographic_position": "extreme_north",
+      "manifest_file": "world_spaces/abyssia_continent.json"
+    }
+  ]
+}
