@@ -54,6 +54,7 @@ type GatewayServer struct {
 	wg                           sync.WaitGroup
 	worldMapProvider             worldmap.Provider
 	worldMapStaticCollisionIndex *worldmap.StaticCollisionIndex
+	authoritativeSpawnResolver   *authoritativeSpawnPlacementResolver
 	spatialIndex                 *movement.SpatialIndex
 	chunkManager                 *movement.ChunkManager
 	aoiManager                   *movement.AOIManager
@@ -236,6 +237,29 @@ func main() {
 
 	// Inicializa e configura Sistemas de Movimento e AOI (Sprint 2 Task 4)
 	spatialIndex := movement.NewSpatialIndex()
+
+	authoritativeSpawnResolver, err :=
+		newAuthoritativeSpawnPlacementResolver(
+			staticCollisionIndex,
+			newSpatialIndexPlayerLoginSpawnDynamicOccupancy(
+				spatialIndex,
+			),
+			authoritativeSpawnPosition{
+				WorldSpaceID: worldmap.WorldSpaceMainContinent,
+				X:            100,
+				Y:            100,
+				Z:            0,
+			},
+			maxAuthoritativeSpawnFallbackSearchRadius,
+		)
+	if err != nil {
+		slog.Error(
+			"Authoritative login spawn resolver initialization failed; refusing to start Gateway",
+			"error", err,
+		)
+		os.Exit(1)
+	}
+
 	chunkManager := movement.NewChunkManager()
 	aoiManager := movement.NewAOIManager(spatialIndex)
 	staticStepValidator := newWorldMapStaticStepValidator(
@@ -300,6 +324,7 @@ func main() {
 		clients:                      make(map[net.Conn]bool),
 		worldMapProvider:             mapProvider,
 		worldMapStaticCollisionIndex: staticCollisionIndex,
+		authoritativeSpawnResolver:   authoritativeSpawnResolver,
 		spatialIndex:                 spatialIndex,
 		chunkManager:                 chunkManager,
 		aoiManager:                   aoiManager,
@@ -883,7 +908,58 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				break
 			}
 
-			playerID = characterID // Ativa o jogador somente após load persistente bem-sucedido
+			loginSpawn, err :=
+				s.prepareAuthoritativeLoginSpawn(
+					authoritativeSpawnPlacementRequest{
+						PlayerID:     characterID,
+						WorldSpaceID: worldmap.WorldSpaceMainContinent,
+						PersistedX:   savedX,
+						PersistedY:   savedY,
+						PersistedZ:   savedZ,
+					},
+					version,
+				)
+			if err != nil {
+				slog.Error(
+					"Authoritative character login spawn preparation failed",
+					"character", characterID,
+					"account_id", authenticatedAccountID,
+					"error", err,
+				)
+
+				response := &protocol.Packet{
+					Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
+					Sequence: packet.Sequence,
+					Payload: protocol.EncodeCharacterSelectResponse(
+						false,
+						"",
+						"character_spawn_failed",
+					),
+				}
+				conn.Write(response.Serialize())
+				break
+			}
+
+			resolvedX := loginSpawn.Placement.Position.X
+			resolvedY := loginSpawn.Placement.Position.Y
+			resolvedZ := float64(loginSpawn.Placement.Position.Z)
+			version = loginSpawn.Version
+
+			slog.Info(
+				"Authoritative character login spawn prepared",
+				"character", characterID,
+				"world_space_id", loginSpawn.Placement.Position.WorldSpaceID,
+				"x", resolvedX,
+				"y", resolvedY,
+				"z", resolvedZ,
+				"source", loginSpawn.Placement.Source,
+				"relocation_reason", loginSpawn.Placement.RelocationReason,
+				"relocated", loginSpawn.Placement.Relocated,
+				"claim_attempts", loginSpawn.ClaimAttempts,
+				"version", version,
+			)
+
+			playerID = characterID // Ativa somente após resolução, claim e persistência autoritativos
 
 			// Inicializa inventÃ¡rio in-memory do jogador
 			playerInv := inventory.NewPlayerInventory(playerID)
@@ -905,9 +981,9 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			s.movementSystem.InitPlayerStateInWorldSpace(
 				playerID,
 				string(worldmap.WorldSpaceMainContinent),
-				savedX,
-				savedY,
-				int(savedZ),
+				resolvedX,
+				resolvedY,
+				int(resolvedZ),
 			)
 
 			// Carrega e sincroniza estado de quests e diÃ¡logos de NPCs (Sprint 3 Task 3)
@@ -921,7 +997,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			s.socialManager.OnPlayerLogin(playerID)
 
 			// Registra o jogador no CombatManager (com seus bÃ´nus de atributos)
-			s.combatManager.RegisterEntity(stats, savedX, savedY)
+			s.combatManager.RegisterEntity(stats, resolvedX, resolvedY)
 
 			// Registra o NPC Orc Elite inimigo para simular combate PvE
 			def, _ := s.alphaOrcEliteSpawnDefinition()
@@ -946,7 +1022,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				// HP temporário de validação Alpha para testar cadência, HUD e magias target.
 				Health:    alphaOrcEliteCombatTestHealth,
 				MaxHealth: alphaOrcEliteCombatTestHealth,
-			}, savedX+def.OffsetX, savedY+def.OffsetY)
+			}, resolvedX+def.OffsetX, resolvedY+def.OffsetY)
 
 			if targetStats, exists := s.combatManager.GetEntityStats(def.TargetID); exists && targetStats != nil {
 				slog.Info(
@@ -954,13 +1030,13 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 					"target", targetStats.ID,
 					"health", targetStats.Health,
 					"max_health", targetStats.MaxHealth,
-					"x", savedX+1.0,
-					"y", savedY,
+					"x", resolvedX+1.0,
+					"y", resolvedY,
 				)
 			}
 
 			if s.creatureSpawnManager != nil {
-				spawnState, err := s.creatureSpawnManager.RegisterSpawn(def.SpawnID, def.CreatureID, savedX+def.OffsetX, savedY+def.OffsetY, int(savedZ)+def.OffsetZ, def.Radius)
+				spawnState, err := s.creatureSpawnManager.RegisterSpawn(def.SpawnID, def.CreatureID, resolvedX+def.OffsetX, resolvedY+def.OffsetY, int(resolvedZ)+def.OffsetZ, def.Radius)
 				if err != nil {
 					slog.Warn("Failed to register Orc Elite creature spawn state", "error", err)
 				} else {
@@ -971,9 +1047,9 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			// B3-C: Register creature as a movement blocker in the spatial index.
 			s.spatialIndex.RegisterEntity(&movement.Entity{
 				ID:             def.TargetID,
-				X:              savedX + def.OffsetX,
-				Y:              savedY + def.OffsetY,
-				Z:              int(savedZ) + def.OffsetZ,
+				X:              resolvedX + def.OffsetX,
+				Y:              resolvedY + def.OffsetY,
+				Z:              int(resolvedZ) + def.OffsetZ,
 				Type:           "creature",
 				BlocksMovement: true, // Orc Elite is a blocking creature.
 			})
@@ -992,9 +1068,9 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				Z        int     `json:"z"`
 			}{
 				PlayerID: playerID,
-				X:        savedX,
-				Y:        savedY,
-				Z:        int(savedZ),
+				X:        resolvedX,
+				Y:        resolvedY,
+				Z:        int(resolvedZ),
 			})
 			alphaRole, _, alphaEffectiveDevGM := isCharacterAccountGM(s.persistenceMgr, s.config, playerID)
 			alphaCapabilitiesPacket := &protocol.Packet{
@@ -1013,14 +1089,14 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				Payload: initialPositionPayload,
 			}
 			conn.Write(initialPositionPacket.Serialize())
-			slog.Info("Initial player position update sent to client", "playerID", playerID, "x", savedX, "y", savedY, "z", savedZ)
+			slog.Info("Initial player position update sent to client", "playerID", playerID, "x", resolvedX, "y", resolvedY, "z", resolvedZ)
 
 			// Envia sincronizaÃ§Ã£o binÃ¡ria inicial de inventÃ¡rio e atributos recalculados
 			s.sendInventorySync(conn, playerID, stats, playerInv)
 			s.sendAlphaOrcEliteTargetIdentitySync(conn, playerID)
 
 			// Streaming inicial de chunks (janela deslizante 3x3 ao redor de sua Spawn Zone salva)
-			chunks := s.chunkManager.GetSurroundingChunks(savedX, savedY)
+			chunks := s.chunkManager.GetSurroundingChunks(resolvedX, resolvedY)
 			for _, ch := range chunks {
 				chunkPacket := &protocol.Packet{
 					Opcode:  protocol.SC_CHUNK_DATA,
