@@ -44,44 +44,45 @@ import (
 )
 
 type GatewayServer struct {
-	config                   *config.Config
-	tcpListener              net.Listener
-	httpServer               *http.Server
-	pgPool                   *db.PostgresPool
-	redisClient              *db.RedisClient
-	clientsMu                sync.Mutex
-	clients                  map[net.Conn]bool
-	wg                       sync.WaitGroup
-	worldMapProvider         worldmap.Provider
-	spatialIndex             *movement.SpatialIndex
-	chunkManager             *movement.ChunkManager
-	aoiManager               *movement.AOIManager
-	movementSystem           *movement.MovementSystem
-	combatManager            *combat.CombatManager
-	persistenceMgr           *persistence.PersistenceManager
-	characterCreationService *charactercreation.Service
-	pveManager               *pve.PveManager
-	creatureSpawnManager     *pve.CreatureSpawnManager
-	questManager             *quest.QuestManager
-	npcManager               *npc.NPCManager
-	socialManager            *social.SocialManager
-	economyManager           *economy.EconomyManager
-	professionsManager       *professions.ProfessionsManager
-	dungeonManager           *dungeon.DungeonManager
-	progressionManager       *progression.ProgressionManager
-	blessingManager          *blessing.BlessingManager
-	respawnManager           *lifecycle.RespawnManager
-	deathPenaltyManager      *lifecycle.DeathPenaltyManager
-	housingManager           *housing.HousingManager
-	pvpManager               *pvp.PvPManager
-	activeGatheringsMu       sync.Mutex
-	activeGatherings         map[string]string // playerID -> nodeID
-	inventoriesMu            sync.RWMutex
-	inventories              map[string]*inventory.PlayerInventory
-	stopAutosave             chan struct{}
-	stopRespawnScheduler     chan struct{}
-	alphaCreatureRewards     map[string]alphaCreatureRewardProfileDefinition
-	alphaCreatureSpawns      map[string]alphaCreatureSpawnDefinition
+	config                       *config.Config
+	tcpListener                  net.Listener
+	httpServer                   *http.Server
+	pgPool                       *db.PostgresPool
+	redisClient                  *db.RedisClient
+	clientsMu                    sync.Mutex
+	clients                      map[net.Conn]bool
+	wg                           sync.WaitGroup
+	worldMapProvider             worldmap.Provider
+	worldMapStaticCollisionIndex *worldmap.StaticCollisionIndex
+	spatialIndex                 *movement.SpatialIndex
+	chunkManager                 *movement.ChunkManager
+	aoiManager                   *movement.AOIManager
+	movementSystem               *movement.MovementSystem
+	combatManager                *combat.CombatManager
+	persistenceMgr               *persistence.PersistenceManager
+	characterCreationService     *charactercreation.Service
+	pveManager                   *pve.PveManager
+	creatureSpawnManager         *pve.CreatureSpawnManager
+	questManager                 *quest.QuestManager
+	npcManager                   *npc.NPCManager
+	socialManager                *social.SocialManager
+	economyManager               *economy.EconomyManager
+	professionsManager           *professions.ProfessionsManager
+	dungeonManager               *dungeon.DungeonManager
+	progressionManager           *progression.ProgressionManager
+	blessingManager              *blessing.BlessingManager
+	respawnManager               *lifecycle.RespawnManager
+	deathPenaltyManager          *lifecycle.DeathPenaltyManager
+	housingManager               *housing.HousingManager
+	pvpManager                   *pvp.PvPManager
+	activeGatheringsMu           sync.Mutex
+	activeGatherings             map[string]string // playerID -> nodeID
+	inventoriesMu                sync.RWMutex
+	inventories                  map[string]*inventory.PlayerInventory
+	stopAutosave                 chan struct{}
+	stopRespawnScheduler         chan struct{}
+	alphaCreatureRewards         map[string]alphaCreatureRewardProfileDefinition
+	alphaCreatureSpawns          map[string]alphaCreatureSpawnDefinition
 	// A38: AI Loop state
 	stopAlphaAILoop                      chan struct{}
 	alphaCreatureAIThreatMu              sync.Mutex
@@ -190,24 +191,35 @@ func main() {
 		os.Exit(1)
 	}
 
-	mapProvider, err := initializeWorldMapProvider(
+	mapRuntime, err := initializeWorldMapRuntime(
 		worldMapMode,
 		cfg.WorldMapManifestPath,
+		cfg.WorldMapInitialResidencyPath,
 	)
+
 	if err != nil {
 		slog.Error(
-			"World map provider initialization failed; refusing to start Gateway",
+			"World map runtime initialization failed; refusing to start Gateway",
 			"mode", worldMapMode,
 			"manifest_path", cfg.WorldMapManifestPath,
+			"initial_residency_path",
+			cfg.WorldMapInitialResidencyPath,
 			"error", err,
 		)
 		os.Exit(1)
 	}
+	mapProvider := mapRuntime.provider
+	staticCollisionIndex := mapRuntime.staticCollisionIndex
+
 	slog.Info(
-		"World map provider initialized",
+		"World map runtime initialized",
 		"mode", mapProvider.Mode(),
 		"world_id", mapProvider.WorldID(),
 		"version", mapProvider.Version(),
+		"resident_chunk_count",
+		mapRuntime.residentChunkCount,
+		"static_collision_loaded",
+		staticCollisionIndex != nil,
 	)
 	// Inicialização de bancos de dados (tolerante a fallbacks locais)
 	pgPool, err := db.NewPostgresPool(cfg.PostgresDSN)
@@ -273,26 +285,27 @@ func main() {
 
 	// Inicializa e configura Gateway
 	server := &GatewayServer{
-		config:                   cfg,
-		pgPool:                   pgPool,
-		redisClient:              redisClient,
-		clients:                  make(map[net.Conn]bool),
-		worldMapProvider:         mapProvider,
-		spatialIndex:             spatialIndex,
-		chunkManager:             chunkManager,
-		aoiManager:               aoiManager,
-		movementSystem:           movementSystem,
-		combatManager:            combatManager,
-		persistenceMgr:           persistenceMgr,
-		characterCreationService: characterCreationService,
-		creatureSpawnManager:     creatureSpawnManager,
-		inventories:              make(map[string]*inventory.PlayerInventory),
-		activeGatherings:         make(map[string]string),
-		stopAutosave:             make(chan struct{}),
-		alphaCreatureRewards:     alphaCreatureRewards,
-		alphaCreatureSpawns:      alphaCreatureSpawns,
-		stopRespawnScheduler:     make(chan struct{}),
-		stopAlphaAILoop:          make(chan struct{}),
+		config:                       cfg,
+		pgPool:                       pgPool,
+		redisClient:                  redisClient,
+		clients:                      make(map[net.Conn]bool),
+		worldMapProvider:             mapProvider,
+		worldMapStaticCollisionIndex: staticCollisionIndex,
+		spatialIndex:                 spatialIndex,
+		chunkManager:                 chunkManager,
+		aoiManager:                   aoiManager,
+		movementSystem:               movementSystem,
+		combatManager:                combatManager,
+		persistenceMgr:               persistenceMgr,
+		characterCreationService:     characterCreationService,
+		creatureSpawnManager:         creatureSpawnManager,
+		inventories:                  make(map[string]*inventory.PlayerInventory),
+		activeGatherings:             make(map[string]string),
+		stopAutosave:                 make(chan struct{}),
+		alphaCreatureRewards:         alphaCreatureRewards,
+		alphaCreatureSpawns:          alphaCreatureSpawns,
+		stopRespawnScheduler:         make(chan struct{}),
+		stopAlphaAILoop:              make(chan struct{}),
 	}
 
 	// Inicializa e configura PveManager (Sprint 3 Task 2)

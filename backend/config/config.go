@@ -6,17 +6,18 @@ import (
 )
 
 type Config struct {
-	GatewayPort          int
-	AuthPort             int
-	WorldPort            int
-	PostgresDSN          string
-	RedisAddr            string
-	RedisPassword        string
-	RedisDB              int
-	LogLevel             string
-	EnableDevGM          bool
-	WorldMapMode         string
-	WorldMapManifestPath string
+	GatewayPort                  int
+	AuthPort                     int
+	WorldPort                    int
+	PostgresDSN                  string
+	RedisAddr                    string
+	RedisPassword                string
+	RedisDB                      int
+	LogLevel                     string
+	EnableDevGM                  bool
+	WorldMapMode                 string
+	WorldMapManifestPath         string
+	WorldMapInitialResidencyPath string
 }
 
 func LoadConfig() *Config {
@@ -31,18 +32,23 @@ func LoadConfig() *Config {
 		"LS_WORLD_MAP_MANIFEST_PATH",
 		"config/worldmap/world_manifest.json",
 	)
+	worldMapInitialResidencyPath := getEnv(
+		"LS_WORLD_MAP_INITIAL_RESIDENCY_PATH",
+		"config/worldmap/initial_residency.json",
+	)
 	return &Config{
-		GatewayPort:          gatewayPort,
-		AuthPort:             authPort,
-		WorldPort:            worldPort,
-		PostgresDSN:          getEnv("POSTGRES_DSN", "postgres://postgres:postgres@localhost:5432/light_and_shadow?sslmode=disable"),
-		RedisAddr:            getEnv("REDIS_ADDR", "localhost:6379"),
-		RedisPassword:        getEnv("REDIS_PASSWORD", ""),
-		RedisDB:              redisDB,
-		LogLevel:             getEnv("LOG_LEVEL", "info"),
-		EnableDevGM:          enableDevGM,
-		WorldMapMode:         worldMapMode,
-		WorldMapManifestPath: worldMapManifestPath,
+		GatewayPort:                  gatewayPort,
+		AuthPort:                     authPort,
+		WorldPort:                    worldPort,
+		PostgresDSN:                  getEnv("POSTGRES_DSN", "postgres://postgres:postgres@localhost:5432/light_and_shadow?sslmode=disable"),
+		RedisAddr:                    getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPassword:                getEnv("REDIS_PASSWORD", ""),
+		RedisDB:                      redisDB,
+		LogLevel:                     getEnv("LOG_LEVEL", "info"),
+		EnableDevGM:                  enableDevGM,
+		WorldMapMode:                 worldMapMode,
+		WorldMapManifestPath:         worldMapManifestPath,
+		WorldMapInitialResidencyPath: worldMapInitialResidencyPath,
 	}
 }
 
