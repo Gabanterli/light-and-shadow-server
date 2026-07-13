@@ -450,12 +450,13 @@ func (ms *MovementSystem) InitPlayerStateInWorldSpace(
 	ms.mu.Unlock()
 
 	ms.spatialIndex.RegisterEntity(&Entity{
-		ID:   playerID,
-		Name: "Player_" + playerID,
-		X:    x,
-		Y:    y,
-		Z:    z,
-		Type: "player",
+		ID:             playerID,
+		Name:           "Player_" + playerID,
+		X:              x,
+		Y:              y,
+		Z:              z,
+		Type:           "player",
+		BlocksMovement: true,
 	})
 }
 
