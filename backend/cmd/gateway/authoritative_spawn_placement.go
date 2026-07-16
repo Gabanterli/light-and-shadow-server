@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -71,6 +72,32 @@ type authoritativeSpawnDynamicOccupancy interface {
 		x, y float64,
 		z int,
 	) bool
+}
+
+// isNilAuthoritativeSpawnDependency detects interfaces whose dynamic
+// value is a nil pointer, map, slice, function, channel, or interface.
+// Without this normalization, a typed nil pointer stored in an interface
+// compares non-nil and can route debug mode into production-only logic.
+func isNilAuthoritativeSpawnDependency(
+	dependency interface{},
+) bool {
+	if dependency == nil {
+		return true
+	}
+
+	value := reflect.ValueOf(dependency)
+
+	switch value.Kind() {
+	case reflect.Chan,
+		reflect.Func,
+		reflect.Interface,
+		reflect.Map,
+		reflect.Pointer,
+		reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
 }
 
 // spatialIndexSpawnDynamicOccupancy adapts the current SpatialIndex boundary.
@@ -223,6 +250,14 @@ func newAuthoritativeSpawnPlacementResolver(
 	fallback authoritativeSpawnPosition,
 	maxSearchRadius int,
 ) (*authoritativeSpawnPlacementResolver, error) {
+	if isNilAuthoritativeSpawnDependency(staticOccupancy) {
+		staticOccupancy = nil
+	}
+
+	if isNilAuthoritativeSpawnDependency(dynamicOccupancy) {
+		dynamicOccupancy = nil
+	}
+
 	if maxSearchRadius < 0 {
 		return nil, fmt.Errorf(
 			"authoritative spawn fallback search radius cannot be negative: %d",
