@@ -156,6 +156,30 @@ func main() {
 
 	slog.Info("Starting Light and Shadow Gateway Server...")
 
+	const itemCatalogPath = "config/items.json"
+	itemCatalog, rawItemsJSON, err := inventory.LoadItemCatalogSource(itemCatalogPath)
+	if err != nil {
+		slog.Error(
+			"Canonical item catalog loading failed; refusing to start Gateway",
+			"path", itemCatalogPath,
+			"error", err,
+		)
+		os.Exit(1)
+	}
+	if err := inventory.InstallDefaultItemCatalog(itemCatalog); err != nil {
+		slog.Error(
+			"Canonical item catalog installation failed; refusing to start Gateway",
+			"path", itemCatalogPath,
+			"error", err,
+		)
+		os.Exit(1)
+	}
+	slog.Info(
+		"Canonical item catalog loaded successfully",
+		"count", itemCatalog.Count(),
+		"path", itemCatalogPath,
+	)
+
 	// A33: Load Alpha Skills from config
 	alphaSkills, err := combat.LoadAlphaSkills("config/alpha_skills.json")
 	if err != nil {
@@ -416,15 +440,8 @@ func main() {
 	progressionManager := progression.NewProgressionManager(sqlDB, combatManager, server.inventories)
 	server.progressionManager = progressionManager
 
-	// Inicializa e configura EconomyManager (Sprint 3 Task 4)
-	var rawItemsJSON []byte
-	itemsPaths := []string{"backend/config/items.json", "config/items.json", "../config/items.json"}
-	for _, p := range itemsPaths {
-		if data, err := os.ReadFile(p); err == nil {
-			rawItemsJSON = data
-			break
-		}
-	}
+	// Inicializa e configura EconomyManager (Sprint 3 Task 4).
+	// Reuse the exact canonical source bytes loaded once during bootstrap.
 	server.economyManager = economy.NewEconomyManager(sqlDB, movementSystem, rawItemsJSON)
 
 	// Inicializa e configura ProfessionsManager (Sprint 4 Task 1)

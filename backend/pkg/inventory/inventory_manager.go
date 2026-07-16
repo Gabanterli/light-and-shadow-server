@@ -2,13 +2,10 @@ package inventory
 
 import (
 	"crypto/rand"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
 	"sync"
-	"time"
 
 	"github.com/light-and-shadow/backend/pkg/combat"
 )
@@ -31,77 +28,6 @@ const (
 	SlotAccessory   = 32
 	TotalSlots      = 33
 )
-
-// ItemDef define a estrutura estática de um item
-type ItemDef struct {
-	ID         string  `json:"ID"`
-	Name       string  `json:"Name"`
-	Type       string  `json:"Type"` // "weapon", "armor", "accessory", "consumable", "material"
-	Stackable  bool    `json:"Stackable"`
-	MaxStack   int     `json:"MaxStack"`
-	BaseDamage float64 `json:"BaseDamage"` // Para armas
-	BaseDef    float64 `json:"BaseDef"`    // Para armaduras
-	BaseRes    float64 `json:"BaseRes"`    // Para acessórios (Resistência adicional)
-	CritBonus  float64 `json:"CritBonus"`  // Para acessórios (CritChance adicional)
-	Tier       int     `json:"Tier"`       // Tier do item para restrições de nível (Sprint 3 Task 5)
-}
-
-// ItemDictionary e itemDictMu controlam a biblioteca autoritativa e mutável de itens de forma thread-safe (PATCH 5)
-var (
-	itemDictMu     sync.RWMutex
-	ItemDictionary = make(map[string]ItemDef)
-)
-
-// LoadItemDefinitions carrega de forma atômica e thread-safe a definição dos itens a partir do arquivo JSON (PATCH 5)
-func LoadItemDefinitions(filePath string) error {
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to read item definitions file: %w", err)
-	}
-
-	var itemsList []ItemDef
-	if err := json.Unmarshal(data, &itemsList); err != nil {
-		return fmt.Errorf("failed to unmarshal item definitions: %w", err)
-	}
-
-	newDict := make(map[string]ItemDef)
-	for _, item := range itemsList {
-		newDict[item.ID] = item
-	}
-
-	itemDictMu.Lock()
-	ItemDictionary = newDict
-	itemDictMu.Unlock()
-
-	slog.Info("Successfully loaded and parsed item definitions", "count", len(newDict), "path", filePath)
-	return nil
-}
-
-// SetupItemHotReload monitora o arquivo JSON em segundo plano para hot-reload sem reiniciar o servidor (PATCH 5)
-func SetupItemHotReload(filePath string) {
-	go func() {
-		lastMod := time.Time{}
-		ticker := time.NewTicker(2 * time.Second)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			info, err := os.Stat(filePath)
-			if err != nil {
-				continue
-			}
-			if info.ModTime().After(lastMod) {
-				if !lastMod.IsZero() {
-					slog.Info("Hot-reloading item definitions due to file change", "path", filePath)
-				}
-				if err := LoadItemDefinitions(filePath); err == nil {
-					lastMod = info.ModTime()
-				} else {
-					slog.Error("Failed to hot-reload item definitions", "error", err)
-				}
-			}
-		}
-	}()
-}
 
 // InventoryItem representa um item instanciado no inventário do jogador
 type InventoryItem struct {
@@ -389,12 +315,9 @@ func (pi *PlayerInventory) RecalculateStats(currentStats *combat.EntityStats) {
 	// Restaura atributos para a base
 	*currentStats = pi.BaseStats
 
-	itemDictMu.RLock()
-	defer itemDictMu.RUnlock()
-
 	// Aplica bônus do slot de Arma
 	if weaponItem, ok := pi.Items[SlotWeapon]; ok && weaponItem != nil {
-		if def, exists := ItemDictionary[weaponItem.ItemID]; exists {
+		if def, exists := GetItemDef(weaponItem.ItemID); exists {
 			currentStats.WeaponDamage = def.BaseDamage
 		}
 	} else {
@@ -403,14 +326,14 @@ func (pi *PlayerInventory) RecalculateStats(currentStats *combat.EntityStats) {
 
 	// Aplica bônus do slot de Armadura
 	if armorItem, ok := pi.Items[SlotArmor]; ok && armorItem != nil {
-		if def, exists := ItemDictionary[armorItem.ItemID]; exists {
+		if def, exists := GetItemDef(armorItem.ItemID); exists {
 			currentStats.Defense = pi.BaseStats.Defense + def.BaseDef
 		}
 	}
 
 	// Aplica bônus do slot de Acessório
 	if accItem, ok := pi.Items[SlotAccessory]; ok && accItem != nil {
-		if def, exists := ItemDictionary[accItem.ItemID]; exists {
+		if def, exists := GetItemDef(accItem.ItemID); exists {
 			currentStats.Resistance = pi.BaseStats.Resistance + def.BaseRes
 			currentStats.CritChance = pi.BaseStats.CritChance + def.CritBonus
 		}
@@ -431,12 +354,12 @@ func (pi *PlayerInventory) RecalculateStats(currentStats *combat.EntityStats) {
 
 	currentStats.LastCombatTime = lastCombat
 
-	slog.Info("Stats autoritativos recalculados", 
-		"player", pi.PlayerID, 
-		"atk", currentStats.BaseAttack, 
-		"weaponDmg", currentStats.WeaponDamage, 
-		"def", currentStats.Defense, 
-		"res", currentStats.Resistance, 
+	slog.Info("Stats autoritativos recalculados",
+		"player", pi.PlayerID,
+		"atk", currentStats.BaseAttack,
+		"weaponDmg", currentStats.WeaponDamage,
+		"def", currentStats.Defense,
+		"res", currentStats.Resistance,
 		"crit", currentStats.CritChance)
 }
 
@@ -460,9 +383,7 @@ func (pi *PlayerInventory) EquipItem(fromSlot, toSlot int, currentStats *combat.
 	}
 
 	// 3. Verifica se a definição do item existe (Thread-Safe)
-	itemDictMu.RLock()
-	def, exists := ItemDictionary[item.ItemID]
-	itemDictMu.RUnlock()
+	def, exists := GetItemDef(item.ItemID)
 	if !exists {
 		return fmt.Errorf("definição de item não encontrada: %s", item.ItemID)
 	}
@@ -590,9 +511,7 @@ func (pi *PlayerInventory) SwapSlots(slotA, slotB int) error {
 
 	// 1. Lógica de agrupamento de itens stackable iguais
 	if itemA != nil && itemB != nil && itemA.ItemID == itemB.ItemID {
-		itemDictMu.RLock()
-		def, exists := ItemDictionary[itemA.ItemID]
-		itemDictMu.RUnlock()
+		def, exists := GetItemDef(itemA.ItemID)
 		if exists && def.Stackable {
 			totalQty := itemA.Quantity + itemB.Quantity
 			if totalQty <= def.MaxStack {
@@ -631,9 +550,7 @@ func (pi *PlayerInventory) AddItem(itemID string, qty int) bool {
 	pi.mu.Lock()
 	defer pi.mu.Unlock()
 
-	itemDictMu.RLock()
-	def, exists := ItemDictionary[itemID]
-	itemDictMu.RUnlock()
+	def, exists := GetItemDef(itemID)
 
 	if !exists {
 		return false
@@ -680,97 +597,6 @@ func (pi *PlayerInventory) AddItem(itemID string, qty int) bool {
 	}
 
 	return qty <= 0
-}
-
-func init() {
-	// Definições de fallback estáticas
-	fallbackDict := map[string]ItemDef{
-		"sword_basic": {
-			ID:         "sword_basic",
-			Name:       "Espada Básica",
-			Type:       "weapon",
-			Stackable:  false,
-			MaxStack:   1,
-			BaseDamage: 15.0,
-		},
-		"sword_excalibur": {
-			ID:         "sword_excalibur",
-			Name:       "Excalibur",
-			Type:       "weapon",
-			Stackable:  false,
-			MaxStack:   1,
-			BaseDamage: 60.0,
-		},
-		"bow_hunter": {
-			ID:         "bow_hunter",
-			Name:       "Arco de Caçador",
-			Type:       "weapon",
-			Stackable:  false,
-			MaxStack:   1,
-			BaseDamage: 25.0,
-		},
-		"armor_leather": {
-			ID:        "armor_leather",
-			Name:      "Armadura de Couro",
-			Type:      "armor",
-			Stackable: false,
-			MaxStack:  1,
-			BaseDef:   15.0,
-		},
-		"armor_plate": {
-			ID:        "armor_plate",
-			Name:      "Armadura de Placas",
-			Type:      "armor",
-			Stackable: false,
-			MaxStack:  1,
-			BaseDef:   45.0,
-		},
-		"ring_crit": {
-			ID:        "ring_crit",
-			Name:      "Anel do Destruidor",
-			Type:      "accessory",
-			Stackable: false,
-			MaxStack:  1,
-			BaseRes:   5.0,
-			CritBonus: 0.12,
-		},
-		"potion_heal": {
-			ID:        "potion_heal",
-			Name:      "Poção de Cura",
-			Type:      "consumable",
-			Stackable: true,
-			MaxStack:  99,
-		},
-		"iron_ore": {
-			ID:        "iron_ore",
-			Name:      "Minério de Ferro",
-			Type:      "material",
-			Stackable: true,
-			MaxStack:  99,
-		},
-	}
-
-	itemDictMu.Lock()
-	ItemDictionary = fallbackDict
-	itemDictMu.Unlock()
-
-	paths := []string{"backend/config/items.json", "config/items.json", "../config/items.json"}
-	for _, p := range paths {
-		if _, err := os.Stat(p); err == nil {
-			if err := LoadItemDefinitions(p); err == nil {
-				SetupItemHotReload(p)
-				break
-			}
-		}
-	}
-}
-
-// GetItemDef retorna de forma thread-safe a definição de um item (Sprint 4 Task 1)
-func GetItemDef(itemID string) (ItemDef, bool) {
-	itemDictMu.RLock()
-	defer itemDictMu.RUnlock()
-	def, exists := ItemDictionary[itemID]
-	return def, exists
 }
 
 // IsAoLEquipped checks if the player has an Amulet of Loss equipped in slots 0-3 or accessory slot
