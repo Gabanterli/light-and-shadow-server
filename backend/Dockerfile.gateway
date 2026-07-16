@@ -12,7 +12,7 @@ RUN go mod download
 COPY . .
 
 # Compila o binário estático do Gateway Server
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o gateway cmd/gateway/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o gateway ./cmd/gateway
 
 # Estágio de Execução Mínimo
 FROM alpine:3.18
