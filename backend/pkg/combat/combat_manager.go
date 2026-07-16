@@ -69,6 +69,7 @@ type CombatManager struct {
 	manaCounter    float64
 	chunkManager   *movement.ChunkManager
 	eventHandler   CombatEventHandler
+	offensiveActionValidator OffensiveActionValidator
 	PvPValidator   func(attackerID, targetID string) error // PvP Validation Callback (PATCH PvP)
 	lastAttacker   map[string]string                       // targetID -> lastPlayerAttackerID (PATCH PvP)
 	OnPvPDealt     func(attackerID, targetID string)       // On PvP Damage callback (PATCH 6)
@@ -110,6 +111,28 @@ func (cm *CombatManager) SetEventHandler(handler CombatEventHandler) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	cm.eventHandler = handler
+}
+
+// SetOffensiveActionValidator registers a gateway-provided guard that runs
+// before any offensive action is initiated. It is thread-safe.
+func (cm *CombatManager) SetOffensiveActionValidator(validator OffensiveActionValidator) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	cm.offensiveActionValidator = validator
+}
+
+// validateOffensiveAction runs the configured guard, if any, outside of the
+// manager's lock to prevent deadlocks.
+func (cm *CombatManager) validateOffensiveAction(attackerID string) error {
+	cm.mu.RLock()
+	validator := cm.offensiveActionValidator
+	cm.mu.RUnlock()
+
+	if validator == nil {
+		return nil
+	}
+
+	return validator(attackerID)
 }
 
 // HasLineOfSight verifica se há linha de visão desobstruída entre duas coordenadas (Bresenham's Grid Raycast)
@@ -384,6 +407,11 @@ func (cm *CombatManager) ClearLastAttacker(id string) {
 
 // ProcessAttackRequest valida e processa um ataque básico (auto-attack) autoritativo
 func (cm *CombatManager) ProcessAttackRequest(attackerID, targetID, weaponType string) (float64, bool, bool, error) {
+	// D2B3: Offensive action guard
+	if err := cm.validateOffensiveAction(attackerID); err != nil {
+		return 0, false, false, err
+	}
+
 	cm.mu.Lock()
 	attacker, existsAtt := cm.entities[attackerID]
 	target, existsTar := cm.entities[targetID]
@@ -544,9 +572,16 @@ func (cm *CombatManager) ProcessCastSkillRequest(attackerID string, skillID uint
 		return nil, errors.New("atacante está morto")
 	}
 
-	skill, existsSkill := cm.skills[skillID]
+	skill, existsSkill := cm.skills[skillID] // Read-only access, no lock needed yet
 	if !existsSkill {
 		return nil, fmt.Errorf("habilidade ID %d não existe", skillID)
+	}
+
+	// D2B3: Offensive action guard
+	if skill.Category.RequiresOffensiveAuthorization() {
+		if err := cm.validateOffensiveAction(attackerID); err != nil {
+			return nil, err
+		}
 	}
 
 	// 1. Validar Cooldown da Habilidade (Anti-spam)

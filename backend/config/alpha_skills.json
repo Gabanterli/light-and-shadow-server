@@ -5,6 +5,7 @@
     {
       "ID": 1001,
       "Name": "Fire Bolt",
+      "Category": "offensive",
       "ManaCost": 0,
       "CooldownMs": 900,
       "Range": 6.0,
@@ -15,6 +16,7 @@
     {
       "ID": 1002,
       "Name": "Holy Spark",
+      "Category": "offensive",
       "ManaCost": 0,
       "CooldownMs": 1100,
       "Range": 6.0,
@@ -25,6 +27,7 @@
     {
       "ID": 1003,
       "Name": "Shadow Dart",
+      "Category": "offensive",
       "ManaCost": 0,
       "CooldownMs": 1000,
       "Range": 6.0,

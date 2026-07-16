@@ -14,9 +14,10 @@ import (
 const maxAuthoritativeLoginSpawnClaimAttempts = 3
 
 type authoritativeLoginSpawnActivation struct {
-	Placement     authoritativeSpawnPlacement
-	Version       int
-	ClaimAttempts int
+	Placement                authoritativeSpawnPlacement
+	Version                  int
+	ClaimAttempts            int
+	OverlappedExistingPlayer bool
 }
 
 type authoritativeLoginSpawnUnavailableError struct {
@@ -58,6 +59,33 @@ type authoritativeLoginSpawnClaimer interface {
 	) error
 
 	RemoveEntity(id string)
+}
+
+// authoritativeLoginSpawnClaimerWithResult is implemented by
+// claimers that report facts observed under the same lock that
+// publishes the player in the authoritative SpatialIndex.
+type authoritativeLoginSpawnClaimerWithResult interface {
+	TryClaimPlayerLoginEntityWithResult(
+		entity *movement.Entity,
+	) (movement.PlayerLoginClaimResult, error)
+}
+
+func claimAuthoritativeLoginSpawnEntity(
+	claimer authoritativeLoginSpawnClaimer,
+	entity *movement.Entity,
+) (movement.PlayerLoginClaimResult, error) {
+	claimerWithResult, supportsResult :=
+		claimer.(authoritativeLoginSpawnClaimerWithResult)
+
+	if supportsResult {
+		return claimerWithResult.TryClaimPlayerLoginEntityWithResult(
+			entity,
+		)
+	}
+
+	err := claimer.TryClaimPlayerLoginEntity(entity)
+
+	return movement.PlayerLoginClaimResult{}, err
 }
 
 type authoritativeLoginPositionRelocator interface {
@@ -184,17 +212,19 @@ func resolveClaimAndPersistAuthoritativeLoginSpawn(
 
 		position := placement.Position
 
-		claimError := claimer.TryClaimPlayerLoginEntity(
-			&movement.Entity{
-				ID:             playerID,
-				Name:           "Player_" + playerID,
-				X:              position.X,
-				Y:              position.Y,
-				Z:              position.Z,
-				Type:           "player",
-				BlocksMovement: true,
-			},
-		)
+		claimResult, claimError :=
+			claimAuthoritativeLoginSpawnEntity(
+				claimer,
+				&movement.Entity{
+					ID:             playerID,
+					Name:           "Player_" + playerID,
+					X:              position.X,
+					Y:              position.Y,
+					Z:              position.Z,
+					Type:           "player",
+					BlocksMovement: true,
+				},
+			)
 		if claimError != nil {
 			var blocked *movement.SpatialPlayerLoginClaimBlockedError
 
@@ -254,9 +284,10 @@ func resolveClaimAndPersistAuthoritativeLoginSpawn(
 		}
 
 		return authoritativeLoginSpawnActivation{
-			Placement:     placement,
-			Version:       resultVersion,
-			ClaimAttempts: attempt,
+			Placement:                placement,
+			Version:                  resultVersion,
+			ClaimAttempts:            attempt,
+			OverlappedExistingPlayer: claimResult.OverlappedExistingPlayer,
 		}, nil
 	}
 

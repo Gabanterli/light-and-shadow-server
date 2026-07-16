@@ -55,20 +55,35 @@ func (si *SpatialIndex) IsPlayerLoginTileBlocked(
 	) != nil
 }
 
-// TryClaimPlayerLoginEntity atomically registers a blocking player on a login
-// tile while allowing that tile to contain other players.
-//
-// NPCs, creatures, and every other blocking non-player entity still reject the
-// claim. The claimed player remains blocking for all movement after login.
+// PlayerLoginClaimResult describes facts observed atomically while a player
+// login entity is claimed in the authoritative SpatialIndex.
+type PlayerLoginClaimResult struct {
+	OverlappedExistingPlayer bool
+}
+
+// TryClaimPlayerLoginEntity preserves the original error-only API.
 func (si *SpatialIndex) TryClaimPlayerLoginEntity(
 	entity *Entity,
 ) error {
+	_, err := si.TryClaimPlayerLoginEntityWithResult(entity)
+	return err
+}
+
+// TryClaimPlayerLoginEntityWithResult atomically registers a blocking player
+// on a login tile while allowing that tile to contain other players.
+//
+// NPCs, creatures, and every other blocking non-player entity still reject the
+// claim. OverlappedExistingPlayer is calculated before insertion and under the
+// same exclusive lock that publishes the claimed entity.
+func (si *SpatialIndex) TryClaimPlayerLoginEntityWithResult(
+	entity *Entity,
+) (PlayerLoginClaimResult, error) {
 	normalized, err :=
 		validateSpatialSpawnClaimEntity(
 			entity,
 		)
 	if err != nil {
-		return err
+		return PlayerLoginClaimResult{}, err
 	}
 
 	normalized.Type = strings.ToLower(
@@ -76,21 +91,23 @@ func (si *SpatialIndex) TryClaimPlayerLoginEntity(
 	)
 
 	if normalized.Type != "player" {
-		return &SpatialSpawnClaimValidationError{
-			Field: "entity_type",
-			Reason: fmt.Sprintf(
-				"player login claim requires entity type %q, got %q",
-				"player",
-				normalized.Type,
-			),
-		}
+		return PlayerLoginClaimResult{},
+			&SpatialSpawnClaimValidationError{
+				Field: "entity_type",
+				Reason: fmt.Sprintf(
+					"player login claim requires entity type %q, got %q",
+					"player",
+					normalized.Type,
+				),
+			}
 	}
 
 	if si == nil {
-		return &SpatialSpawnClaimValidationError{
-			Field:  "spatial_index",
-			Reason: "cannot be nil",
-		}
+		return PlayerLoginClaimResult{},
+			&SpatialSpawnClaimValidationError{
+				Field:  "spatial_index",
+				Reason: "cannot be nil",
+			}
 	}
 
 	si.mu.Lock()
@@ -101,9 +118,10 @@ func (si *SpatialIndex) TryClaimPlayerLoginEntity(
 	}
 
 	if _, exists := si.entities[normalized.ID]; exists {
-		return &SpatialSpawnClaimEntityExistsError{
-			EntityID: normalized.ID,
-		}
+		return PlayerLoginClaimResult{},
+			&SpatialSpawnClaimEntityExistsError{
+				EntityID: normalized.ID,
+			}
 	}
 
 	blocker := si.playerLoginBlockingEntityLocked(
@@ -113,13 +131,44 @@ func (si *SpatialIndex) TryClaimPlayerLoginEntity(
 		normalized.Z,
 	)
 	if blocker != nil {
-		return &SpatialPlayerLoginClaimBlockedError{
-			EntityID:    normalized.ID,
-			BlockerID:   blocker.ID,
-			BlockerType: blocker.Type,
-			X:           normalized.X,
-			Y:           normalized.Y,
-			Z:           normalized.Z,
+		return PlayerLoginClaimResult{},
+			&SpatialPlayerLoginClaimBlockedError{
+				EntityID:    normalized.ID,
+				BlockerID:   blocker.ID,
+				BlockerType: blocker.Type,
+				X:           normalized.X,
+				Y:           normalized.Y,
+				Z:           normalized.Z,
+			}
+	}
+
+	key := getChunkKey(
+		normalized.X,
+		normalized.Y,
+	)
+
+	overlappedExistingPlayer := false
+
+	if floor := si.floors[normalized.Z]; floor != nil {
+		if entities := floor[key]; entities != nil {
+			for existingID, existing := range entities {
+				if existing == nil ||
+					existingID == normalized.ID ||
+					existing.X != normalized.X ||
+					existing.Y != normalized.Y ||
+					existing.Z != normalized.Z {
+					continue
+				}
+
+				existingType := strings.ToLower(
+					strings.TrimSpace(existing.Type),
+				)
+
+				if existingType == "player" {
+					overlappedExistingPlayer = true
+					break
+				}
+			}
 		}
 	}
 
@@ -127,11 +176,6 @@ func (si *SpatialIndex) TryClaimPlayerLoginEntity(
 		si.floors[normalized.Z] =
 			make(map[uint64]map[string]*Entity)
 	}
-
-	key := getChunkKey(
-		normalized.X,
-		normalized.Y,
-	)
 
 	if si.floors[normalized.Z][key] == nil {
 		si.floors[normalized.Z][key] =
@@ -143,7 +187,9 @@ func (si *SpatialIndex) TryClaimPlayerLoginEntity(
 	si.entities[claimed.ID] = &claimed
 	si.floors[claimed.Z][key][claimed.ID] = &claimed
 
-	return nil
+	return PlayerLoginClaimResult{
+		OverlappedExistingPlayer: overlappedExistingPlayer,
+	}, nil
 }
 
 // HasOverlappingPlayer reports whether the requested player currently shares a

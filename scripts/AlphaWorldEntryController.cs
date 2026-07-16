@@ -92,6 +92,8 @@ public partial class AlphaWorldEntryController : Control
     private CancellationTokenSource? _alphaAutoAttackCts;
     private bool _isAlphaAttackRequestInFlight;
     private static readonly TimeSpan AlphaAutoAttackInterval = TimeSpan.FromMilliseconds(1000);
+    private const string LoginOverlapOffensiveActionBlockedReason =
+        "Você precisa sair de cima de outro jogador para usar ações ofensivas.";
     private const double AlphaDebugSwordPreviewRangeTiles = 1.05;
 
     public override void _Ready()
@@ -1511,6 +1513,20 @@ content.AddChild(_alphaDialogueTextLabel);
         SetAlphaCombatMessage(message);
     }
 
+    private static bool IsTemporaryLoginOverlapCombatBlock(string reason)
+    {
+        return string.Equals(
+            reason?.Trim(),
+            LoginOverlapOffensiveActionBlockedReason,
+            StringComparison.Ordinal
+        );
+    }
+
+    private void ApplyAlphaTemporaryCombatBlockFeedback(string reason)
+    {
+        SetAlphaCombatMessage(reason);
+    }
+
     private void HandleAlphaDamageEventPacket(Packet packet)
     {
         try
@@ -1518,7 +1534,26 @@ content.AddChild(_alphaDialogueTextLabel);
             var data = BinaryProtocol.DecodeDamageEvent(packet.Payload);
             GD.Print($"Alpha damage event decoded: target={data.TargetID}, skill={data.SkillName}, success={data.Success}, hit={data.IsHit}, damage={data.Damage:F0}");
 
-            if (!data.Success) { var failureMessage = BuildAlphaCombatFailureFeedback(data.SkillName); CallDeferred(nameof(ApplyAlphaCombatFailureFeedback), failureMessage); return; }
+            if (!data.Success)
+            {
+                if (IsTemporaryLoginOverlapCombatBlock(data.SkillName))
+                {
+                    CallDeferred(
+                        nameof(ApplyAlphaTemporaryCombatBlockFeedback),
+                        data.SkillName
+                    );
+                    return;
+                }
+
+                var failureMessage =
+                    BuildAlphaCombatFailureFeedback(data.SkillName);
+
+                CallDeferred(
+                    nameof(ApplyAlphaCombatFailureFeedback),
+                    failureMessage
+                );
+                return;
+            }
 
             var isOrcEliteTarget = data.TargetID == "Orc_Elite" || data.TargetID == _alphaOrcEliteRuntimeEntityId;
             var isAlphaConfirmedSpell = isOrcEliteTarget && IsAlphaConfirmedSpellSkillName(data.SkillName);

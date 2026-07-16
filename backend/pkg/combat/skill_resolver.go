@@ -9,10 +9,33 @@ import (
 	"time"
 )
 
+// SkillCategory defines the functional group of a skill.
+type SkillCategory string
+
+const (
+	SkillCategoryOffensive SkillCategory = "offensive"
+	SkillCategorySupport   SkillCategory = "support"
+	SkillCategoryDefensive SkillCategory = "defensive"
+	SkillCategoryUtility   SkillCategory = "utility"
+)
+
+// RequiresOffensiveAuthorization reports whether a skill in this category must
+// pass an offensive action guard before being used. It is fail-closed.
+func (c SkillCategory) RequiresOffensiveAuthorization() bool {
+	switch c {
+	case SkillCategorySupport, SkillCategoryDefensive, SkillCategoryUtility:
+		return false
+	default:
+		// Includes SkillCategoryOffensive, empty, and any unknown values.
+		return true
+	}
+}
+
 // Skill define as propriedades estáticas de uma habilidade no servidor
 type Skill struct {
 	ID         uint32
 	Name       string
+	Category   SkillCategory
 	Cooldown   time.Duration
 	Range      float64
 	SkillScale float64
@@ -26,6 +49,7 @@ var PredefinedSkills = map[uint32]Skill{
 	1: {
 		ID:         1,
 		Name:       "Slash",
+		Category:   SkillCategoryOffensive,
 		Cooldown:   1500 * time.Millisecond,
 		Range:      1.5,
 		SkillScale: 1.3, // 130% de dano
@@ -35,6 +59,7 @@ var PredefinedSkills = map[uint32]Skill{
 	2: {
 		ID:         2,
 		Name:       "Fireball",
+		Category:   SkillCategoryOffensive,
 		Cooldown:   3000 * time.Millisecond,
 		Range:      6.0,
 		SkillScale: 1.8, // 180% de dano
@@ -45,6 +70,7 @@ var PredefinedSkills = map[uint32]Skill{
 	3: {
 		ID:         3,
 		Name:       "Spear Thrust",
+		Category:   SkillCategoryOffensive,
 		Cooldown:   2000 * time.Millisecond,
 		Range:      2.5,
 		SkillScale: 1.4, // 140% de dano
@@ -54,6 +80,7 @@ var PredefinedSkills = map[uint32]Skill{
 	4: {
 		ID:         4,
 		Name:       "Arrow Rain",
+		Category:   SkillCategoryOffensive,
 		Cooldown:   5000 * time.Millisecond,
 		Range:      8.0,
 		SkillScale: 1.1, // 110% de dano
@@ -66,6 +93,7 @@ var PredefinedSkills = map[uint32]Skill{
 	1001: {
 		ID:         1001,
 		Name:       "Fire Bolt",
+		Category:   SkillCategoryOffensive,
 		Cooldown:   900 * time.Millisecond,
 		Range:      6.0,
 		SkillScale: 0.45,
@@ -75,6 +103,7 @@ var PredefinedSkills = map[uint32]Skill{
 	1002: {
 		ID:         1002,
 		Name:       "Holy Spark",
+		Category:   SkillCategoryOffensive,
 		Cooldown:   1100 * time.Millisecond,
 		Range:      6.0,
 		SkillScale: 0.40,
@@ -84,6 +113,7 @@ var PredefinedSkills = map[uint32]Skill{
 	1003: {
 		ID:         1003,
 		Name:       "Shadow Dart",
+		Category:   SkillCategoryOffensive,
 		Cooldown:   1000 * time.Millisecond,
 		Range:      6.0,
 		SkillScale: 0.50,
@@ -100,6 +130,7 @@ func isAlphaDebugSpellSkillID(skillID uint32) bool {
 type skillDTO struct {
 	ID         uint32  `json:"ID"`
 	Name       string  `json:"Name"`
+	Category   string  `json:"Category"`
 	CooldownMs uint32  `json:"CooldownMs"`
 	Range      float64 `json:"Range"`
 	SkillScale float64 `json:"SkillScale"`
@@ -134,6 +165,17 @@ func LoadAlphaSkills(path string) (map[uint32]Skill, error) {
 		if dto.Name == "" {
 			return nil, fmt.Errorf("skill with ID %d has an empty name", dto.ID)
 		}
+		switch SkillCategory(dto.Category) {
+		case SkillCategoryOffensive,
+			SkillCategorySupport,
+			SkillCategoryDefensive,
+			SkillCategoryUtility:
+			// valid
+		case "":
+			return nil, fmt.Errorf("skill with ID %d has a missing category", dto.ID)
+		default:
+			return nil, fmt.Errorf("skill with ID %d has an unknown category: %q", dto.ID, dto.Category)
+		}
 		if dto.ManaCost < 0 {
 			return nil, fmt.Errorf("skill with ID %d has a negative mana cost: %.2f", dto.ID, dto.ManaCost)
 		}
@@ -150,6 +192,7 @@ func LoadAlphaSkills(path string) (map[uint32]Skill, error) {
 		skillMap[dto.ID] = Skill{
 			ID:         dto.ID,
 			Name:       dto.Name,
+			Category:   SkillCategory(dto.Category),
 			Cooldown:   time.Duration(dto.CooldownMs) * time.Millisecond,
 			Range:      dto.Range,
 			SkillScale: dto.SkillScale,

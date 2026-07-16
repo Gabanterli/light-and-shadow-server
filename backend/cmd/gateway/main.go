@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
@@ -55,6 +56,8 @@ type GatewayServer struct {
 	worldMapProvider             worldmap.Provider
 	worldMapStaticCollisionIndex *worldmap.StaticCollisionIndex
 	authoritativeSpawnResolver   *authoritativeSpawnPlacementResolver
+	loginOverlapRegistry         *loginOverlapCombatRestrictionRegistry
+	activeCharacterSessions      *activeCharacterSessionRegistry
 	spatialIndex                 *movement.SpatialIndex
 	chunkManager                 *movement.ChunkManager
 	aoiManager                   *movement.AOIManager
@@ -238,6 +241,13 @@ func main() {
 	// Inicializa e configura Sistemas de Movimento e AOI (Sprint 2 Task 4)
 	spatialIndex := movement.NewSpatialIndex()
 
+	// D2B3: Create the authoritative login overlap restriction registry.
+	loginOverlapRegistry, err := newLoginOverlapCombatRestrictionRegistry(spatialIndex)
+	if err != nil {
+		slog.Error("Failed to create login overlap combat restriction registry", "error", err)
+		os.Exit(1)
+	}
+
 	authoritativeSpawnResolver, err :=
 		newAuthoritativeSpawnPlacementResolver(
 			staticCollisionIndex,
@@ -275,6 +285,8 @@ func main() {
 
 	// Inicializa Sistema de Combate Autorizativo (Sprint 2 Task 5)
 	combatManager := combat.NewCombatManager(chunkManager, alphaSkills)
+	// D2B3: Connect the overlap guard to the combat manager.
+	combatManager.SetOffensiveActionValidator(loginOverlapRegistry.ValidateOffensiveAction)
 
 	// Configura LevelProvider para checagens de regiÃ£o da Sprint 3 Task 5 (PATCH 1)
 	movementSystem.LevelProvider = func(playerID string) int {
@@ -325,6 +337,8 @@ func main() {
 		worldMapProvider:             mapProvider,
 		worldMapStaticCollisionIndex: staticCollisionIndex,
 		authoritativeSpawnResolver:   authoritativeSpawnResolver,
+		loginOverlapRegistry:         loginOverlapRegistry,
+		activeCharacterSessions:      newActiveCharacterSessionRegistry(),
 		spatialIndex:                 spatialIndex,
 		chunkManager:                 chunkManager,
 		aoiManager:                   aoiManager,
@@ -609,6 +623,38 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 	var authenticatedAccountID int
 	var playerID string
 	var lastRefresh time.Time
+	var leasedCharacterID string
+	var activeCharacterLease activeCharacterSessionLease
+
+	releaseCharacterLease := func(reason string) {
+		if leasedCharacterID == "" {
+			return
+		}
+
+		released := s.activeCharacterSessions.Release(
+			leasedCharacterID,
+			activeCharacterLease,
+		)
+
+		if released {
+			slog.Info(
+				"Active character session lease released",
+				"player", leasedCharacterID,
+				"generation", activeCharacterLease.generation,
+				"reason", reason,
+			)
+		} else {
+			slog.Warn(
+				"Active character session lease release was rejected",
+				"player", leasedCharacterID,
+				"generation", activeCharacterLease.generation,
+				"reason", reason,
+			)
+		}
+
+		leasedCharacterID = ""
+		activeCharacterLease = activeCharacterSessionLease{}
+	}
 
 	defer func() {
 		s.clientsMu.Lock()
@@ -620,28 +666,44 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			slog.Info("Client disconnected; auth session preserved until TTL", "account_id", authenticatedAccountID)
 		}
 
-		// Desregistra jogador do motor de movimentos e AOI para liberar recursos de rede
+		// D2B3: Only the authoritative lifecycle lease owner may clean
+		// shared character state. The lease remains held until cleanup ends.
 		if playerID != "" {
-			// Salva o personagem antes de remover as referÃªncias in-memory (Save on logout/disconnect)
-			slog.Info("Saving player state on disconnect / logout...", "player", playerID)
-			s.saveCharacterState(playerID)
+			if s.activeCharacterSessions.Owns(playerID, activeCharacterLease) {
+				// Salva o personagem antes de remover as referências in-memory.
+				slog.Info("Saving player state on disconnect / logout...", "player", playerID)
+				s.saveCharacterState(playerID)
 
-			s.inventoriesMu.Lock()
-			delete(s.inventories, playerID)
-			s.inventoriesMu.Unlock()
+				s.inventoriesMu.Lock()
+				delete(s.inventories, playerID)
+				s.inventoriesMu.Unlock()
 
-			s.movementSystem.RemovePlayerState(playerID)
-			s.aoiManager.DeregisterPlayer(playerID)
-			s.questManager.CleanPlayerState(playerID)
-			s.socialManager.OnPlayerLogout(playerID)
-			slog.Info("Cleaned up player states from systems on disconnect", "player", playerID)
+				// Clear belongs to the same owned lifecycle cleanup.
+				s.loginOverlapRegistry.Clear(playerID)
 
-			// B3-B: Invalida o estado de diálogo no logout.
-			if npcID, cleared := s.questManager.ClearDialogueState(playerID); cleared {
-				slog.Info("Ephemeral dialogue state invalidated on disconnect", "player", playerID, "npc", npcID)
+				s.movementSystem.RemovePlayerState(playerID)
+				s.aoiManager.DeregisterPlayer(playerID)
+				s.questManager.CleanPlayerState(playerID)
+				s.socialManager.OnPlayerLogout(playerID)
+				slog.Info("Cleaned up owned player states from systems on disconnect", "player", playerID)
+
+				// B3-B: Invalida o estado de diálogo no logout.
+				if npcID, cleared := s.questManager.ClearDialogueState(playerID); cleared {
+					slog.Info("Ephemeral dialogue state invalidated on disconnect", "player", playerID, "npc", npcID)
+				}
+
+				releaseCharacterLease("owned disconnect cleanup completed")
+			} else {
+				slog.Warn(
+					"Skipped stale character cleanup because the connection does not own the active lease",
+					"player", playerID,
+					"generation", activeCharacterLease.generation,
+				)
 			}
-
+		} else if leasedCharacterID != "" {
+			releaseCharacterLease("disconnect before character activation")
 		}
+
 	}()
 
 	slog.Info("Client connected to Gateway", "remote_addr", conn.RemoteAddr().String())
@@ -854,6 +916,25 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				conn.Write(response.Serialize())
 				break
 			}
+			if playerID != "" || leasedCharacterID != "" {
+				slog.Warn(
+					"Character selection rejected: this connection already owns or is acquiring a character",
+					"active_player", playerID,
+					"leased_character", leasedCharacterID,
+				)
+				response := &protocol.Packet{
+					Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
+					Sequence: packet.Sequence,
+					Payload: protocol.EncodeCharacterSelectResponse(
+						false,
+						"",
+						"character_already_selected",
+					),
+				}
+				conn.Write(response.Serialize())
+				break
+			}
+
 			slog.Info("Routing character selection to World Server")
 
 			offset := 0
@@ -895,6 +976,32 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 
 			characterID := selectedCharacterName // ID validado, mas ainda não ativo até LoadCharacter concluir
 
+			// D2B3: Acquire lifecycle ownership before loading or publishing
+			// any mutable character state.
+			characterSessionLease, acquired :=
+				s.activeCharacterSessions.TryAcquire(characterID)
+			if !acquired {
+				slog.Warn(
+					"Character selection rejected: character already has an active session or cleanup lease",
+					"character", characterID,
+					"account_id", authenticatedAccountID,
+				)
+				response := &protocol.Packet{
+					Opcode:   protocol.SC_CHAR_SELECT_RESPONSE,
+					Sequence: packet.Sequence,
+					Payload: protocol.EncodeCharacterSelectResponse(
+						false,
+						"",
+						"character_already_active",
+					),
+				}
+				conn.Write(response.Serialize())
+				break
+			}
+
+			leasedCharacterID = characterID
+			activeCharacterLease = characterSessionLease
+
 			// Carrega dados persistentes do banco PostgreSQL de forma atÃ´mica (PATCH 4)
 			stats, items, savedX, savedY, savedZ, version, exp, gold, err := s.persistenceMgr.LoadCharacter(characterID)
 			if err != nil {
@@ -905,6 +1012,7 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 					Payload:  protocol.EncodeCharacterSelectResponse(false, "", "character_load_failed"), // Status: failed
 				}
 				conn.Write(response.Serialize())
+				releaseCharacterLease("character load failed")
 				break
 			}
 
@@ -937,9 +1045,9 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 					),
 				}
 				conn.Write(response.Serialize())
+				releaseCharacterLease("character spawn preparation failed")
 				break
 			}
-
 			resolvedX := loginSpawn.Placement.Position.X
 			resolvedY := loginSpawn.Placement.Position.Y
 			resolvedZ := float64(loginSpawn.Placement.Position.Z)
@@ -977,7 +1085,6 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			s.inventories[playerID] = playerInv
 			s.inventoriesMu.Unlock()
 
-			s.aoiManager.RegisterPlayer(playerID, conn)
 			s.movementSystem.InitPlayerStateInWorldSpace(
 				playerID,
 				string(worldmap.WorldSpaceMainContinent),
@@ -986,9 +1093,20 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				int(resolvedZ),
 			)
 
+			// D2B3: The atomic login claim reports whether another
+			// player already occupied this tile before this entrant was published.
+			// Only the entrant from this activation is restricted.
+			if loginSpawn.OverlappedExistingPlayer {
+				s.loginOverlapRegistry.MarkRestrictedEntrant(playerID)
+				slog.Info(
+					"Character login overlap detected; offensive actions restricted until separation",
+					"player", playerID,
+					"x", resolvedX, "y", resolvedY, "z", resolvedZ,
+				)
+			}
+
 			// Carrega e sincroniza estado de quests e diÃ¡logos de NPCs (Sprint 3 Task 3)
 			_ = s.questManager.GetPlayerState(playerID)
-			s.questManager.SyncAllActiveQuests(playerID)
 			// B3-B: Limpa qualquer estado de diálogo obsoleto no character switch.
 			if npcID, cleared := s.questManager.ClearDialogueState(playerID); cleared {
 				slog.Info("Stale dialogue state invalidated on character select", "player", playerID, "npc", npcID)
@@ -1058,7 +1176,26 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 				Sequence: packet.Sequence,
 				Payload:  protocol.EncodeCharacterSelectResponse(true, characterID, ""),
 			}
-			conn.Write(response.Serialize())
+			if err := publishCharacterSelectionSuccess(
+				conn,
+				response,
+				playerID,
+				s.aoiManager.RegisterPlayer,
+				s.questManager.SyncAllActiveQuests,
+			); err != nil {
+				slog.Warn(
+					"Failed to acknowledge character selection before asynchronous publication",
+					"player", playerID,
+					"error", err,
+				)
+				return
+			}
+
+			slog.Info(
+				"Character selection acknowledged before asynchronous session publication",
+				"player", playerID,
+				"sequence", packet.Sequence,
+			)
 
 			// Send initial position update to the client itself (R1-O-D1)
 			initialPositionPayload, _ := json.Marshal(struct {
@@ -1904,7 +2041,22 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 			}
 			damage, isCrit, isProj, err := s.combatManager.ProcessAttackRequest(playerID, resolution.ResolvedTargetID, req.WeaponType)
 			if err != nil {
-				slog.Warn("Failed to process basic attack", "error", err)
+				var blocked *combat.ErrOffensiveActionBlocked
+				if errors.As(err, &blocked) {
+					if blocked.ShouldNotify {
+						// Send specific feedback only once.
+						errPayload := protocol.EncodeDamageEvent(playerID, resolution.ResolvedTargetID, 0, false, false, false, blocked.Reason)
+						errPacket := &protocol.Packet{
+							Opcode:   protocol.SC_DAMAGE_EVENT,
+							Sequence: packet.Sequence,
+							Payload:  errPayload,
+						}
+						conn.Write(errPacket.Serialize())
+					}
+					// Action is blocked, but it's temporary. Do not log as a warning.
+					break
+				}
+
 				errPayload := protocol.EncodeDamageEvent(playerID, resolution.ResolvedTargetID, 0, false, false, false, err.Error())
 				errPacket := &protocol.Packet{
 					Opcode:   protocol.SC_DAMAGE_EVENT,
@@ -2003,7 +2155,25 @@ func (s *GatewayServer) handleClient(conn net.Conn) {
 
 			res, err := s.combatManager.ProcessCastSkillRequest(playerID, req.SkillID, resolution.ResolvedTargetID, req.TargetX, req.TargetY)
 			if err != nil {
+				var blocked *combat.ErrOffensiveActionBlocked
+				if errors.As(err, &blocked) {
+					if blocked.ShouldNotify {
+						playerStats, statsExist := s.combatManager.GetEntityStats(playerID)
+						currentMana := 0.0
+						maxMana := 0.0
+						if statsExist {
+							currentMana = playerStats.Mana
+							maxMana = playerStats.MaxMana
+						}
+						resultPayload := protocol.EncodeCastSkillResult(req.SkillID, false, blocked.Reason, 0, 0, currentMana, maxMana)
+						conn.Write((&protocol.Packet{Opcode: protocol.SC_CAST_SKILL_RESULT, Sequence: packet.Sequence, Payload: resultPayload}).Serialize())
+					}
+					// Action is blocked, but it's temporary. Do not log as a warning.
+					break
+				}
+
 				slog.Warn("Failed to process cast skill", "error", err)
+
 				playerStats, statsExist := s.combatManager.GetEntityStats(playerID)
 				currentMana := 0.0
 				maxMana := 0.0
